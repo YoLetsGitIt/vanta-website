@@ -10,9 +10,9 @@ const spaceGrotesk = Space_Grotesk({
 const spaceGroteskBody = Space_Grotesk({ subsets: ['latin'], variable: '--font-body', weight: ['400', '500', '600'] });
 
 export const metadata = {
-  title: 'Inkspire | Find Your Next Tattoo',
+  title: 'Vanta | Find Your Next Tattoo',
   description:
-    'Inkspire helps people discover tattoo inspiration, connect with artists, and preview ideas before they commit.',
+    'Vanta helps people discover tattoo inspiration, connect with artists, and preview ideas before they commit.',
 };
 
 export default function RootLayout({ children }) {
