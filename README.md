@@ -1,0 +1,20 @@
+# Inkspire Website
+
+Next.js marketing site for Inkspire.
+
+## Run locally
+
+```bash
+cd /Users/matthewkwon/Documents/vanta/inkspire-website
+npm install
+npm run dev
+```
+
+Then visit `http://localhost:3000`.
+
+## Build for production
+
+```bash
+npm run build
+npm run start
+```
