@@ -5,11 +5,11 @@ import { motion, useMotionValue, useSpring } from 'framer-motion';
 import TypewriterIntro from '@/components/TypewriterIntro';
 
 const welcomeCarouselImages = [
-  '/welcome/SplashTattoo1.jpg',
-  '/welcome/SplashTattoo2.jpg',
-  '/welcome/SplashTattoo3.jpg',
-  '/welcome/SplashTattoo4.jpg',
-  '/welcome/SplashTattoo5.jpg',
+  '/vanta-website/welcome/SplashTattoo1.jpg',
+  '/vanta-website/welcome/SplashTattoo2.jpg',
+  '/vanta-website/welcome/SplashTattoo3.jpg',
+  '/vanta-website/welcome/SplashTattoo4.jpg',
+  '/vanta-website/welcome/SplashTattoo5.jpg',
 ];
 
 const feedColumns = [

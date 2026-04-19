@@ -13,6 +13,9 @@ export const metadata = {
   title: 'Vanta | Find Your Next Tattoo',
   description:
     'Vanta helps people discover tattoo inspiration, connect with artists, and preview ideas before they commit.',
+  icons: {
+    icon: '/vanta-app-icon.png',
+  },
 };
 
 export default function RootLayout({ children }) {
