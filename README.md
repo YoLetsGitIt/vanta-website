@@ -1,11 +1,11 @@
-# Inkspire Website
+# Vanta Website
 
-Next.js marketing site for Inkspire.
+Next.js marketing site for Vanta.
 
 ## Run locally
 
 ```bash
-cd /Users/matthewkwon/Documents/vanta/inkspire-website
+cd /Users/matthewkwon/Documents/vanta/vanta-website
 npm install
 npm run dev
 ```
