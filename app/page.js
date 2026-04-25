@@ -315,7 +315,7 @@ export default function HomePage() {
         </div>
 
         {/* Bottom copyright */}
-        <p className="splash-footer">© 2026 Vanta</p>
+        <p className="splash-footer">© 2026 Vanta Ink</p>
       </motion.div>
     </>
   );
