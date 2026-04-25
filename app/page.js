@@ -246,7 +246,9 @@ export default function HomePage() {
 
             <motion.a
               className="app-store-badge"
-              href="#"
+              href="https://apps.apple.com/au/app/vanta/id6760996738"
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="Download Vanta on the App Store"
               variants={leftItemVariants}
             >
