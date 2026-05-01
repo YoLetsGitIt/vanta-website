@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
+import Link from 'next/link';
 import TypewriterIntro from '@/components/TypewriterIntro';
 
 const welcomeCarouselImages = [
@@ -317,7 +318,13 @@ export default function HomePage() {
         </div>
 
         {/* Bottom copyright */}
-        <p className="splash-footer">© 2026 Vanta Ink</p>
+        <div className="splash-footer">
+          <span>© 2026 Vanta Ink</span>
+          <div className="splash-footer-links">
+            <Link href="/terms">Terms</Link>
+            <Link href="/privacy">Privacy</Link>
+          </div>
+        </div>
       </motion.div>
     </>
   );
