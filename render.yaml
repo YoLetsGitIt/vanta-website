@@ -5,6 +5,8 @@ services:
     region: singapore
     buildCommand: npm install && npm run build
     startCommand: npm run start
+    domains:
+      - vanta.tattoo
     envVars:
       - key: NODE_ENV
         value: production
