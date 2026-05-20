@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: vanta-website
+    env: node
+    region: singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: PGSSL
+        value: true
+      - key: ANALYTICS_USER
+        sync: false
+      - key: ANALYTICS_PASSWORD
+        sync: false
+      - key: ANALYTICS_SESSION_SECRET
+        sync: false

@@ -1,6 +1,9 @@
 node_modules/
 .next/
 dist/
-# out/ is needed for GitHub Pages deployment
+out/
 coverage/
 *.log
+.env
+.env.local
+.env*.local
