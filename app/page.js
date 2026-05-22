@@ -246,7 +246,6 @@ export default function HomePage() {
               <p className="splash-desc">
                 Vanta is a tattoo discovery app that connects you with artists and their work.
                 Browse portfolios, save designs you love, and reach out to artists — all in one place.
-                Sign in with Google to save your favorites and message artists directly.
               </p>
             </motion.div>
 
