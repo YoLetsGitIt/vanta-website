@@ -243,6 +243,11 @@ export default function HomePage() {
             <motion.div className="splash-brand" variants={leftItemVariants}>
               <h1 className="splash-headline">Vanta</h1>
               <p className="splash-sub">Find your next tattoo.</p>
+              <p className="splash-desc">
+                Vanta is a tattoo discovery app that connects you with artists and their work.
+                Browse portfolios, save designs you love, and reach out to artists — all in one place.
+                Sign in with Google to save your favorites and message artists directly.
+              </p>
             </motion.div>
 
             <motion.a
