@@ -10,6 +10,7 @@
     "deploy": "next build && touch out/.nojekyll && gh-pages -d out -t"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
     "framer-motion": "^12.6.4",
     "next": "^15.2.1",
     "react": "^19.0.0",

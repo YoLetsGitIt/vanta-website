@@ -32,7 +32,7 @@ export default function TypewriterIntro({ onComplete }) {
         } else {
           setIsDeleting(true);
         }
-      }, isLastWord ? 300 : 650);
+      }, isLastWord ? 1200 : 650);
       return () => clearTimeout(t);
     }
 
