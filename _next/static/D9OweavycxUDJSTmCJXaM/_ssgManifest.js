@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fbookings\u002F[id]\u002Fconfirm","\u002Fbookings\u002F[id]\u002Fconfirmed"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
