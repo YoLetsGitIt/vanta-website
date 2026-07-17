@@ -162,10 +162,19 @@ function BookingContent() {
     return () => subscription.unsubscribe();
   }, [artistId]);
 
-  function prefillContact(session) {
+  async function prefillContact(session) {
     const meta = session.user?.user_metadata;
     setContactName(n => n || meta?.full_name || '');
     setContactEmail(e => e || session.user?.email || '');
+    try {
+      const res = await fetch(`${BACKEND_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const profile = await res.json();
+        if (profile.phone) setContactPhone(p => p || profile.phone);
+      }
+    } catch {}
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -388,8 +397,13 @@ function BookingContent() {
 
   if (view === 'loading') {
     return (
-      <div className="booking-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={s.spinner} />
+      <div className="booking-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28 }}>
+        <p style={{
+          fontFamily: 'var(--font-heading)',
+          fontSize: 17, fontWeight: 700, letterSpacing: 6,
+          color: 'rgba(255,255,255,0.75)', margin: 0,
+        }}>VANTA</p>
+        <div style={{ ...s.spinner, animation: 'spin 0.9s linear infinite' }} />
       </div>
     );
   }
@@ -407,7 +421,7 @@ function BookingContent() {
   }
 
   return (
-    <div className="booking-page">
+    <div className="booking-page" style={{ animation: 'booking-fade-in 0.35s ease' }}>
       <div style={s.pageInner}>
         <div style={s.card}>
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://aznxvdnpvbcofaqxgmtu.supabase.co';
@@ -14,11 +13,12 @@ const SESSION_LABELS = { touch_up: 'Touch-up', small: 'Small', medium: 'Medium',
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-function fmtTime(h) {
-  if (h === 0) return '12:00 AM';
-  if (h < 12) return `${h}:00 AM`;
-  if (h === 12) return '12:00 PM';
-  return `${h - 12}:00 PM`;
+function fmtTime(h, m = 0) {
+  const min = m === 0 ? '' : `:${String(m).padStart(2, '0')}`;
+  if (h === 0) return `12${min} AM`;
+  if (h < 12) return `${h}${min} AM`;
+  if (h === 12) return `12${min} PM`;
+  return `${h - 12}${min} PM`;
 }
 
 function fmtDateTime(iso) {
@@ -27,10 +27,26 @@ function fmtDateTime(iso) {
   return d.toLocaleString('en-AU', { dateStyle: 'long', timeStyle: 'short' });
 }
 
+function fmtDuration(minutes) {
+  if (!minutes) return '';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}hr`;
+  return `${h}hr ${m}min`;
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function BookingSelectionClient() {
-  const { token } = useParams();
+  // gh-pages only serves booking/_.html so Next.js params are always '_'.
+  // Read the real token directly from the browser URL on mount.
+  const [token, setToken] = useState(null);
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search).get('token');
+    const seg = window.location.pathname.split('/').filter(Boolean).pop();
+    setToken((qs && qs !== '_') ? qs : (seg && seg !== '_' ? seg : '_'));
+  }, []);
 
   const [view, setView] = useState('loading'); // loading|invalid|expired|auth|select|success|already-done
   const [ctx, setCtx] = useState(null);        // SelectionContext from backend
@@ -47,6 +63,7 @@ export default function BookingSelectionClient() {
   // Selection state
   const [step, setStep] = useState(0); // 0=artist 1=time 2=review
   const [selectedArtist, setSelectedArtist] = useState(null);
+  const [artistWorkDays, setArtistWorkDays] = useState(null); // Set of day-of-week numbers, or null while loading
   const [calMonth, setCalMonth] = useState(() => {
     const d = new Date(); d.setDate(1); return d;
   });
@@ -69,7 +86,7 @@ export default function BookingSelectionClient() {
         if (!res.ok) { setView('invalid'); return; }
         const data = await res.json();
         setCtx(data);
-        if (data.booking.status !== 'pending') {
+        if (data.booking.status !== 'pending' && data.booking.status !== 'awaiting_payment') {
           setView('already-done');
           return;
         }
@@ -86,45 +103,54 @@ export default function BookingSelectionClient() {
     return () => subscription.unsubscribe();
   }, [token]);
 
+  // ── Load artist work schedule when artist selected ────────────────────────────
+
+  useEffect(() => {
+    if (!selectedArtist) { setArtistWorkDays(null); return; }
+    fetch(`${BACKEND_URL}/artists/${selectedArtist.id}/work-schedule`)
+      .then(r => r.ok ? r.json() : { schedule: [] })
+      .then(data => {
+        const days = new Set((data.schedule || []).map(s => s.day_of_week));
+        setArtistWorkDays(days);
+      })
+      .catch(() => setArtistWorkDays(new Set()));
+  }, [selectedArtist]);
+
   // ── Load time slots when date selected ───────────────────────────────────────
 
   useEffect(() => {
-    if (!selectedDate || !selectedArtist) return;
+    if (!selectedDate || !selectedArtist || !token) return;
     setSlotsLoading(true);
     setSelectedSlot(null);
     setAvailableSlots([]);
 
-    const start = new Date(selectedDate); start.setHours(0, 0, 0, 0);
-    const end = new Date(selectedDate); end.setHours(23, 59, 59, 999);
+    const dateStr = [
+      selectedDate.getFullYear(),
+      String(selectedDate.getMonth() + 1).padStart(2, '0'),
+      String(selectedDate.getDate()).padStart(2, '0'),
+    ].join('-');
 
-    Promise.all([
-      fetch(`${BACKEND_URL}/artists/${selectedArtist.id}/work-schedule`).then(r => r.ok ? r.json() : { schedule: [] }),
-      fetch(`${BACKEND_URL}/artists/${selectedArtist.id}/availability?from=${start.toISOString()}&to=${end.toISOString()}`).then(r => r.ok ? r.json() : { busy: [] }),
-    ]).then(([schedData, availData]) => {
-      const dow = start.getDay();
-      const schedule = (schedData.schedule || []).find(s => s.day_of_week === dow);
-      if (!schedule) { setAvailableSlots([]); setSlotsLoading(false); return; }
-
-      const [sh, sm] = schedule.start_time.split(':').map(Number);
-      const [eh, em] = schedule.end_time.split(':').map(Number);
-      const startMin = sh * 60 + sm;
-      const endMin = eh * 60 + em;
-
-      const busy = (availData.busy || []).map(b => ({ start: new Date(b.start), end: new Date(b.end) }));
-      const now = new Date();
-
-      const slots = [];
-      for (let m = startMin; m + 60 <= endMin; m += 60) {
-        const slotStart = new Date(selectedDate);
-        slotStart.setHours(Math.floor(m / 60), m % 60, 0, 0);
-        const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
-        const isBusy = busy.some(b => slotStart < b.end && slotEnd > b.start);
-        if (!isBusy && slotStart > now) slots.push(slotStart);
-      }
-      setAvailableSlots(slots);
-      setSlotsLoading(false);
-    }).catch(() => setSlotsLoading(false));
-  }, [selectedDate, selectedArtist]);
+    fetch(`${BACKEND_URL}/booking/${token}/slots?date=${dateStr}&artist_id=${selectedArtist.id}`)
+      .then(r => r.ok ? r.json() : { slots: [] })
+      .then(data => {
+        // Slots come back as "HH:MM" local-time strings. Combine with the
+        // selected date in the browser's local timezone so displayed times match
+        // the studio's timezone (assuming client and studio share a timezone).
+        const now = new Date();
+        const durationMs = (ctx?.booking?.duration_minutes ?? 60) * 60 * 1000;
+        const slots = (data.slots || [])
+          .map(timeStr => {
+            const [h, m] = timeStr.split(':').map(Number);
+            const d = new Date(selectedDate);
+            d.setHours(h, m, 0, 0);
+            return d;
+          })
+          .filter(d => d.getTime() + durationMs > now.getTime());
+        setAvailableSlots(slots);
+        setSlotsLoading(false);
+      })
+      .catch(() => setSlotsLoading(false));
+  }, [selectedDate, selectedArtist, token]);
 
   // ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -242,6 +268,8 @@ export default function BookingSelectionClient() {
         <p style={s.muted}>
           {ctx?.booking?.status === 'requires_confirmation'
             ? `${ctx.studio?.name ?? 'The studio'} will confirm your appointment shortly.`
+            : ctx?.booking?.status === 'confirmed'
+            ? 'Your appointment is confirmed.'
             : 'This booking has already been processed.'}
         </p>
         {ctx?.booking?.chosen_time && (
@@ -343,9 +371,17 @@ export default function BookingSelectionClient() {
     <Shell studio={ctx?.studio}>
       {ctx?.booking && (
         <div style={s.bookingSummary}>
-          {ctx.booking.session_type && (
-            <span style={s.sessionBadge}>{SESSION_LABELS[ctx.booking.session_type] ?? ctx.booking.session_type}</span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            {ctx.booking.session_type && (
+              <span style={s.sessionBadge}>{SESSION_LABELS[ctx.booking.session_type] ?? ctx.booking.session_type}</span>
+            )}
+            {ctx.booking.duration_minutes && (
+              <span style={s.sessionBadge}>{fmtDuration(ctx.booking.duration_minutes)}</span>
+            )}
+            {selectedArtist && step > 0 && (
+              <span style={s.sessionBadge}>{selectedArtist.name}</span>
+            )}
+          </div>
           {ctx.booking.design_details && (
             <p style={s.designSnippet}>{ctx.booking.design_details}</p>
           )}
@@ -407,9 +443,6 @@ export default function BookingSelectionClient() {
       {/* Step 1: Choose date and time */}
       {step === 1 && (
         <div style={{ marginTop: 28 }}>
-          <button style={s.backLink} onClick={() => { setStep(0); setSelectedDate(null); setSelectedSlot(null); }}>
-            ‹ Back
-          </button>
           <h2 style={s.stepHeading}>Choose a date</h2>
 
           <div style={s.calHeader}>
@@ -423,13 +456,20 @@ export default function BookingSelectionClient() {
             {calendarDays().map((date, i) => {
               if (!date) return <div key={`e-${i}`} />;
               const isPast = date < today;
+              const isUnavailable = artistWorkDays !== null && !artistWorkDays.has(date.getDay());
+              const isDisabled = isPast || isUnavailable;
               const isSel = selectedDate && date.toDateString() === selectedDate.toDateString();
               return (
                 <button
                   key={date.toISOString()}
-                  disabled={isPast}
+                  disabled={isDisabled}
                   onClick={() => setSelectedDate(date)}
-                  style={{ ...s.calDay, ...(isPast ? s.calDayPast : {}), ...(isSel ? s.calDaySelected : {}) }}
+                  style={{
+                    ...s.calDay,
+                    ...(isDisabled ? s.calDayPast : {}),
+                    ...(isUnavailable && !isPast ? s.calDayUnavailable : {}),
+                    ...(isSel ? s.calDaySelected : {}),
+                  }}
                 >
                   {date.getDate()}
                 </button>
@@ -442,6 +482,13 @@ export default function BookingSelectionClient() {
               <h2 style={s.stepHeading}>
                 {selectedDate.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })}
               </h2>
+              {(ctx?.booking?.duration_minutes || ctx?.booking?.estimated_quote) && (
+                <p style={{ ...s.muted, fontSize: 13, marginBottom: 12 }}>
+                  {ctx.booking.duration_minutes && <>Showing start times for a {fmtDuration(ctx.booking.duration_minutes)} appointment</>}
+                  {ctx.booking.duration_minutes && ctx.booking.estimated_quote && ' · '}
+                  {ctx.booking.estimated_quote && <><strong style={{ color: 'var(--text)' }}>Est. ${Math.round(ctx.booking.estimated_quote)}</strong></>}
+                </p>
+              )}
               {slotsLoading && <div style={{ ...s.spinner, margin: '20px auto' }} />}
               {!slotsLoading && availableSlots.length === 0 && (
                 <p style={s.muted}>No available slots on this day. Try another date.</p>
@@ -456,7 +503,7 @@ export default function BookingSelectionClient() {
                         style={{ ...s.slotBtn, ...(sel ? s.slotBtnActive : {}) }}
                         onClick={() => setSelectedSlot(slot)}
                       >
-                        {fmtTime(slot.getHours())}
+                        {fmtTime(slot.getHours(), slot.getMinutes())}
                       </button>
                     );
                   })}
@@ -465,28 +512,42 @@ export default function BookingSelectionClient() {
             </div>
           )}
 
-          <button
-            style={{ ...s.btn, marginTop: 28, ...(!selectedSlot ? s.btnDisabled : {}) }}
-            disabled={!selectedSlot}
-            onClick={() => setStep(2)}
-          >
-            Continue
-          </button>
+          <div style={s.btnRow}>
+            <button style={s.btnSecondary} onClick={() => { setStep(0); setSelectedDate(null); setSelectedSlot(null); }}>
+              Back
+            </button>
+            <button
+              style={{ ...s.btn, width: 'auto', flex: 1, ...(!selectedSlot ? s.btnDisabled : {}) }}
+              disabled={!selectedSlot}
+              onClick={() => setStep(2)}
+            >
+              Continue
+            </button>
+          </div>
         </div>
       )}
 
       {/* Step 2: Confirm */}
       {step === 2 && (
         <div style={{ marginTop: 28 }}>
-          <button style={s.backLink} onClick={() => { setStep(1); setSubmitError(''); }}>
-            ‹ Back
-          </button>
           <h2 style={s.stepHeading}>Confirm your appointment</h2>
 
           <div style={s.reviewCard}>
             <ReviewRow label="Artist" value={selectedArtist?.name} />
             <div style={s.reviewDivider} />
             <ReviewRow label="Date & Time" value={fmtDateTime(selectedSlot?.toISOString())} />
+            {ctx?.booking?.duration_minutes && (
+              <>
+                <div style={s.reviewDivider} />
+                <ReviewRow label="Duration" value={fmtDuration(ctx.booking.duration_minutes)} />
+              </>
+            )}
+            {ctx?.booking?.estimated_quote && (
+              <>
+                <div style={s.reviewDivider} />
+                <ReviewRow label="Estimated Quote" value={`$${Math.round(ctx.booking.estimated_quote)}`} />
+              </>
+            )}
             {ctx?.booking?.session_type && (
               <>
                 <div style={s.reviewDivider} />
@@ -507,13 +568,18 @@ export default function BookingSelectionClient() {
 
           {submitError && <p style={s.error}>{submitError}</p>}
 
-          <button
-            style={{ ...s.btn, marginTop: 8, ...(submitting ? s.btnDisabled : {}) }}
-            disabled={submitting}
-            onClick={handleSubmit}
-          >
-            {submitting ? 'Submitting…' : 'Request appointment'}
-          </button>
+          <div style={s.btnRow}>
+            <button style={s.btnSecondary} onClick={() => { setStep(1); setSubmitError(''); }}>
+              Back
+            </button>
+            <button
+              style={{ ...s.btn, width: 'auto', flex: 1, ...(submitting ? s.btnDisabled : {}) }}
+              disabled={submitting}
+              onClick={handleSubmit}
+            >
+              {submitting ? 'Submitting…' : 'Request appointment'}
+            </button>
+          </div>
         </div>
       )}
     </Shell>
@@ -635,11 +701,18 @@ const s = {
     padding: '10px 14px', background: 'rgba(255,60,60,0.08)',
     borderRadius: 8, border: '1px solid rgba(255,60,60,0.15)', margin: 0,
   },
+  btnRow: { display: 'flex', gap: 10, marginTop: 28 },
   btn: {
     width: '100%', padding: '15px 0',
     background: 'var(--main)', color: 'var(--background)',
     border: 'none', borderRadius: 50, fontSize: 16, fontWeight: 600,
     fontFamily: 'var(--font-body)', cursor: 'pointer',
+  },
+  btnSecondary: {
+    flex: '0 0 auto', padding: '15px 24px',
+    background: 'transparent', color: 'rgba(255,255,255,0.45)',
+    border: '1px solid rgba(255,255,255,0.12)', borderRadius: 50,
+    fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer',
   },
   btnDisabled: { opacity: 0.4, cursor: 'not-allowed' },
   artistCard: {
@@ -680,6 +753,7 @@ const s = {
     fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--main)',
   },
   calDayPast: { opacity: 0.25, cursor: 'not-allowed', pointerEvents: 'none' },
+  calDayUnavailable: { opacity: 0.2, cursor: 'not-allowed', pointerEvents: 'none', background: 'rgba(255,255,255,0.02)' },
   calDaySelected: { background: 'var(--main)', color: '#000', border: '1px solid var(--main)', fontWeight: 700 },
   slotGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12 },
   slotBtn: {
