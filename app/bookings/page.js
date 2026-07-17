@@ -366,7 +366,7 @@ function BookingContent() {
         })),
         push_to_later: pushToLater,
         reference_images: refImages,
-        source: 'web',
+        source: 'personal',
       };
       if (notes.trim()) body.additional_notes = notes.trim();
       if (!pushToLater && earliestDate) body.earliest_date = earliestDate;
