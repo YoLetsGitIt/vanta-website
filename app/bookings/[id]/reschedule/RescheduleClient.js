@@ -34,7 +34,6 @@ const s = {
     borderRadius: 10, color: '#fff', fontSize: 16, padding: '12px 14px', boxSizing: 'border-box',
     outline: 'none', appearance: 'none',
   },
-  inputDisabled: { opacity: 0.5, cursor: 'not-allowed' },
   row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 },
   btn: {
     display: 'block', width: '100%', background: '#fff', color: '#11151b',
@@ -54,6 +53,7 @@ export default function RescheduleClient({ params }) {
 
   const [view, setView] = useState('loading');
   const [booking, setBooking] = useState(null);
+  const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [saving, setSaving] = useState(false);
@@ -68,6 +68,7 @@ export default function RescheduleClient({ params }) {
         setBooking(data);
         if (!data.can_reschedule) { setView('expired'); return; }
         if (data.chosen_time) {
+          setDate(isoDateStr(data.chosen_time));
           setStartTime(toHHMM(data.chosen_time));
         }
         setView('form');
@@ -77,7 +78,7 @@ export default function RescheduleClient({ params }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!startTime || !endTime) { setError('Please enter both start and end times.'); return; }
+    if (!date || !startTime || !endTime) { setError('Please fill in date, start time, and end time.'); return; }
     if (endTime <= startTime) { setError('End time must be after start time.'); return; }
     setSaving(true);
     setError('');
@@ -85,7 +86,7 @@ export default function RescheduleClient({ params }) {
       const res = await fetch(`${BACKEND_URL}/bookings/${id}/client-reschedule?t=${tok}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ new_start: startTime, new_end: endTime }),
+        body: JSON.stringify({ new_date: date, new_start: startTime, new_end: endTime }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setError(data.error ?? 'Failed to reschedule. Please try again.'); return; }
@@ -154,12 +155,14 @@ export default function RescheduleClient({ params }) {
         </p>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 20 }}>
-            <label style={s.label}>Date (locked)</label>
+            <label style={s.label}>Date</label>
             <input
               type="date"
-              style={{ ...s.input, ...s.inputDisabled }}
-              value={booking?.chosen_time ? isoDateStr(booking.chosen_time) : ''}
-              disabled
+              style={s.input}
+              value={date}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={e => setDate(e.target.value)}
+              required
             />
           </div>
           <div style={s.row}>
