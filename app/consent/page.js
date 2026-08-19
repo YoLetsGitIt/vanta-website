@@ -41,6 +41,11 @@ function ConsentForm() {
   const [info, setInfo]           = useState(null);
   const [loadErr, setLoadErr]     = useState('');
   const [templateState, setTemplateState] = useState({});
+  const [guardianName, setGuardianName]           = useState('');
+  const [guardianRelationship, setGuardianRelationship] = useState('Parent');
+  const [guardianEmail, setGuardianEmail]         = useState('');
+  const [guardianPhone, setGuardianPhone]         = useState('');
+  const [guardianSigBlobs, setGuardianSigBlobs]   = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone]           = useState(false);
   const [submitErr, setSubmitErr] = useState('');
@@ -63,6 +68,19 @@ function ConsentForm() {
     setTemplateState(prev => ({ ...prev, [templateId]: { ...prev[templateId], sigBlob: blob } }));
   }
 
+  function setGuardianSigBlob(templateId, blob) {
+    setGuardianSigBlobs(prev => ({ ...prev, [templateId]: blob }));
+  }
+
+  const isMinor = (() => {
+    const dob = info?.dob;
+    if (!dob) return false;
+    const birth = new Date(dob + 'T12:00:00');
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 18);
+    return birth > cutoff;
+  })();
+
   async function handleSubmit(e) {
     e.preventDefault();
     const templates = info?.templates ?? [];
@@ -78,6 +96,10 @@ function ConsentForm() {
       if (t.requires_signature && !ts.sigBlob) {
         setSubmitErr(`Signature required for "${t.name}".`);
         return;
+      }
+      if (isMinor && t.requires_minor_guardian) {
+        if (!guardianName.trim()) { setSubmitErr('Please provide the guardian\'s name.'); return; }
+        if (!guardianSigBlobs[t.id]) { setSubmitErr(`Guardian signature required for "${t.name}".`); return; }
       }
     }
 
@@ -95,14 +117,20 @@ function ConsentForm() {
       for (const t of templates) {
         const ts = templateState[t.id] ?? {};
         let clientSigPath = '';
-        if (t.requires_signature && ts.sigBlob) {
-          clientSigPath = await uploadSig(ts.sigBlob);
-        }
+        let guardianSigPath = '';
+        const needsGuardian = isMinor && t.requires_minor_guardian;
+        if (t.requires_signature && ts.sigBlob) clientSigPath = await uploadSig(ts.sigBlob);
+        if (needsGuardian && guardianSigBlobs[t.id]) guardianSigPath = await uploadSig(guardianSigBlobs[t.id]);
         submissions.push({
-          template_id:           t.id,
-          answers:               ts.answers ?? {},
-          is_minor:              false,
-          client_signature_path: clientSigPath,
+          template_id:            t.id,
+          answers:                ts.answers ?? {},
+          is_minor:               isMinor,
+          client_signature_path:  clientSigPath,
+          guardian_name:          needsGuardian ? guardianName : '',
+          guardian_relationship:  needsGuardian ? guardianRelationship : '',
+          guardian_email:         needsGuardian ? guardianEmail : '',
+          guardian_phone:         needsGuardian ? guardianPhone : '',
+          guardian_signature_path: guardianSigPath,
         });
       }
 
@@ -183,9 +211,46 @@ function ConsentForm() {
               {t.requires_signature && (
                 <div style={{ marginTop: '1.25rem' }}>
                   <p style={{ ...s.label, marginBottom: '0.4rem' }}>
-                    Signature <span style={{ color: '#e86f6f' }}>*</span>
+                    {isMinor && t.requires_minor_guardian ? 'Client signature' : 'Signature'} <span style={{ color: '#e86f6f' }}>*</span>
                   </p>
                   <SignaturePad onCapture={blob => setSigBlob(t.id, blob)} />
+                </div>
+              )}
+
+              {isMinor && t.requires_minor_guardian && (
+                <div style={s.guardianBox}>
+                  <p style={s.guardianTitle}>Parent / Guardian Consent Required</p>
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', margin: '0 0 0.75rem', lineHeight: 1.55 }}>
+                    The client is under 18. A parent or legal guardian must provide their details and sign below.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <div>
+                        <p style={{ ...s.label, marginBottom: '0.3rem' }}>Guardian name <span style={{ color: '#e86f6f' }}>*</span></p>
+                        <input style={s.input} type="text" value={guardianName} onChange={e => setGuardianName(e.target.value)} placeholder="Full name" />
+                      </div>
+                      <div>
+                        <p style={{ ...s.label, marginBottom: '0.3rem' }}>Relationship</p>
+                        <select style={s.input} value={guardianRelationship} onChange={e => setGuardianRelationship(e.target.value)}>
+                          <option>Parent</option>
+                          <option>Legal Guardian</option>
+                          <option>Other</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <p style={{ ...s.label, marginBottom: '0.3rem' }}>Guardian email</p>
+                      <input style={s.input} type="email" value={guardianEmail} onChange={e => setGuardianEmail(e.target.value)} placeholder="guardian@example.com" />
+                    </div>
+                    <div>
+                      <p style={{ ...s.label, marginBottom: '0.3rem' }}>Guardian phone</p>
+                      <input style={s.input} type="tel" value={guardianPhone} onChange={e => setGuardianPhone(e.target.value)} placeholder="Phone number" />
+                    </div>
+                    <div>
+                      <p style={{ ...s.label, marginBottom: '0.4rem' }}>Guardian signature <span style={{ color: '#e86f6f' }}>*</span></p>
+                      <SignaturePad onCapture={blob => setGuardianSigBlob(t.id, blob)} />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -479,6 +544,18 @@ const s = {
     background: 'none', border: 'none', padding: '0.2rem 0.4rem',
     fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)',
     cursor: 'pointer', fontFamily: 'inherit',
+  },
+  guardianBox: {
+    marginTop: '1.25rem',
+    padding: '1rem',
+    background: 'rgba(245,158,58,0.06)',
+    border: '1px solid rgba(245,158,58,0.18)',
+    borderRadius: 10,
+  },
+  guardianTitle: {
+    margin: '0 0 0.4rem',
+    fontSize: '0.88rem', fontWeight: 700,
+    color: '#f59e3a',
   },
   btn: {
     background: '#f5ecd9', border: 'none', borderRadius: 10,
