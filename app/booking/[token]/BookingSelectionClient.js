@@ -106,6 +106,17 @@ export default function BookingSelectionClient() {
           setView('already-done');
           return;
         }
+
+        // If the booking already has an artist assigned, pre-select them and
+        // skip straight to the date & time step.
+        if (data.booking.artist_id && data.artists?.length) {
+          const pre = data.artists.find(a => a.id === data.booking.artist_id);
+          if (pre) {
+            setSelectedArtist(pre);
+            setStep(1);
+          }
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session) { setSession(session); setView('select'); }
         else { setView('auth'); }
@@ -720,8 +731,8 @@ function ReviewRow({ label, value }) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = {
-  pageInner: { display: 'flex', justifyContent: 'center', padding: '40px 20px 80px' },
-  card: { width: '100%', maxWidth: 480 },
+  pageInner: { display: 'flex', justifyContent: 'center', padding: '40px 20px 80px', minWidth: 0 },
+  card: { width: '100%', maxWidth: 480, minWidth: 0 },
   spinner: {
     width: 28, height: 28,
     border: '2px solid rgba(255,255,255,0.12)',
@@ -786,7 +797,11 @@ const s = {
   input: {
     width: '100%', background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
-    padding: '12px 14px', color: 'var(--main)', fontSize: 15,
+    // iOS Safari auto-zooms the whole page on focus for any input with
+    // font-size below 16px, and that zoom persists across client-side route
+    // changes (no full reload) -- so the later calendar step reads as
+    // "horizontally scrollable" even though nothing there overflows.
+    padding: '12px 14px', color: 'var(--main)', fontSize: 16,
     fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box',
   },
   consentLabel: {
@@ -840,7 +855,7 @@ const s = {
     fontSize: 20, cursor: 'pointer', padding: '4px 10px',
   },
   calTitle: { fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 700, color: 'var(--main)' },
-  calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 },
+  calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4 },
   calDowHeader: {
     textAlign: 'center', fontFamily: 'var(--font-body)', fontSize: 11,
     color: 'rgba(255,255,255,0.3)', paddingBottom: 4, fontWeight: 500,
@@ -854,7 +869,7 @@ const s = {
   calDayPast: { opacity: 0.25, cursor: 'not-allowed', pointerEvents: 'none' },
   calDayUnavailable: { opacity: 0.2, cursor: 'not-allowed', pointerEvents: 'none', background: 'rgba(255,255,255,0.02)' },
   calDaySelected: { background: 'var(--main)', color: '#000', border: '1px solid var(--main)', fontWeight: 700 },
-  slotGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12 },
+  slotGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 12 },
   slotBtn: {
     padding: '12px 0', borderRadius: 10,
     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',

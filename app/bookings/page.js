@@ -1366,7 +1366,9 @@ const s = {
   input: {
     width: '100%', background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
-    padding: '12px 14px', color: 'var(--main)', fontSize: 15,
+    // iOS Safari auto-zooms on focus for inputs under 16px; keep at/above it
+    // so the zoom doesn't carry over into later client-side-routed steps.
+    padding: '12px 14px', color: 'var(--main)', fontSize: 16,
     fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box',
   },
   textarea: { resize: 'vertical', minHeight: 80 },

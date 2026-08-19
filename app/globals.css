@@ -520,6 +520,7 @@ nav a.nav-active {
 .booking-page {
   position: fixed;
   inset: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   background: var(--background);
 }
