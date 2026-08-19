@@ -124,8 +124,13 @@ export default function BookingSelectionClient() {
     }
     load();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, sess) => {
-      if (sess) { setSession(sess); setView(v => v === 'auth' || v === 'loading' ? pendingAuthViewRef.current : v); }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
+      if (!sess) return;
+      // Covers email-confirmation redirects and any other path that establishes
+      // a session outside handleAuth (which already calls this itself).
+      if (event === 'SIGNED_IN') createProfile(sess, '');
+      setSession(sess);
+      setView(v => v === 'auth' || v === 'loading' ? pendingAuthViewRef.current : v);
     });
     return () => subscription.unsubscribe();
   }, [token]);
@@ -200,6 +205,10 @@ export default function BookingSelectionClient() {
       if (authMode === 'login') {
         const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
         if (error) throw error;
+        // Idempotent on the backend (returns the existing profile if one's already
+        // there) -- covers a returning client whose profile never got created,
+        // e.g. because the signup-time call below failed silently.
+        await createProfile(data.session, '');
         setSession(data.session);
         setView(pendingAuthViewRef.current);
       } else {

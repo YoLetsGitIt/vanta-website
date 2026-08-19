@@ -156,8 +156,12 @@ function BookingContent() {
     }
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) { setSession(session); prefillContact(session); setView('form'); }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) return;
+      // Covers email-confirmation redirects and any other path that establishes
+      // a session outside handleAuth (which already calls this itself).
+      if (event === 'SIGNED_IN') createProfile(session, '');
+      setSession(session); prefillContact(session); setView('form');
     });
     return () => subscription.unsubscribe();
   }, [artistId]);
@@ -221,6 +225,10 @@ function BookingContent() {
       if (authMode === 'login') {
         const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
         if (error) throw error;
+        // Idempotent on the backend (returns the existing profile if one's already
+        // there) -- covers a returning client whose profile never got created,
+        // e.g. because the signup-time call below failed silently.
+        await createProfile(data.session, '');
         setSession(data.session);
         prefillContact(data.session);
         setView('form');
