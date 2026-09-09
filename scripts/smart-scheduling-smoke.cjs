@@ -10,12 +10,12 @@ const day = (date, mode) => ({
   date,
   slots: ['09:00', '10:00', '11:00', '12:00', '13:00'],
   slot_details: ['09:00', '10:00', '11:00', '12:00', '13:00'].map(time => ({ time, starts_at: `${date}T${time}:00+10:00` })),
-  recommended_slots: mode === 'all' ? ['09:00', '10:00', '11:00', '12:00', '13:00'] : ['10:00', '11:00', '12:00'],
+  recommended_slots: (mode === 'all' || mode === 'quieter_days') ? ['09:00', '10:00', '11:00', '12:00', '13:00'] : ['10:00', '11:00', '12:00'],
 });
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const mode of ['all', 'quieter_days', 'minimize_gaps']) {
+    for (const mode of ['all', 'quieter_days', 'minimize_gaps', 'combined']) {
       const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'America/Los_Angeles' });
       await context.addInitScript(session => localStorage.setItem('sb-aznxvdnpvbcofaqxgmtu-auth-token', JSON.stringify(session)), auth);
       const page = await context.newPage();
@@ -33,7 +33,7 @@ const day = (date, mode) => ({
           assert.ok(Number(url.searchParams.get('days')) <= 31);
           if (failAvailability) return route.fulfill({ status: 503, json: { error: 'Availability could not be checked. Please try again.' } });
           const month = url.searchParams.get('date').slice(0, 7);
-          return route.fulfill({ json: { mode, timezone: 'Australia/Melbourne', days: [10, 11, 12].map(n => day(`${month}-${n}`, mode)), recommended_dates: mode === 'quieter_days' ? [`${month}-12`, `${month}-10`, `${month}-11`] : [] } });
+          return route.fulfill({ json: { mode, timezone: 'Australia/Melbourne', days: [10, 11, 12].map(n => day(`${month}-${n}`, mode)), recommended_dates: (mode === 'quieter_days' || mode === 'combined') ? [`${month}-12`, `${month}-10`, `${month}-11`] : [] } });
         }
         if (url.pathname.endsWith('/select')) {
           selectedBody = route.request().postDataJSON();
@@ -49,7 +49,7 @@ const day = (date, mode) => ({
       await page.getByRole('heading', { name: 'Choose a date', exact: true }).waitFor();
       await page.getByText('All times are shown in Australia/Melbourne.').waitFor();
       await page.getByRole('button', { name: '10', exact: true }).click();
-      if (mode === 'all') {
+      if (mode === 'all' || mode === 'quieter_days') {
         await page.getByRole('button', { name: '9:00 am', exact: true }).waitFor();
         assert.equal(await page.getByRole('button', { name: 'Show all times', exact: true }).count(), 0);
       } else {
@@ -59,7 +59,7 @@ const day = (date, mode) => ({
         await page.getByRole('button', { name: 'Show suggested times', exact: true }).click();
         assert.equal(await page.getByRole('button', { name: '9:00 am', exact: true }).count(), 0);
       }
-      if (mode === 'quieter_days') {
+      if (mode === 'quieter_days' || mode === 'combined') {
         await page.getByText('Suggested dates', { exact: true }).waitFor();
         assert.ok(await page.getByRole('button', { name: /12 Sept?/ }).count());
       }

@@ -160,10 +160,12 @@ export default function BookingSelectionClient() {
   const availability = monthAvailability?.key === requestKey ? monthAvailability.data : null;
   const studioTimezone = availability?.timezone || ctx?.studio?.timezone || 'UTC';
   const schedulingMode = availability?.mode || 'all';
+  const prefersQuieterDays = schedulingMode === 'quieter_days' || schedulingMode === 'combined';
+  const minimizesGaps = schedulingMode === 'minimize_gaps' || schedulingMode === 'combined';
   const selectedDay = availability?.days?.find(day => day.date === (selectedDate && dateKey(selectedDate)));
   const allSlotDetails = selectedDay?.slot_details || [];
   const recommendedTimes = selectedDay?.recommended_slots || [];
-  const visibleSlotDetails = schedulingMode === 'all' || showAllTimes
+  const visibleSlotDetails = !minimizesGaps || showAllTimes
     ? allSlotDetails
     : allSlotDetails.filter(slot => recommendedTimes.includes(slot.time));
   const availableSlots = visibleSlotDetails.map(slot => new Date(slot.starts_at));
@@ -578,7 +580,7 @@ export default function BookingSelectionClient() {
             <p style={s.muted}>{slotsError}</p>
             <button style={s.btnSecondary} onClick={() => setRetrySlots(value => value + 1)}>Try again</button>
           </div>}
-          {schedulingMode === 'quieter_days' && recommendedDates.length > 0 && (
+          {prefersQuieterDays && recommendedDates.length > 0 && (
             <div style={{ marginBottom: 20 }}>
               <p style={s.muted}>Suggested dates</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -639,7 +641,7 @@ export default function BookingSelectionClient() {
               {!slotsLoading && !slotsError && availableSlots.length === 0 && (
                 <p style={s.muted}>No available slots on this day. Try another date.</p>
               )}
-              {!slotsLoading && !slotsError && schedulingMode !== 'all' && allSlotDetails.length > recommendedTimes.length && (
+              {!slotsLoading && !slotsError && minimizesGaps && allSlotDetails.length > recommendedTimes.length && (
                 <div style={{ marginBottom: 12 }}>
                   <p style={s.muted}>{showAllTimes ? 'All available times' : 'Suggested times that fit the artist’s schedule'}</p>
                   <button style={s.btnSecondary} aria-expanded={showAllTimes} onClick={() => { setShowAllTimes(value => !value); setSelectedSlot(null); }}>
