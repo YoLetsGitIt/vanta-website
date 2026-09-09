@@ -79,6 +79,8 @@ export default function BookingSelectionClient() {
   const [slotsError, setSlotsError] = useState('');
   const [retrySlots, setRetrySlots] = useState(0);
   const [showAllTimes, setShowAllTimes] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [availabilityNotice, setAvailabilityNotice] = useState('');
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -160,7 +162,6 @@ export default function BookingSelectionClient() {
   const availability = monthAvailability?.key === requestKey ? monthAvailability.data : null;
   const studioTimezone = availability?.timezone || ctx?.studio?.timezone || 'UTC';
   const schedulingMode = availability?.mode || 'all';
-  const prefersQuieterDays = schedulingMode === 'quieter_days' || schedulingMode === 'combined';
   const minimizesGaps = schedulingMode === 'minimize_gaps' || schedulingMode === 'combined';
   const selectedDay = availability?.days?.find(day => day.date === (selectedDate && dateKey(selectedDate)));
   const allSlotDetails = selectedDay?.slot_details || [];
@@ -169,9 +170,11 @@ export default function BookingSelectionClient() {
     ? allSlotDetails
     : allSlotDetails.filter(slot => recommendedTimes.includes(slot.time));
   const availableSlots = visibleSlotDetails.map(slot => new Date(slot.starts_at));
-  const recommendedDates = availability?.recommended_dates || [];
+  const filteredPeriods = availability ? availability.filtered_periods === true : ['quieter_days', 'combined'].includes(ctx?.studio?.scheduling_mode);
+  const availableMonths = availability?.months || [];
+  const periodDates = (availability?.days || []).filter(day => day.date.startsWith(selectedPeriod) && day.slots.length > 0);
 
-  // A single request per displayed month; abort old requests when navigating.
+  // Quiet periods share one signed 90-day snapshot; other modes load by month.
   useEffect(() => {
     if (!selectedArtist || !token) return;
     const controller = new AbortController();
@@ -181,7 +184,7 @@ export default function BookingSelectionClient() {
     setShowAllTimes(false);
     setMonthAvailability(null);
     const days = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
-    const params = new URLSearchParams({ date: monthKey, artist_id: selectedArtist.id, days: String(days) });
+    const params = new URLSearchParams({ date: monthKey, artist_id: selectedArtist.id, days: String(days), view: 'periods' });
     fetch(`${BACKEND_URL}/booking/${token}/slots?${params}`, { signal: controller.signal, cache: 'no-store' })
       .then(async response => {
         const data = await response.json();
@@ -190,7 +193,11 @@ export default function BookingSelectionClient() {
         return data;
       })
       .then(data => {
-        if (!controller.signal.aborted) setMonthAvailability({ key: requestKey, data });
+        if (!controller.signal.aborted) {
+          setMonthAvailability({ key: requestKey, data });
+          setSelectedDate(null);
+          setSelectedPeriod(data.months?.[0] || '');
+        }
       })
       .catch(error => {
         if (!controller.signal.aborted) setSlotsError(error.message || 'Availability could not be checked. Please try again.');
@@ -260,10 +267,17 @@ export default function BookingSelectionClient() {
       const res = await fetch(`${BACKEND_URL}/booking/${token}/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ artist_id: selectedArtist.id, chosen_time: selectedSlot.toISOString() }),
+        body: JSON.stringify({ artist_id: selectedArtist.id, chosen_time: selectedSlot.toISOString(), offer: availability?.offer || undefined }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          setAvailabilityNotice(err.error || 'Availability changed. Please choose again.');
+          setStep(1);
+          setSelectedSlot(null);
+          setRetrySlots(value => value + 1);
+          return;
+        }
         throw new Error(err.error || `Request failed (${res.status})`);
       }
       const result = await res.json().catch(() => ({}));
@@ -580,18 +594,40 @@ export default function BookingSelectionClient() {
             <p style={s.muted}>{slotsError}</p>
             <button style={s.btnSecondary} onClick={() => setRetrySlots(value => value + 1)}>Try again</button>
           </div>}
-          {prefersQuieterDays && recommendedDates.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <p style={s.muted}>Suggested dates</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {recommendedDates.map(key => <button key={key} style={{ ...s.slotBtn, ...(selectedDate && dateKey(selectedDate) === key ? s.slotBtnActive : {}) }} onClick={() => chooseDate(calendarDate(key))}>
-                  {calendarDate(key).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
-                </button>)}
-              </div>
-              <p style={s.muted}>You can also choose any available date below.</p>
+          {availabilityNotice && <p role="status" style={s.muted}>{availabilityNotice}</p>}
+          {filteredPeriods && !slotsLoading && !slotsError && (
+            <div style={{ display: 'grid', gap: 20, marginTop: 20 }}>
+              {availableMonths.length === 0 ? <p style={s.muted}>No available booking dates in the next 90 days. Please contact the studio.</p> : <>
+                <div>
+                  <h3 style={s.stepHeading}>Choose a month</h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                    {availableMonths.map(month => <button key={month} aria-pressed={selectedPeriod === month}
+                      style={{ ...s.slotBtn, padding: '16px 20px', ...(selectedPeriod === month ? s.slotBtnActive : {}) }}
+                      onClick={() => { setSelectedPeriod(month); chooseDate(null); }}>
+                      {calendarDate(`${month}-01`).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })}
+                    </button>)}
+                  </div>
+                </div>
+                <div>
+                  <h3 style={s.stepHeading}>Available dates</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))', gap: 10 }}>
+                    {periodDates.map(day => {
+                      const date = calendarDate(day.date);
+                      const selected = selectedDate && dateKey(selectedDate) === day.date;
+                      return <button key={day.date} aria-label={date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })} aria-pressed={!!selected}
+                        style={{ ...s.slotBtn, aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, ...(selected ? s.slotBtnActive : {}) }}
+                        onClick={() => chooseDate(date)}>
+                        <span style={{ fontSize: 12 }}>{date.toLocaleDateString('en-AU', { weekday: 'short' })}</span>
+                        <span style={{ fontSize: 24 }}>{date.getDate()}</span>
+                      </button>;
+                    })}
+                  </div>
+                </div>
+              </>}
             </div>
           )}
 
+          {!filteredPeriods && <>
           <div style={s.calHeader}>
             <button style={s.calNav} aria-label="Previous month" onClick={() => { chooseDate(null); setCalMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() - 1); return n; }); }}>‹</button>
             <span style={s.calTitle}>{MONTH_NAMES[calMonth.getMonth()]} {calMonth.getFullYear()}</span>
@@ -624,6 +660,8 @@ export default function BookingSelectionClient() {
               );
             })}
           </div>
+
+          </>}
 
           {selectedDate && (
             <div style={{ marginTop: 24 }}>
