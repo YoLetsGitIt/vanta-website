@@ -711,6 +711,19 @@ export default function HomePage() {
           {/* ── Pain point 2: Process (pulled back over the finale via margin-top) ── */}
           <ProcessSection />
           <MobileProcessSection containerRef={homePageRef} />
+
+          <section className="home-studio">
+            <div>
+              <span className="home-problem-label">Vanta for studios</span>
+              <h2 className="home-studio-headline">Spend more time tattooing, less time managing bookings.</h2>
+              <p className="home-studio-copy">
+                Vanta Studio gives your team one place for bookings, client records, consent forms, deposits, and scheduling.
+              </p>
+            </div>
+            <a className="home-studio-cta" href="https://studio.vanta.tattoo/?signup">
+              Set up your studio <span aria-hidden="true">→</span>
+            </a>
+          </section>
         </div>
       </div>
     </>

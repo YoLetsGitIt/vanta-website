@@ -13,18 +13,25 @@ const SESSION_LABELS = { touch_up: 'Touch-up', small: 'Small', medium: 'Medium',
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-function fmtTime(h, m = 0) {
-  const min = m === 0 ? '' : `:${String(m).padStart(2, '0')}`;
-  if (h === 0) return `12${min} AM`;
-  if (h < 12) return `${h}${min} AM`;
-  if (h === 12) return `12${min} PM`;
-  return `${h - 12}${min} PM`;
+function dateKey(date) {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
 
-function fmtDateTime(iso) {
+function calendarDate(key) {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function todayInZone(timeZone) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const part = type => parts.find(value => value.type === type).value;
+  return calendarDate(`${part('year')}-${part('month')}-${part('day')}`);
+}
+
+function fmtDateTime(iso, timeZone) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleString('en-AU', { dateStyle: 'long', timeStyle: 'short' });
+  return d.toLocaleString('en-AU', { dateStyle: 'long', timeStyle: 'short', ...(timeZone ? { timeZone } : {}) });
 }
 
 function fmtDuration(minutes) {
@@ -49,6 +56,7 @@ export default function BookingSelectionClient() {
   }, []);
 
   const [view, setView] = useState('loading'); // loading|invalid|expired|auth|select|success|already-done|pay-deposit
+  const [expiredMessage, setExpiredMessage] = useState('');
   const [ctx, setCtx] = useState(null);        // SelectionContext from backend
   const [session, setSession] = useState(null);
   const [authMode, setAuthMode] = useState('login');
@@ -63,12 +71,14 @@ export default function BookingSelectionClient() {
   // Selection state
   const [step, setStep] = useState(0); // 0=artist 1=time 2=review
   const [selectedArtist, setSelectedArtist] = useState(null);
-  const [artistWorkDays, setArtistWorkDays] = useState(null); // Set of day-of-week numbers, or null while loading
   const [calMonth, setCalMonth] = useState(() => {
     const d = new Date(); d.setDate(1); return d;
   });
   const [selectedDate, setSelectedDate] = useState(null);
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [monthAvailability, setMonthAvailability] = useState(null);
+  const [slotsError, setSlotsError] = useState('');
+  const [retrySlots, setRetrySlots] = useState(0);
+  const [showAllTimes, setShowAllTimes] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -85,10 +95,20 @@ export default function BookingSelectionClient() {
       try {
         const res = await fetch(`${BACKEND_URL}/booking/${token}`);
         if (res.status === 404) { setView('invalid'); return; }
-        if (res.status === 410) { setView('expired'); return; }
+        if (res.status === 410) {
+          const data = await res.json().catch(() => ({}));
+          setExpiredMessage(data.error || '');
+          setView('expired');
+          return;
+        }
         if (!res.ok) { setView('invalid'); return; }
         const data = await res.json();
         setCtx(data);
+        if (data.studio?.timezone) {
+          const studioMonth = todayInZone(data.studio.timezone);
+          studioMonth.setDate(1);
+          setCalMonth(studioMonth);
+        }
 
         // ?deposit=paid — Stripe redirected back after successful payment.
         const depositParam = new URLSearchParams(window.location.search).get('deposit');
@@ -135,54 +155,53 @@ export default function BookingSelectionClient() {
     return () => subscription.unsubscribe();
   }, [token]);
 
-  // ── Load artist work schedule when artist selected ────────────────────────────
+  const monthKey = dateKey(new Date(calMonth.getFullYear(), calMonth.getMonth(), 1));
+  const requestKey = `${token}:${selectedArtist?.id}:${monthKey}`;
+  const availability = monthAvailability?.key === requestKey ? monthAvailability.data : null;
+  const studioTimezone = availability?.timezone || ctx?.studio?.timezone || 'UTC';
+  const schedulingMode = availability?.mode || 'all';
+  const selectedDay = availability?.days?.find(day => day.date === (selectedDate && dateKey(selectedDate)));
+  const allSlotDetails = selectedDay?.slot_details || [];
+  const recommendedTimes = selectedDay?.recommended_slots || [];
+  const visibleSlotDetails = schedulingMode === 'all' || showAllTimes
+    ? allSlotDetails
+    : allSlotDetails.filter(slot => recommendedTimes.includes(slot.time));
+  const availableSlots = visibleSlotDetails.map(slot => new Date(slot.starts_at));
+  const recommendedDates = availability?.recommended_dates || [];
 
+  // A single request per displayed month; abort old requests when navigating.
   useEffect(() => {
-    if (!selectedArtist) { setArtistWorkDays(null); return; }
-    fetch(`${BACKEND_URL}/artists/${selectedArtist.id}/work-schedule`)
-      .then(r => r.ok ? r.json() : { schedule: [] })
-      .then(data => {
-        const days = new Set((data.schedule || []).map(s => s.day_of_week));
-        setArtistWorkDays(days);
-      })
-      .catch(() => setArtistWorkDays(new Set()));
-  }, [selectedArtist]);
-
-  // ── Load time slots when date selected ───────────────────────────────────────
-
-  useEffect(() => {
-    if (!selectedDate || !selectedArtist || !token) return;
+    if (!selectedArtist || !token) return;
+    const controller = new AbortController();
     setSlotsLoading(true);
+    setSlotsError('');
     setSelectedSlot(null);
-    setAvailableSlots([]);
-
-    const dateStr = [
-      selectedDate.getFullYear(),
-      String(selectedDate.getMonth() + 1).padStart(2, '0'),
-      String(selectedDate.getDate()).padStart(2, '0'),
-    ].join('-');
-
-    fetch(`${BACKEND_URL}/booking/${token}/slots?date=${dateStr}&artist_id=${selectedArtist.id}`)
-      .then(r => r.ok ? r.json() : { slots: [] })
-      .then(data => {
-        // Slots come back as "HH:MM" local-time strings. Combine with the
-        // selected date in the browser's local timezone so displayed times match
-        // the studio's timezone (assuming client and studio share a timezone).
-        const now = new Date();
-        const durationMs = (ctx?.booking?.duration_minutes ?? 60) * 60 * 1000;
-        const slots = (data.slots || [])
-          .map(timeStr => {
-            const [h, m] = timeStr.split(':').map(Number);
-            const d = new Date(selectedDate);
-            d.setHours(h, m, 0, 0);
-            return d;
-          })
-          .filter(d => d.getTime() + durationMs > now.getTime());
-        setAvailableSlots(slots);
-        setSlotsLoading(false);
+    setShowAllTimes(false);
+    setMonthAvailability(null);
+    const days = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
+    const params = new URLSearchParams({ date: monthKey, artist_id: selectedArtist.id, days: String(days) });
+    fetch(`${BACKEND_URL}/booking/${token}/slots?${params}`, { signal: controller.signal, cache: 'no-store' })
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Availability could not be checked. Please try again.');
+        if (!Array.isArray(data.days)) throw new Error('Availability is being updated. Please try again shortly.');
+        return data;
       })
-      .catch(() => setSlotsLoading(false));
-  }, [selectedDate, selectedArtist, token]);
+      .then(data => {
+        if (!controller.signal.aborted) setMonthAvailability({ key: requestKey, data });
+      })
+      .catch(error => {
+        if (!controller.signal.aborted) setSlotsError(error.message || 'Availability could not be checked. Please try again.');
+      })
+      .finally(() => { if (!controller.signal.aborted) setSlotsLoading(false); });
+    return () => controller.abort();
+  }, [token, selectedArtist?.id, monthKey, requestKey, retrySlots]);
+
+  function chooseDate(date) {
+    setSelectedDate(date);
+    setSelectedSlot(null);
+    setShowAllTimes(false);
+  }
 
   // ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -298,7 +317,7 @@ export default function BookingSelectionClient() {
     return days;
   }
 
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = todayInZone(studioTimezone);
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -323,7 +342,7 @@ export default function BookingSelectionClient() {
     return (
       <Shell studio={ctx?.studio}>
         <h1 style={s.heading}>Link expired</h1>
-        <p style={s.muted}>This booking link has expired. Contact {ctx?.studio?.name ?? 'the studio'} for a new one.</p>
+        <p style={s.muted}>{expiredMessage || `This booking link has expired. Contact ${ctx?.studio?.name ?? 'the studio'} for a new one.`}</p>
       </Shell>
     );
   }
@@ -345,7 +364,7 @@ export default function BookingSelectionClient() {
         {ctx?.booking?.chosen_time && (
           <div style={s.summaryCard}>
             <div style={s.summaryLabel}>YOUR TIME</div>
-            <div style={s.summaryValue}>{fmtDateTime(ctx.booking.chosen_time)}</div>
+            <div style={s.summaryValue}>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</div>
           </div>
         )}
       </Shell>
@@ -362,7 +381,7 @@ export default function BookingSelectionClient() {
 
         <div style={s.reviewCard}>
           {ctx?.booking?.chosen_time && (
-            <ReviewRow label="Date & Time" value={fmtDateTime(ctx.booking.chosen_time)} />
+            <ReviewRow label="Date & Time" value={fmtDateTime(ctx.booking.chosen_time, studioTimezone)} />
           )}
           {ctx?.booking?.deposit_amount && ctx?.booking?.chosen_time && (
             <div style={s.reviewDivider} />
@@ -465,7 +484,7 @@ export default function BookingSelectionClient() {
         {selectedSlot && (
           <div style={s.summaryCard}>
             <div style={s.summaryLabel}>YOUR REQUESTED TIME</div>
-            <div style={s.summaryValue}>{fmtDateTime(selectedSlot.toISOString())}</div>
+            <div style={s.summaryValue}>{fmtDateTime(selectedSlot.toISOString(), studioTimezone)}</div>
             {selectedArtist && <div style={{ ...s.summaryLabel, marginTop: 14 }}>ARTIST</div>}
             {selectedArtist && <div style={s.summaryValue}>{selectedArtist.name}</div>}
           </div>
@@ -553,11 +572,28 @@ export default function BookingSelectionClient() {
       {step === 1 && (
         <div style={{ marginTop: 28 }}>
           <h2 style={s.stepHeading}>Choose a date</h2>
+          <p style={s.muted}>All times are shown in {studioTimezone.replaceAll('_', ' ')}.</p>
+          {slotsLoading && <p role="status" style={s.muted}>Checking availability…</p>}
+          {slotsError && <div role="alert">
+            <p style={s.muted}>{slotsError}</p>
+            <button style={s.btnSecondary} onClick={() => setRetrySlots(value => value + 1)}>Try again</button>
+          </div>}
+          {schedulingMode === 'quieter_days' && recommendedDates.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <p style={s.muted}>Suggested dates</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {recommendedDates.map(key => <button key={key} style={{ ...s.slotBtn, ...(selectedDate && dateKey(selectedDate) === key ? s.slotBtnActive : {}) }} onClick={() => chooseDate(calendarDate(key))}>
+                  {calendarDate(key).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </button>)}
+              </div>
+              <p style={s.muted}>You can also choose any available date below.</p>
+            </div>
+          )}
 
           <div style={s.calHeader}>
-            <button style={s.calNav} onClick={() => setCalMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() - 1); return n; })}>‹</button>
+            <button style={s.calNav} aria-label="Previous month" onClick={() => { chooseDate(null); setCalMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() - 1); return n; }); }}>‹</button>
             <span style={s.calTitle}>{MONTH_NAMES[calMonth.getMonth()]} {calMonth.getFullYear()}</span>
-            <button style={s.calNav} onClick={() => setCalMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() + 1); return n; })}>›</button>
+            <button style={s.calNav} aria-label="Next month" onClick={() => { chooseDate(null); setCalMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() + 1); return n; }); }}>›</button>
           </div>
 
           <div style={s.calGrid}>
@@ -565,14 +601,15 @@ export default function BookingSelectionClient() {
             {calendarDays().map((date, i) => {
               if (!date) return <div key={`e-${i}`} />;
               const isPast = date < today;
-              const isUnavailable = artistWorkDays !== null && !artistWorkDays.has(date.getDay());
+              const dayAvailability = availability?.days?.find(day => day.date === dateKey(date));
+              const isUnavailable = !dayAvailability?.slots?.length;
               const isDisabled = isPast || isUnavailable;
               const isSel = selectedDate && date.toDateString() === selectedDate.toDateString();
               return (
                 <button
                   key={date.toISOString()}
                   disabled={isDisabled}
-                  onClick={() => setSelectedDate(date)}
+                  onClick={() => chooseDate(date)}
                   style={{
                     ...s.calDay,
                     ...(isDisabled ? s.calDayPast : {}),
@@ -599,8 +636,16 @@ export default function BookingSelectionClient() {
                 </p>
               )}
               {slotsLoading && <div style={{ ...s.spinner, margin: '20px auto' }} />}
-              {!slotsLoading && availableSlots.length === 0 && (
+              {!slotsLoading && !slotsError && availableSlots.length === 0 && (
                 <p style={s.muted}>No available slots on this day. Try another date.</p>
+              )}
+              {!slotsLoading && !slotsError && schedulingMode !== 'all' && allSlotDetails.length > recommendedTimes.length && (
+                <div style={{ marginBottom: 12 }}>
+                  <p style={s.muted}>{showAllTimes ? 'All available times' : 'Suggested times that fit the artist’s schedule'}</p>
+                  <button style={s.btnSecondary} aria-expanded={showAllTimes} onClick={() => { setShowAllTimes(value => !value); setSelectedSlot(null); }}>
+                    {showAllTimes ? 'Show suggested times' : 'Show all times'}
+                  </button>
+                </div>
               )}
               {!slotsLoading && availableSlots.length > 0 && (
                 <div style={s.slotGrid}>
@@ -612,7 +657,7 @@ export default function BookingSelectionClient() {
                         style={{ ...s.slotBtn, ...(sel ? s.slotBtnActive : {}) }}
                         onClick={() => setSelectedSlot(slot)}
                       >
-                        {fmtTime(slot.getHours(), slot.getMinutes())}
+                        {slot.toLocaleTimeString('en-AU', { timeZone: studioTimezone, hour: 'numeric', minute: '2-digit' })}
                       </button>
                     );
                   })}
@@ -644,7 +689,7 @@ export default function BookingSelectionClient() {
           <div style={s.reviewCard}>
             <ReviewRow label="Artist" value={selectedArtist?.name} />
             <div style={s.reviewDivider} />
-            <ReviewRow label="Date & Time" value={fmtDateTime(selectedSlot?.toISOString())} />
+            <ReviewRow label="Date & Time" value={fmtDateTime(selectedSlot?.toISOString(), studioTimezone)} />
             {ctx?.booking?.duration_minutes && (
               <>
                 <div style={s.reviewDivider} />

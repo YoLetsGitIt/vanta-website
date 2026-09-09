@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const links = [
   { href: '/artists', label: 'For artists' },
+  { href: '/studios', label: 'For studios' },
 ];
 
 export default function NavBar() {
