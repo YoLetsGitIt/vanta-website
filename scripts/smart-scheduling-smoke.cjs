@@ -10,12 +10,12 @@ const day = (date, mode) => ({
   date,
   slots: ['09:00', '10:00', '11:00', '12:00', '13:00'],
   slot_details: ['09:00', '10:00', '11:00', '12:00', '13:00'].map(time => ({ time, starts_at: `${date}T${time}:00+10:00` })),
-  recommended_slots: (mode === 'all' || mode === 'quieter_days') ? ['09:00', '10:00', '11:00', '12:00', '13:00'] : ['10:00', '11:00', '12:00'],
+  recommended_slots: (['all', 'quieter_days', 'quieter_months', 'quieter_days_only'].includes(mode)) ? ['09:00', '10:00', '11:00', '12:00', '13:00'] : ['10:00', '11:00', '12:00'],
 });
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const mode of ['all', 'quieter_days', 'minimize_gaps', 'combined']) {
+    for (const mode of ['all', 'quieter_days', 'minimize_gaps', 'combined', 'quieter_months', 'quieter_days_only', 'quieter_months_gaps', 'quieter_days_gaps']) {
       const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'America/Los_Angeles' });
       await context.addInitScript(session => localStorage.setItem('sb-aznxvdnpvbcofaqxgmtu-auth-token', JSON.stringify(session)), auth);
       const page = await context.newPage();
@@ -28,7 +28,7 @@ const day = (date, mode) => ({
       let slotRequests = 0;
       let expireOffer = false;
       let emptyPeriods = false;
-      const filtered = ['quieter_days', 'combined'].includes(mode);
+      const filtered = !['all', 'minimize_gaps'].includes(mode);
       await page.route('https://aznxvdnpvbcofaqxgmtu.supabase.co/**', route => route.fulfill({ json: user }));
       await page.route('https://inkspire-backend-xa2a.onrender.com/**', async route => {
         const url = new URL(route.request().url());
@@ -69,7 +69,7 @@ const day = (date, mode) => ({
         assert.equal(slotRequests, before, 'Month choices must keep the same signed offer');
       }
       await selectDate();
-      if (mode === 'all' || mode === 'quieter_days') {
+      if (['all', 'quieter_days', 'quieter_months', 'quieter_days_only'].includes(mode)) {
         await page.getByRole('button', { name: '9:00 am', exact: true }).waitFor();
         assert.equal(await page.getByRole('button', { name: 'Show all times', exact: true }).count(), 0);
       } else {

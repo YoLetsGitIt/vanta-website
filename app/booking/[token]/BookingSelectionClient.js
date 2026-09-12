@@ -162,7 +162,7 @@ export default function BookingSelectionClient() {
   const availability = monthAvailability?.key === requestKey ? monthAvailability.data : null;
   const studioTimezone = availability?.timezone || ctx?.studio?.timezone || 'UTC';
   const schedulingMode = availability?.mode || 'all';
-  const minimizesGaps = schedulingMode === 'minimize_gaps' || schedulingMode === 'combined';
+  const minimizesGaps = ['minimize_gaps', 'combined', 'quieter_months_gaps', 'quieter_days_gaps'].includes(schedulingMode);
   const selectedDay = availability?.days?.find(day => day.date === (selectedDate && dateKey(selectedDate)));
   const allSlotDetails = selectedDay?.slot_details || [];
   const recommendedTimes = selectedDay?.recommended_slots || [];
@@ -170,7 +170,7 @@ export default function BookingSelectionClient() {
     ? allSlotDetails
     : allSlotDetails.filter(slot => recommendedTimes.includes(slot.time));
   const availableSlots = visibleSlotDetails.map(slot => new Date(slot.starts_at));
-  const filteredPeriods = availability ? availability.filtered_periods === true : ['quieter_days', 'combined'].includes(ctx?.studio?.scheduling_mode);
+  const filteredPeriods = availability ? availability.filtered_periods === true : ['quieter_days', 'combined', 'quieter_months', 'quieter_days_only', 'quieter_months_gaps', 'quieter_days_gaps'].includes(ctx?.studio?.scheduling_mode);
   const availableMonths = availability?.months || [];
   const periodDates = (availability?.days || []).filter(day => day.date.startsWith(selectedPeriod) && day.slots.length > 0);
 
