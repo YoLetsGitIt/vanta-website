@@ -720,7 +720,7 @@ export default function HomePage() {
                 Vanta Studio gives your team one place for bookings, client records, consent forms, deposits, and scheduling.
               </p>
             </div>
-            <a className="home-studio-cta" href="https://studio.vanta.tattoo/?signup">
+            <a className="home-studio-cta" href="https://studio.vanta.tattoo/">
               Set up your studio <span aria-hidden="true">→</span>
             </a>
           </section>

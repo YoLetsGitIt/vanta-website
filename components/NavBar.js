@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const links = [
   { href: '/artists', label: 'For artists' },
-  { href: '/studios', label: 'For studios' },
+  { href: 'https://studio.vanta.tattoo/', label: 'For studios' },
 ];
 
 export default function NavBar() {
