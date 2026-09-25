@@ -175,6 +175,7 @@ function ConsentForm() {
 
   return (
     <div style={s.card}>
+      {info.logo_url && <img src={info.logo_url} alt={`${info.studio_name} logo`} style={{ maxHeight: 56, maxWidth: 200, objectFit: 'contain', display: 'block', marginBottom: '0.6rem' }} />}
       <p style={s.studioTag}>{info.studio_name}</p>
       <h2 style={s.heading}>Consent form</h2>
       <p style={s.muted}>Please read and complete the form below.</p>
