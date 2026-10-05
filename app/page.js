@@ -717,7 +717,7 @@ export default function HomePage() {
               <span className="home-problem-label">Vanta for studios</span>
               <h2 className="home-studio-headline">Spend more time tattooing, less time managing bookings.</h2>
               <p className="home-studio-copy">
-                Vanta Studio gives your team one place for bookings, client records, consent forms, deposits, and scheduling.
+                Vanta Studio gives your team one place for bookings, client records, consent forms, deposits, and scheduling. Artists can optionally connect Google Calendar to manage booking events and availability. Studio owners can connect Gmail to send saved email templates to selected clients who have agreed to marketing emails.
               </p>
             </div>
             <a className="home-studio-cta" href="https://studio.vanta.tattoo/">
