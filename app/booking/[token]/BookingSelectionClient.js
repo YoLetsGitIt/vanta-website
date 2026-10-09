@@ -9,7 +9,7 @@ const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const SESSION_LABELS = { touch_up: 'Touch-up', small: 'Small', medium: 'Medium', large: 'Large' };
+const SESSION_LABELS = { piercing: 'Piercing', touch_up: 'Touch-up', small: 'Small', medium: 'Medium', large: 'Large' };
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 

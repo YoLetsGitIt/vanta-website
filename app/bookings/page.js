@@ -10,7 +10,10 @@ const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const PIERCING_PLACEMENTS = ['Earlobe', 'Helix', 'Tragus', 'Conch', 'Daith', 'Rook', 'Industrial', 'Nostril', 'Septum', 'Eyebrow', 'Lip', 'Tongue', 'Navel', 'Nipple', 'Other'];
+
 const SESSION_TYPES = [
+  { value: 'piercing', label: 'Piercing', desc: 'Piercing placement and jewellery', duration: '30–60 min', size: null },
   { value: 'touch_up', label: 'Touch-up', desc: 'Small fixes, colour fills', duration: '1–2 hrs', size: null },
   { value: 'small',    label: 'Small',    desc: 'Simple designs, freehand',      duration: '2–3 hrs', size: '5–10 cm' },
   { value: 'medium',   label: 'Medium',   desc: 'Detailed pieces, large scripts', duration: '3–5 hrs', size: '10–20 cm' },
@@ -90,6 +93,7 @@ function BookingContent() {
 
   // Step 0 – session type
   const [sessionType, setSessionType] = useState(null);
+  const isPiercing = sessionType === 'piercing';
 
   // Step 1 – design
   const [designDetails, setDesignDetails] = useState('');
@@ -280,7 +284,7 @@ function BookingContent() {
   function nextEnabled() {
     switch (step) {
       case 0: return !!sessionType;
-      case 1: return designDetails.trim() && bodyLocations.length > 0 && colourStyle && photoFiles.length > 0;
+      case 1: return designDetails.trim() && bodyLocations.length > 0 && (isPiercing || (colourStyle && photoFiles.length > 0));
       case 2: return availabilityWindows.length > 0 || (pushToLater && earliestDate);
       case 3: return contactName.trim() && contactEmail.trim() && contactEmail.includes('@');
       default: return true;
@@ -366,7 +370,7 @@ function BookingContent() {
         session_type: sessionType,
         design_details: designDetails.trim(),
         body_location: bodyLocations.join(', '),
-        color: colourValue,
+        color: isPiercing ? undefined : colourValue,
         availability_windows: availabilityWindows.map(w => ({
           day_of_week: w.dayOfWeek,
           start_time: w.startTime,
@@ -555,9 +559,10 @@ function BookingContent() {
 
               {/* Step content */}
               <div style={{ marginTop: 28 }}>
-                {step === 0 && <StepSessionType sessionType={sessionType} setSessionType={setSessionType} />}
+                {step === 0 && <StepSessionType sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
                 {step === 1 && (
                   <StepDesign
+                    isPiercing={isPiercing}
                     designDetails={designDetails} setDesignDetails={setDesignDetails}
                     bodyLocations={bodyLocations} setBodyLocations={setBodyLocations}
                     colourStyle={colourStyle} setColourStyle={setColourStyle}
@@ -669,7 +674,7 @@ function BookingContent() {
 function StepSessionType({ sessionType, setSessionType }) {
   return (
     <div>
-      <h2 style={s.stepHeading}>What size is your piece?</h2>
+      <h2 style={s.stepHeading}>What appointment would you like?</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
         {SESSION_TYPES.map(t => {
           const selected = sessionType === t.value;
@@ -701,6 +706,7 @@ function StepSessionType({ sessionType, setSessionType }) {
 // ─── Step 1: Design details ──────────────────────────────────────────────────
 
 function StepDesign({
+  isPiercing,
   designDetails, setDesignDetails, bodyLocations, setBodyLocations,
   colourStyle, setColourStyle, colourDetails, setColourDetails,
   notes, setNotes, photoPreviews, photoFiles, photoInputRef,
@@ -708,7 +714,7 @@ function StepDesign({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <h2 style={s.stepHeading}>Tell us about your design</h2>
+      <h2 style={s.stepHeading}>{isPiercing ? 'Tell us about your piercing' : 'Tell us about your design'}</h2>
 
       {/* Reference photos */}
       <div>
@@ -744,10 +750,10 @@ function StepDesign({
 
       {/* Design description */}
       <div style={s.field}>
-        <label style={s.sectionLabel}>DESIGN DESCRIPTION</label>
+        <label style={s.sectionLabel}>{isPiercing ? 'PIERCING DETAILS' : 'DESIGN DESCRIPTION'}</label>
         <textarea
           style={{ ...s.input, ...s.textarea }}
-          placeholder="e.g. Japanese dragon on the upper arm with waves…"
+          placeholder={isPiercing ? 'e.g. Left nostril, one piercing, jewellery preference…' : 'e.g. Japanese dragon on the upper arm with waves…'}
           value={designDetails}
           onChange={e => setDesignDetails(e.target.value)}
           rows={4}
@@ -781,7 +787,7 @@ function StepDesign({
                 </button>
               </div>
               <div style={s.bodyGrid}>
-                {BODY_PARTS.map(part => {
+                {(isPiercing ? PIERCING_PLACEMENTS : BODY_PARTS).map(part => {
                   const selected = bodyLocations.includes(part);
                   return (
                     <button
@@ -802,7 +808,7 @@ function StepDesign({
       </div>
 
       {/* Colour */}
-      <div>
+      {!isPiercing && <div>
         <div style={s.sectionLabel}>COLOUR</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           {COLOUR_STYLES.map(c => {
@@ -828,6 +834,8 @@ function StepDesign({
           />
         )}
       </div>
+
+      }
 
       {/* Notes */}
       <div style={s.field}>
@@ -1196,7 +1204,7 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone }) {
 
 function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
-  const colourValue = colourStyle === 'Color' && colourDetails ? `Color — ${colourDetails}` : colourStyle;
+  const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Color — ${colourDetails}` : colourStyle;
 
   function ReviewGroup({ title, rows }) {
     return (
@@ -1231,7 +1239,7 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
         </div>
       )}
 
-      <ReviewGroup title="DESIGN" rows={[
+      <ReviewGroup title={sessionType === 'piercing' ? 'PIERCING' : 'DESIGN'} rows={[
         { label: 'Details', value: designDetails },
         { label: 'Placement', value: bodyLocations.join(', ') },
         colourValue && { label: 'Colour', value: colourValue },
