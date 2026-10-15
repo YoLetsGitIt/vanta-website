@@ -1,12 +1,14 @@
 {
-  "release": "artist-client-workflow-and-website-auth-2026-10-15",
-  "backend_source": "716072dfc689996a2813e295d786846ab707d19d",
-  "website_source": "45a2edb94d948037e06ba57910abb7cfe49df679",
-  "built_at": "2026-10-15T07:38:28.701842+00:00",
+  "release": "artist-client-notifications-2026-10-15",
+  "backend_source": "f1a4cf9558a942ccd92b23d93b7dd6c87f95c3f0",
+  "website_source": "bd4e56a2b45d45bd6b4fa597741a5a59d28fbe6c",
+  "built_at": "2026-10-15T10:50:21.245059+00:00",
   "features": [
-    "artist-booking-emails",
-    "booking-consent",
-    "website-apple-google-signin"
+    "artist-client-notification-settings",
+    "artist-notification-subscriptions",
+    "artist-free-month-codes",
+    "artist-mailbox-sending",
+    "artist-reminders"
   ],
-  "provider_credentials": "configured separately in Supabase"
+  "provider_credentials": "configured separately on backend and Supabase"
 }
