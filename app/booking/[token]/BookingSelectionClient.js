@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { websiteAuth } from '../../../lib/website-auth';
+import SocialSignIn from '../../../components/SocialSignIn';
+import { bookingReceipt } from '../../../lib/booking-state.mjs';
 
-const SUPABASE_URL = 'https://aznxvdnpvbcofaqxgmtu.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_SrxxKBifFjEUF8Is9ipQwQ_HVvvLPn_';
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = websiteAuth();
 
 const SESSION_LABELS = { piercing: 'Piercing', touch_up: 'Touch-up', small: 'Small', medium: 'Medium', large: 'Large' };
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -56,6 +56,7 @@ export default function BookingSelectionClient() {
   }, []);
 
   const [view, setView] = useState('loading'); // loading|invalid|expired|auth|select|success|already-done|pay-deposit
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [expiredMessage, setExpiredMessage] = useState('');
   const [ctx, setCtx] = useState(null);        // SelectionContext from backend
   const [session, setSession] = useState(null);
@@ -93,6 +94,7 @@ export default function BookingSelectionClient() {
 
   useEffect(() => {
     if (!token || token === '_') return;
+    setView('loading');
     async function load() {
       try {
         const res = await fetch(`${BACKEND_URL}/booking/${token}`);
@@ -103,7 +105,7 @@ export default function BookingSelectionClient() {
           setView('expired');
           return;
         }
-        if (!res.ok) { setView('invalid'); return; }
+        if (!res.ok) throw new Error('Unable to load booking');
         const data = await res.json();
         setCtx(data);
         if (data.studio?.timezone) {
@@ -112,9 +114,16 @@ export default function BookingSelectionClient() {
           setCalMonth(studioMonth);
         }
 
-        // ?deposit=paid — Stripe redirected back after successful payment.
-        const depositParam = new URLSearchParams(window.location.search).get('deposit');
-        if (depositParam === 'paid') { setView('success'); return; }
+        // A redirect parameter is not proof of payment. Use the persisted booking state.
+        if (['confirmed', 'completed', 'requires_confirmation'].includes(data.booking.status)) {
+          setView('verified-result');
+          return;
+        }
+
+        if (new URLSearchParams(window.location.search).get('deposit') === 'paid' && data.booking.status === 'awaiting_payment') {
+          setView('payment-processing');
+          return;
+        }
 
         // Time already chosen + deposit outstanding — show pay button.
         if (data.booking.status === 'awaiting_payment' && data.booking.chosen_time) {
@@ -142,7 +151,7 @@ export default function BookingSelectionClient() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) { setSession(session); setView('select'); }
         else { setView('auth'); }
-      } catch { setView('invalid'); }
+      } catch { setView('load-error'); }
     }
     load();
 
@@ -155,7 +164,7 @@ export default function BookingSelectionClient() {
       setView(v => v === 'auth' || v === 'loading' ? pendingAuthViewRef.current : v);
     });
     return () => subscription.unsubscribe();
-  }, [token]);
+  }, [token, loadAttempt]);
 
   const monthKey = dateKey(new Date(calMonth.getFullYear(), calMonth.getMonth(), 1));
   const requestKey = `${token}:${selectedArtist?.id}:${monthKey}`;
@@ -285,7 +294,7 @@ export default function BookingSelectionClient() {
         window.location.href = result.checkout_url;
         return;
       }
-      setView('success');
+      setLoadAttempt(value => value + 1);
     } catch (err) {
       setSubmitError(err.message || 'Something went wrong');
     } finally {
@@ -343,6 +352,15 @@ export default function BookingSelectionClient() {
         <div style={s.spinner} />
       </div>
     );
+  }
+
+  if (view === 'load-error') {
+    return <Shell studio={ctx?.studio}><h1 style={s.heading}>Unable to load your booking</h1><p style={s.muted}>Please check your connection and try again.</p><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Try again</button></Shell>;
+  }
+
+  if (view === 'verified-result' || view === 'payment-processing') {
+    const receipt = bookingReceipt(ctx.booking);
+    return <Shell studio={ctx?.studio}><h1 style={s.heading}>{receipt.title}</h1><p style={s.muted}>{receipt.message}</p><div style={s.summaryCard}><div style={s.summaryValue}>{ctx.booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}</div>{ctx.booking.chosen_time && <p>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</p>}{ctx.artists?.find(artist => artist.id === ctx.booking.artist_id)?.name && <p>{ctx.artists.find(artist => artist.id === ctx.booking.artist_id).name}</p>}</div><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Check again</button></Shell>;
   }
 
   if (view === 'invalid') {
@@ -487,6 +505,7 @@ export default function BookingSelectionClient() {
             {authLoading ? 'Please wait…' : authMode === 'login' ? 'Log in' : 'Create account'}
           </button>
         </form>
+        <SocialSignIn consentAccepted={authConsent} requireConsent={authMode === 'signup'} disabled={authLoading} />
       </Shell>
     );
   }
@@ -902,7 +921,7 @@ const s = {
     display: 'flex', alignItems: 'flex-start', gap: 10,
     fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.45)',
   },
-  checkbox: { width: 16, height: 16, accentColor: 'white', marginTop: 2, flexShrink: 0 },
+  checkbox: { width: 16, minWidth: 16, height: 16, accentColor: 'white', marginTop: 2, flexShrink: 0 },
   consentLink: { color: 'rgba(255,255,255,0.65)', textDecoration: 'underline' },
   error: {
     fontFamily: 'var(--font-body)', fontSize: 14, color: 'rgba(255,100,100,0.85)',

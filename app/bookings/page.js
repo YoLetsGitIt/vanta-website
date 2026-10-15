@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { websiteAuth } from '../../lib/website-auth';
+import SocialSignIn from '../../components/SocialSignIn';
 
-const SUPABASE_URL = 'https://aznxvdnpvbcofaqxgmtu.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_SrxxKBifFjEUF8Is9ipQwQ_HVvvLPn_';
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = websiteAuth();
 
 const PIERCING_PLACEMENTS = ['Earlobe', 'Helix', 'Tragus', 'Conch', 'Daith', 'Rook', 'Industrial', 'Nostril', 'Septum', 'Eyebrow', 'Lip', 'Tongue', 'Navel', 'Nipple', 'Other'];
 
@@ -519,6 +518,7 @@ function BookingContent() {
                   {authLoading ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Log in'}
                 </button>
               </form>
+              <SocialSignIn consentAccepted={authConsent} requireConsent={authMode === 'signup'} disabled={authLoading} />
             </>
           )}
 

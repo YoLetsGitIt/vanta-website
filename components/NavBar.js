@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const links = [
+  { href: '/signup', label: 'Sign in' },
   { href: '/artists', label: 'For artists' },
   { href: 'https://studio.vanta.tattoo/', label: 'For studios' },
 ];
@@ -13,7 +14,7 @@ export default function NavBar() {
   return (
     <header className="site-header">
       <Link href="/" className="brand">VANTA</Link>
-      <nav>
+      <nav style={{ gap: 'clamp(12px, 3vw, 32px)' }}>
         {links.map(({ href, label }) => (
           <Link
             key={href}
