@@ -1,0 +1,12 @@
+{
+  "release": "artist-client-workflow-and-website-auth-2026-10-15",
+  "backend_source": "716072dfc689996a2813e295d786846ab707d19d",
+  "website_source": "45a2edb94d948037e06ba57910abb7cfe49df679",
+  "built_at": "2026-10-15T07:38:28.701842+00:00",
+  "features": [
+    "artist-booking-emails",
+    "booking-consent",
+    "website-apple-google-signin"
+  ],
+  "provider_credentials": "configured separately in Supabase"
+}
