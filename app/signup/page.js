@@ -55,6 +55,7 @@ export default function SignupPage() {
         <h1 style={{ marginTop: 32 }}>You’re signed in</h1>
         <p style={{ lineHeight: 1.6 }}>Use your Vanta account to book with artists and keep your appointments together.</p>
         <p style={{ color: '#bac1cb', overflowWrap: 'anywhere' }}>{session.user?.email}</p>
+        <p><a href="/artist/account" style={{ color: '#fff' }}>Manage artist notifications and billing</a></p>
         <p><a href="/artists" style={{ color: '#fff' }}>Explore Vanta for artists</a></p>
         <p><a href="https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738" style={{ color: '#fff' }}>Get Vanta for iPhone</a></p>
         <button type="button" onClick={async () => { await websiteAuth().auth.signOut(); setSession(null); }} style={{ minHeight: 44, padding: '8px 16px', borderRadius: 10 }}>Sign out</button>
