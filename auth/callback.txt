@@ -1,22 +1,22 @@
 1:"$Sreact.fragment"
-2:I[2215,[],""]
-3:I[4363,[],""]
-4:I[8913,["345","static/chunks/app/not-found-7f22cf08c8f876dc.js"],"default"]
-5:I[1890,[],"ClientPageRoot"]
-6:I[3305,["341","static/chunks/44685018-5a0752b608aabe26.js","685","static/chunks/685-b7c76679dcb33509.js","769","static/chunks/app/auth/callback/page-21f0684dba91fee4.js"],"default"]
-9:I[4561,[],"OutletBoundary"]
-b:I[5235,[],"AsyncMetadataOutlet"]
-d:I[4561,[],"ViewportBoundary"]
-f:I[4561,[],"MetadataBoundary"]
+2:I[8142,[],""]
+3:I[1540,[],""]
+4:I[7731,["345","static/chunks/app/not-found-e8ced4650428c0a1.js"],"default"]
+5:I[799,[],"ClientPageRoot"]
+6:I[1927,["831","static/chunks/b3ef580c-d742ed14ce3eba14.js","481","static/chunks/481-27a8c024ae3b16df.js","769","static/chunks/app/auth/callback/page-718baef8ae49af0a.js"],"default"]
+9:I[2807,[],"OutletBoundary"]
+b:I[9350,[],"AsyncMetadataOutlet"]
+d:I[2807,[],"ViewportBoundary"]
+f:I[2807,[],"MetadataBoundary"]
 10:"$Sreact.suspense"
-12:I[6253,[],""]
+12:I[5638,[],""]
 :HL["/_next/static/media/36966cca54120369-s.p.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/_next/static/css/8cc9e23c7c562848.css","style"]
-0:{"P":null,"b":"GmyHzMlwX9LdQQWjrsypo","p":"","c":["","auth","callback"],"i":false,"f":[[["",{"children":["auth",{"children":["callback",{"children":["__PAGE__",{}]}]}]},"$undefined","$undefined",true],["",["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/8cc9e23c7c562848.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":["$","body",null,{"className":"__variable_94deb5 __variable_9bcf65","children":["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","$L4",null,{}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}]}]]}],{"children":["auth",["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["callback",["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["__PAGE__",["$","$1","c",{"children":[["$","$L5",null,{"Component":"$6","searchParams":{},"params":{},"promises":["$@7","$@8"]}],null,["$","$L9",null,{"children":["$La",["$","$Lb",null,{"promise":"$@c"}]]}]]}],{},null,false]},null,false]},null,false]},null,false],["$","$1","h",{"children":[null,[["$","$Ld",null,{"children":"$Le"}],["$","meta",null,{"name":"next-size-adjust","content":""}]],["$","$Lf",null,{"children":["$","div",null,{"hidden":true,"children":["$","$10",null,{"fallback":null,"children":"$L11"}]}]}]]}],false]],"m":"$undefined","G":["$12",[]],"s":false,"S":true}
+0:{"P":null,"b":"xoEjyiw-ziyCtkwFMqc5U","p":"","c":["","auth","callback"],"i":false,"f":[[["",{"children":["auth",{"children":["callback",{"children":["__PAGE__",{}]}]}]},"$undefined","$undefined",true],["",["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/8cc9e23c7c562848.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":["$","body",null,{"className":"__variable_94deb5 __variable_9bcf65","children":["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","$L4",null,{}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}]}]]}],{"children":["auth",["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["callback",["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["__PAGE__",["$","$1","c",{"children":[["$","$L5",null,{"Component":"$6","searchParams":{},"params":{},"promises":["$@7","$@8"]}],null,["$","$L9",null,{"children":["$La",["$","$Lb",null,{"promise":"$@c"}]]}]]}],{},null,false]},null,false]},null,false]},null,false],["$","$1","h",{"children":[null,[["$","$Ld",null,{"children":"$Le"}],["$","meta",null,{"name":"next-size-adjust","content":""}]],["$","$Lf",null,{"children":["$","div",null,{"hidden":true,"children":["$","$10",null,{"fallback":null,"children":"$L11"}]}]}]]}],false]],"m":"$undefined","G":["$12",[]],"s":false,"S":true}
 7:{}
 8:"$0:f:0:1:2:children:2:children:2:children:1:props:children:0:props:params"
 e:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
 a:null
-13:I[3067,[],"IconMark"]
+13:I[553,[],"IconMark"]
 c:{"metadata":[["$","title","0",{"children":"Vanta | Find Your Next Tattoo"}],["$","meta","1",{"name":"description","content":"Vanta helps people discover tattoo inspiration, connect with artists, and preview ideas before they commit."}],["$","link","2",{"rel":"icon","href":"/vanta-app-icon.png"}],["$","$L13","3",{}]],"error":null,"digest":"$undefined"}
 11:"$c:metadata"
