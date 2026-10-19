@@ -1,5 +1,7 @@
 'use client';
 
+import { resolveBookingArtist } from '../../lib/booking-artist.mjs';
+
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { websiteAuth } from '../../lib/website-auth';
@@ -70,7 +72,8 @@ function uploadFileXHR(url, file, onProgress) {
 
 function BookingContent() {
   const searchParams = useSearchParams();
-  const artistId = searchParams.get('artist');
+  const artistReference = searchParams.get('artist');
+  const [artistId, setArtistId] = useState(null);
 
   const [artist, setArtist] = useState(null);
   const [referralCode, setReferralCode] = useState(null);
@@ -139,16 +142,23 @@ function BookingContent() {
   // ── Init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!artistId) { setView('error'); return; }
+    if (!artistReference) { setView('error'); return; }
+    const controller = new AbortController();
+    let active = true;
+    setView('loading');
+    setArtistId(null);
 
     async function init() {
+      const resolvedArtistId = await resolveBookingArtist(artistReference, BACKEND_URL, fetch, controller.signal);
       const [artistData, refData, scheduleData, { data: { session } }] = await Promise.all([
-        fetch(`${BACKEND_URL}/artists/${artistId}`).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch(`${BACKEND_URL}/artists/${artistId}/referral-code`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch(`${BACKEND_URL}/artists/${artistId}/work-schedule`).then(r => r.ok ? r.json() : { schedule: [] }).catch(() => ({ schedule: [] })),
+        fetch(`${BACKEND_URL}/artists/${resolvedArtistId}`, { signal: controller.signal }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/referral-code`, { signal: controller.signal }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/work-schedule`, { signal: controller.signal }).then(r => r.ok ? r.json() : { schedule: [] }).catch(() => ({ schedule: [] })),
         supabase.auth.getSession(),
       ]);
+      if (!active) return;
       if (!artistData || artistData.error) { setView('error'); return; }
+      setArtistId(resolvedArtistId);
       setArtist(artistData);
       setReferralCode(refData?.referral_code || null);
       const sched = scheduleData?.schedule || [];
@@ -157,17 +167,18 @@ function BookingContent() {
       if (session) { setSession(session); prefillContact(session); setView('form'); }
       else { setView('auth'); }
     }
-    init();
+    init().catch(() => { if (active) setView('error'); });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) return;
       // Covers email-confirmation redirects and any other path that establishes
       // a session outside handleAuth (which already calls this itself).
       if (event === 'SIGNED_IN') createProfile(session, '');
-      setSession(session); prefillContact(session); setView('form');
+      setSession(session); prefillContact(session);
+      setView(current => ['auth', 'confirm-email'].includes(current) ? 'form' : current);
     });
-    return () => subscription.unsubscribe();
-  }, [artistId]);
+    return () => { active = false; controller.abort(); subscription.unsubscribe(); };
+  }, [artistReference]);
 
   async function prefillContact(session) {
     const meta = session.user?.user_metadata;
@@ -304,7 +315,7 @@ function BookingContent() {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (!session) return;
+    if (!session || !artistId) return;
     setSubmitting(true);
     setSubmitError('');
     setSubmitProgress(0);
