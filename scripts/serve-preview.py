@@ -4,6 +4,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import argparse
 import re
+from urllib.parse import urlsplit
 
 
 class PreviewServer(ThreadingHTTPServer):
@@ -18,7 +19,7 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         # Match the deployed static host's clean URLs (/signup -> signup.html).
         # Page routes take precedence over same-named asset folders, such as
         # public/signup (the demo images used by the signup page).
-        if not resolved.suffix:
+        if not urlsplit(path).path.endswith('/') and not resolved.suffix:
             html = resolved.with_suffix('.html')
             if html.is_file():
                 return str(html)

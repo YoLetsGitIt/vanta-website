@@ -10,7 +10,9 @@ const auth = { access_token: 'test-token', refresh_token: 'test-refresh', expire
   const browser = await chromium.launch({ headless: true, executablePath: process.env.VANTA_CHROMIUM_PATH });
   try {
     for (const width of [390, 1280]) {
-      for (const reference of ['_InkByAlex_', 'a', artistId, 'missing']) {
+      const links = ['_InkByAlex_', 'a', artistId, 'missing'].flatMap(reference =>
+        ['', '/'].map(suffix => ({ reference, suffix })));
+      for (const { reference, suffix } of links) {
         const context = await browser.newContext({ viewport: { width, height: 900 } });
         await context.addInitScript(session => localStorage.setItem('sb-aznxvdnpvbcofaqxgmtu-auth-token', JSON.stringify(session)), auth);
         await context.route('https://aznxvdnpvbcofaqxgmtu.supabase.co/**', route => route.fulfill({ json: auth }));
@@ -34,7 +36,8 @@ const auth = { access_token: 'test-token', refresh_token: 'test-refresh', expire
           return route.fulfill({ json: {} });
         });
         const page = await context.newPage();
-        await page.goto(`${base}/bookings?artist=${reference}`);
+        const response = await page.goto(`${base}/bookings${suffix}?artist=${reference}`);
+        assert.equal(response.status(), 200, 'Both booking URL forms must resolve');
         if (reference === 'missing') {
           await page.getByRole('heading', { name: 'Artist not found' }).waitFor();
           assert(!paths.some(path => path === `/artists/${artistId}`));
@@ -62,6 +65,6 @@ const auth = { access_token: 'test-token', refresh_token: 'test-refresh', expire
         await context.close();
       }
     }
-    console.log('PASS: Instagram, short Instagram and legacy UUID links submit the correct artist UUID on mobile and desktop; unknown usernames remain unavailable for signed-in clients.');
+    console.log('PASS: Instagram, short Instagram and legacy UUID links submit the correct artist UUID with and without a trailing slash on mobile and desktop; unknown usernames remain unavailable for signed-in clients.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

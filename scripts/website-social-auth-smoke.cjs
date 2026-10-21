@@ -10,7 +10,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.VANTA_CHROMIUM_PATH });
   try {
-    for (const scenario of ['signup-google', 'booking-google', 'studio-google', 'confirm-apple', 'provider-unavailable', 'cancelled', 'profile-failure']) {
+    for (const scenario of ['signup-google', 'booking-google', 'booking-username-google', 'booking-username-apple-slash', 'studio-google', 'confirm-apple', 'provider-unavailable', 'cancelled', 'profile-failure']) {
       const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
       const page = await context.newPage();
       let created = false, creations = 0, exchanges = 0, starts = 0;
@@ -25,7 +25,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
             assert.equal(url.searchParams.get('code_challenge_method').toLowerCase(), 's256');
             assert(url.searchParams.get('code_challenge').length >= 40);
             if (scenario === 'provider-unavailable') return route.fulfill({ status: 400, json: { msg: 'Unsupported provider: missing OAuth secret' } });
-            return route.fulfill({ status: 302, headers: { location: base + '/auth/callback?code=fixture-code' } });
+            return route.fulfill({ status: 302, headers: { location: base + (scenario.endsWith('-slash') ? '/auth/callback/' : '/auth/callback') + '?code=fixture-code' } });
           }
           if (url.pathname.endsWith('/token')) {
             exchanges++;
@@ -46,6 +46,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
             assert.equal(request.postDataJSON().termsAcceptedVersion, '1.0');
             return route.fulfill({ status: 201, json: { id: auth.user.id, name: 'Test client', termsAcceptedVersion: '1.0' } });
           }
+          if (url.pathname === '/artists/by-username/vanta.app') return route.fulfill({ json: { artist_id: artistId } });
           if (url.pathname === `/artists/${artistId}`) return route.fulfill({ json: { id: artistId, name: 'Test artist', studios: [] } });
           if (url.pathname.endsWith('/referral-code')) return route.fulfill({ json: {} });
           if (url.pathname.endsWith('/work-schedule')) return route.fulfill({ json: { schedule: [] } });
@@ -62,9 +63,10 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
         await page.getByText('Sign-in was not completed. Please return and try again.').waitFor();
         assert.equal(creations, 0);
       } else {
-        const path = scenario === 'booking-google' ? `/bookings?artist=${artistId}` : scenario === 'studio-google' ? '/booking/_?token=studio-token' : scenario === 'confirm-apple' ? '/bookings/_/confirm?id=booking-test' : '/signup';
-        await page.goto(base + path);
-        const provider = scenario === 'confirm-apple' ? 'Apple' : 'Google';
+        const path = scenario.startsWith('booking-username-') ? `/bookings${scenario.endsWith('-slash') ? '/' : ''}?artist=vanta.app` : scenario === 'booking-google' ? `/bookings?artist=${artistId}` : scenario === 'studio-google' ? '/booking/_?token=studio-token' : scenario === 'confirm-apple' ? '/bookings/_/confirm?id=booking-test' : '/signup';
+        const response = await page.goto(base + path);
+        assert.equal(response.status(), 200, 'Booking and auth routes must resolve on the static host');
+        const provider = scenario.includes('apple') ? 'Apple' : 'Google';
         const button = page.getByRole('button', { name: `Continue with ${provider}`, exact: true });
         await button.waitFor();
         if (scenario === 'studio-google') await page.getByRole('button', { name: 'Create account', exact: true }).first().click();
@@ -92,7 +94,10 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
             await page.getByRole('button', { name: 'Create account', exact: true }).click();
           }
           if (scenario === 'signup-google') await page.getByRole('heading', { name: 'You’re signed in' }).waitFor();
-          if (scenario === 'booking-google') await page.getByText('Session Type', { exact: true }).waitFor();
+          if (scenario.startsWith('booking-')) {
+            await page.getByRole('heading', { name: 'What appointment would you like?' }).waitFor();
+            await page.getByText('Test artist', { exact: true }).waitFor();
+          }
           if (scenario === 'studio-google') await page.getByRole('heading', { name: 'Choose a date', exact: true }).waitFor();
           if (scenario === 'confirm-apple') await page.getByRole('heading', { name: 'Choose your time' }).waitFor();
           assert.equal(new URL(page.url()).pathname, new URL(base + path).pathname);
