@@ -185,7 +185,7 @@ function BookingContent() {
     setContactName(n => n || meta?.full_name || '');
     setContactEmail(e => e || session.user?.email || '');
     try {
-      const res = await fetch(`${BACKEND_URL}/users/me`, {
+      const res = await fetch(`${BACKEND_URL}/auth/users/me`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (res.ok) {

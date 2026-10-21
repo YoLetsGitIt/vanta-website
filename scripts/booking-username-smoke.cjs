@@ -27,7 +27,7 @@ const auth = { access_token: 'test-token', refresh_token: 'test-refresh', expire
           if (path === `/artists/${artistId}`) return route.fulfill({ json: { id: artistId, name: 'Alex Ink' } });
           if (path.endsWith('/referral-code')) return route.fulfill({ json: { referral_code: 'ALEX' } });
           if (path.endsWith('/work-schedule')) return route.fulfill({ json: { schedule: [] } });
-          if (path === '/users/me') return route.fulfill({ json: { name: 'Test Client', email: 'client@example.test', phone: '+61400000000' } });
+          if (path === '/auth/users/me') return route.fulfill({ json: { name: 'Test Client', email: 'client@example.test', phone: '+61400000000' } });
           if (path === '/bookings' && route.request().method() === 'POST') {
             assert.equal(route.request().postDataJSON().artist_id, artistId);
             submitted = true;

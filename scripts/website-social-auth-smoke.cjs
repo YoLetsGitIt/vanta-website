@@ -10,10 +10,12 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.VANTA_CHROMIUM_PATH });
   try {
-    for (const scenario of ['signup-google', 'booking-google', 'booking-username-google', 'booking-username-apple-slash', 'studio-google', 'confirm-apple', 'provider-unavailable', 'cancelled', 'profile-failure']) {
+    const scenarios = ['signup-google', 'booking-google', 'booking-username-google', 'booking-username-apple-slash', 'existing-booking-google', 'studio-google', 'confirm-apple', 'provider-unavailable', 'cancelled', 'profile-failure', 'profile-unauthorized'];
+    for (const scenario of process.env.VANTA_AUTH_SCENARIOS?.split(',') || scenarios) {
       const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
       const page = await context.newPage();
-      let created = false, creations = 0, exchanges = 0, starts = 0;
+      let created = scenario === 'existing-booking-google', creations = 0, exchanges = 0, starts = 0;
+      page.setDefaultTimeout(15000);
       await context.route('**/*', async route => {
         const request = route.request(); const url = new URL(request.url());
         if (url.origin === new URL(base).origin) return route.continue();
@@ -37,11 +39,16 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
           return route.fulfill({ json: { user: auth.user } });
         }
         if (url.origin === backend) {
-          if (url.pathname === '/users/me') {
+          // Match the deployed router: /users/me is treated as /users/{id}.
+          if (url.pathname === '/users/me') return route.fulfill({ status: 400, json: { error: 'Invalid user ID format' } });
+          if (url.pathname === '/auth/users/me' && request.method() === 'GET') {
+            assert.equal(request.headers().authorization, 'Bearer test-access-token');
+            if (scenario === 'profile-unauthorized') return route.fulfill({ status: 401, json: { error: 'Unauthorized' } });
             if (scenario === 'profile-failure') return route.fulfill({ status: 500, json: { error: 'Temporary failure' } });
             return route.fulfill({ status: created ? 200 : 404, json: created ? { id: auth.user.id, name: 'Test client', termsAcceptedVersion: '1.0' } : { error: 'User not found' } });
           }
-          if (url.pathname === '/auth/users/me') {
+          if (url.pathname === '/auth/users/me' && request.method() === 'POST') {
+            assert.equal(request.headers().authorization, 'Bearer test-access-token');
             creations++; created = true;
             assert.equal(request.postDataJSON().termsAcceptedVersion, '1.0');
             return route.fulfill({ status: 201, json: { id: auth.user.id, name: 'Test client', termsAcceptedVersion: '1.0' } });
@@ -63,7 +70,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
         await page.getByText('Sign-in was not completed. Please return and try again.').waitFor();
         assert.equal(creations, 0);
       } else {
-        const path = scenario.startsWith('booking-username-') ? `/bookings${scenario.endsWith('-slash') ? '/' : ''}?artist=vanta.app` : scenario === 'booking-google' ? `/bookings?artist=${artistId}` : scenario === 'studio-google' ? '/booking/_?token=studio-token' : scenario === 'confirm-apple' ? '/bookings/_/confirm?id=booking-test' : '/signup';
+        const path = scenario.startsWith('booking-username-') ? `/bookings${scenario.endsWith('-slash') ? '/' : ''}?artist=vanta.app` : ['booking-google', 'existing-booking-google'].includes(scenario) ? `/bookings?artist=${artistId}` : scenario === 'studio-google' ? '/booking/_?token=studio-token' : scenario === 'confirm-apple' ? '/bookings/_/confirm?id=booking-test' : '/signup';
         const response = await page.goto(base + path);
         assert.equal(response.status(), 200, 'Booking and auth routes must resolve on the static host');
         const provider = scenario.includes('apple') ? 'Apple' : 'Google';
@@ -83,7 +90,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
           await page.getByText('Google sign-in is temporarily unavailable. Please use email or try again later.').waitFor();
           await page.getByRole('button', { name: 'Create account with email', exact: true }).waitFor();
           assert.equal(exchanges, 0);
-        } else if (scenario === 'profile-failure') {
+        } else if (['profile-failure', 'profile-unauthorized'].includes(scenario)) {
           await page.getByText('Unable to load your Vanta account. Please try again.').waitFor();
           assert.equal(creations, 0, 'A profile lookup failure must not create a new account');
         } else {
@@ -94,7 +101,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
             await page.getByRole('button', { name: 'Create account', exact: true }).click();
           }
           if (scenario === 'signup-google') await page.getByRole('heading', { name: 'You’re signed in' }).waitFor();
-          if (scenario.startsWith('booking-')) {
+          if (scenario.startsWith('booking-') || scenario === 'existing-booking-google') {
             await page.getByRole('heading', { name: 'What appointment would you like?' }).waitFor();
             await page.getByText('Test artist', { exact: true }).waitFor();
           }
@@ -103,7 +110,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
           assert.equal(new URL(page.url()).pathname, new URL(base + path).pathname);
           assert.equal(new URL(page.url()).search, new URL(base + path).search);
           assert.equal(exchanges, 1);
-          assert.equal(creations, 1);
+          assert.equal(creations, scenario === 'existing-booking-google' ? 0 : 1);
         }
       }
       console.log('PASS:', scenario);

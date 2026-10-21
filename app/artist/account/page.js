@@ -30,7 +30,7 @@ export default function ArtistAccount() {
     return result;
   }
   async function load() {
-    const user = await api('/users/me');
+    const user = await api('/auth/users/me');
     const artist = (user.accountType || user.account_type || '').toLowerCase() === 'artist' || Boolean(user.artistProfile || user.artist_profile);
     setIsArtist(artist);
     if (!artist) { setSettings(null); setBilling(null); return; }

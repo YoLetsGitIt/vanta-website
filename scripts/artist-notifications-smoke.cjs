@@ -18,7 +18,7 @@ const auth = { access_token: 'local-test-token', refresh_token: 'local-refresh-t
     if(u.hostname.endsWith('supabase.co'))return route.fulfill({json:{user:auth.user}});
     if(u.origin===backend){
      assert.equal(req.headers().authorization,'Bearer local-test-token');
-     if(u.pathname==='/users/me')return route.fulfill({json:{id:auth.user.id,accountType:scenario==='non-artist'?'user':'artist'}});
+     if(u.pathname==='/auth/users/me')return route.fulfill({json:{id:auth.user.id,accountType:scenario==='non-artist'?'user':'artist'}});
      if(u.pathname.endsWith('/notification-subscription'))return route.fulfill({json:{account:{status:entitled?'active':'none',paid_until:'2099-01-01T00:00:00Z'},entitled,has_subscription:scenario==='paid-desktop',checkout_available:true,price_amount:499,currency:'aud',pending_redemption:false}});
      if(u.pathname.endsWith('/client-notifications')){
       if(req.method()==='PUT'){saves++;if(scenario==='settings-failure')return route.fulfill({status:500,json:{error:'Unable to save settings'}});settings={...settings,...req.postDataJSON()};}
