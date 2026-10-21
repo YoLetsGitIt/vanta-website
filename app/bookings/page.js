@@ -1,6 +1,7 @@
 'use client';
 
 import { resolveBookingArtist } from '../../lib/booking-artist.mjs';
+import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -113,6 +114,11 @@ function BookingContent() {
   const [pushToLater, setPushToLater] = useState(false);
   const [earliestDate, setEarliestDate] = useState('');
   const [artistSchedule, setArtistSchedule] = useState([]);
+  const [selectedStudioId, setSelectedStudioId] = useState('');
+  const studios = bookingStudios(artist);
+  const selectedStudio = studios.find(studio => studio.id === selectedStudioId);
+  const studioSchedule = scheduleForStudio(artistSchedule, studios, selectedStudioId);
+  const restrictSchedule = studios.length > 0 || artistSchedule.length > 0;
 
   // Step 3 – contact
   const [contactName, setContactName] = useState('');
@@ -160,9 +166,13 @@ function BookingContent() {
       if (!artistData || artistData.error) { setView('error'); return; }
       setArtistId(resolvedArtistId);
       setArtist(artistData);
+      const locations = bookingStudios(artistData);
+      setSelectedStudioId(locations.length === 1 ? locations[0].id : '');
+      setAvailabilityWindows([]);
+      setPushToLater(false);
+      setEarliestDate('');
       setReferralCode(refData?.referral_code || null);
       const sched = scheduleData?.schedule || [];
-      console.log('[Booking] work-schedule:', sched);
       setArtistSchedule(sched);
       if (session) { setSession(session); prefillContact(session); setView('form'); }
       else { setView('auth'); }
@@ -295,10 +305,20 @@ function BookingContent() {
     switch (step) {
       case 0: return !!sessionType;
       case 1: return designDetails.trim() && bodyLocations.length > 0 && (isPiercing || (colourStyle && photoFiles.length > 0));
-      case 2: return availabilityWindows.length > 0 || (pushToLater && earliestDate);
+      case 2: return (!studios.length || !!selectedStudio) &&
+        (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
       case 3: return contactName.trim() && contactEmail.trim() && contactEmail.includes('@');
       default: return true;
     }
+  }
+
+  function chooseStudio(id) {
+    if (id === selectedStudioId) return;
+    setSelectedStudioId(id);
+    setAvailabilityWindows([]);
+    setPushToLater(false);
+    setEarliestDate('');
+    setSubmitError('');
   }
 
   function handleNext() {
@@ -316,6 +336,10 @@ function BookingContent() {
 
   async function handleSubmit() {
     if (!session || !artistId) return;
+    if (studios.length && !selectedStudio) { setSubmitError('Choose a studio for your booking.'); return; }
+    if (availabilityWindows.length && !windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule)) {
+      setSubmitError('Choose availability within the working hours at your selected studio.'); return;
+    }
     setSubmitting(true);
     setSubmitError('');
     setSubmitProgress(0);
@@ -374,6 +398,7 @@ function BookingContent() {
 
       const body = {
         artist_id: artistId,
+        ...(selectedStudio ? { studio_id: selectedStudio.id } : {}),
         requester_name: contactName.trim(),
         requester_email: contactEmail.trim(),
         requester_phone: contactPhone.trim(),
@@ -591,7 +616,9 @@ function BookingContent() {
                     pushToLater={pushToLater} setPushToLater={setPushToLater}
                     earliestDate={earliestDate} setEarliestDate={setEarliestDate}
                     sessionType={sessionType}
-                    artistSchedule={artistSchedule}
+                    artistSchedule={studioSchedule}
+                    studios={studios} selectedStudio={selectedStudio}
+                    onChooseStudio={chooseStudio} restrictSchedule={restrictSchedule}
                   />
                 )}
                 {step === 3 && (
@@ -610,6 +637,7 @@ function BookingContent() {
                     availabilityWindows={availabilityWindows} pushToLater={pushToLater}
                     earliestDate={earliestDate}
                     name={contactName} email={contactEmail} phone={contactPhone}
+                    studio={selectedStudio}
                   />
                 )}
               </div>
@@ -868,11 +896,31 @@ function StepDesign({
 
 // ─── Step 2: Availability ────────────────────────────────────────────────────
 
-function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToLater, setPushToLater, earliestDate, setEarliestDate, sessionType, artistSchedule }) {
+function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToLater, setPushToLater, earliestDate, setEarliestDate, sessionType, artistSchedule, studios, selectedStudio, onChooseStudio, restrictSchedule }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
+  const ready = !studios.length || !!selectedStudio;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <h2 style={s.stepHeading}>When are you available?</h2>
+      <h2 style={s.stepHeading}>{studios.length ? 'Where would you like to book?' : 'When are you available?'}</h2>
+      {studios.length > 0 && <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+        <legend style={{ ...s.label, marginBottom: 12 }}>{studios.length > 1 ? 'Choose a studio to see the artist’s working hours.' : 'Your appointment location'}</legend>
+        <div style={{ display: 'grid', gap: 10 }}>
+          {studios.map(studio => <label key={studio.id} style={{ display: 'flex', alignItems: 'center', gap: 12,
+            border: selectedStudio?.id === studio.id ? '1px solid rgba(255,255,255,0.65)' : '1px solid rgba(255,255,255,0.12)',
+            background: selectedStudio?.id === studio.id ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+            borderRadius: 12, padding: 16, cursor: 'pointer' }}>
+            <input type="radio" name="booking-studio" value={studio.id} checked={selectedStudio?.id === studio.id}
+              onChange={() => onChooseStudio(studio.id)} style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, padding: 0, margin: 0, flex: '0 0 18px', accentColor: '#fff' }} />
+            <span style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+              <span style={{ fontWeight: 600, fontSize: 15 }}>{studio.name}</span>
+              {studio.addressString && <span style={{ ...s.label, lineHeight: 1.5 }}>{studio.addressString}</span>}
+            </span>
+          </label>)}
+        </div>
+      </fieldset>}
+      {ready && <>
+      {studios.length > 0 && <h3 style={{ ...s.stepHeading, fontSize: 20 }}>When are you available?</h3>}
+      {selectedStudio?.timezone && <p style={{ ...s.label, margin: 0 }}>Studio local time · {selectedStudio.timezone.replaceAll('_', ' ')}</p>}
 
       <div>
         {st && (
@@ -885,7 +933,9 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
         </p>
       </div>
 
-      <AvailabilityGrid windows={availabilityWindows} setWindows={setAvailabilityWindows} schedule={artistSchedule} />
+      {restrictSchedule && !artistSchedule.length
+        ? <p role="status" style={{ ...s.muted, margin: 0 }}>Weekly hours haven’t been set for this studio. You can request a later date for the artist to arrange.</p>
+        : <AvailabilityGrid key={selectedStudio?.id || 'independent'} windows={availabilityWindows} setWindows={setAvailabilityWindows} schedule={artistSchedule} />}
 
       {/* Push to later */}
       <div style={s.pushCard}>
@@ -914,6 +964,7 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
           />
         </div>
       )}
+      </>}
     </div>
   );
 }
@@ -947,7 +998,7 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
   }
   function timeToSlot(time) {
     const [h, m] = (time || '00:00').split(':').map(Number);
-    return (h - startHour) * (60 / AV_SLOT_MINS) + Math.floor((m || 0) / AV_SLOT_MINS);
+    return (h - startHour) * (60 / AV_SLOT_MINS) + (m || 0) / AV_SLOT_MINS;
   }
   function commitDrag(wins, dayOfWeek, startSlot, endSlot) {
     const lo = Math.min(startSlot, endSlot);
@@ -972,8 +1023,8 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
   function clampToArtistRange(slot, dayOfWeek) {
     const sched = scheduleMap[dayOfWeek];
     if (!sched) return slot;
-    const artistStart = timeToSlot(sched.start_time);
-    const artistEnd = timeToSlot(sched.end_time);
+    const artistStart = Math.ceil(timeToSlot(sched.start_time));
+    const artistEnd = Math.floor(timeToSlot(sched.end_time));
     return Math.max(artistStart, Math.min(artistEnd - 1, slot));
   }
 
@@ -985,7 +1036,10 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
     e.preventDefault();
     colEl.setPointerCapture?.(e.pointerId);
     const rect = colEl.getBoundingClientRect();
-    const slot = clampToArtistRange(getSlotFromY(e.clientY - rect.top), dayOfWeek);
+    const rawSlot = getSlotFromY(e.clientY - rect.top);
+    const day = scheduleMap[dayOfWeek];
+    if (hasSchedule && (!day || rawSlot < Math.ceil(timeToSlot(day.start_time)) || rawSlot >= Math.floor(timeToSlot(day.end_time)))) return;
+    const slot = clampToArtistRange(rawSlot, dayOfWeek);
     const insideBlock = windows.some(w =>
       w.dayOfWeek === dayOfWeek &&
       timeToSlot(w.startTime) <= slot && timeToSlot(w.endTime) > slot
@@ -1065,8 +1119,8 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
           const sched = scheduleMap[dayOfWeek];
           const isOpen = !hasSchedule || !!sched;
           // Only highlight artist range when day is open AND schedule is configured
-          const artistStartSlot = (hasSchedule && sched) ? timeToSlot(sched.start_time) : (isOpen ? 0 : -1);
-          const artistEndSlot = (hasSchedule && sched) ? timeToSlot(sched.end_time) : (isOpen ? totalSlots : -1);
+          const artistStartSlot = (hasSchedule && sched) ? Math.ceil(timeToSlot(sched.start_time)) : (isOpen ? 0 : -1);
+          const artistEndSlot = (hasSchedule && sched) ? Math.floor(timeToSlot(sched.end_time)) : (isOpen ? totalSlots : -1);
           return (
             <AvDayColumn
               key={dayIndex}
@@ -1079,7 +1133,11 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
               onPointerUp={onColPointerUp}
               totalSlots={totalSlots}
               timeToSlot={timeToSlot}
-              isOpen={isOpen}
+              isOpen={isOpen && artistEndSlot > artistStartSlot}
+              label={`${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dayOfWeek]} availability`}
+              onToggleDay={() => setWindows(previous => previous.some(window => window.dayOfWeek === dayOfWeek)
+                ? previous.filter(window => window.dayOfWeek !== dayOfWeek)
+                : [...previous, { dayOfWeek, startTime: slotToTime(artistStartSlot), endTime: slotToTime(artistEndSlot) }])}
               artistStartSlot={artistStartSlot}
               artistEndSlot={artistEndSlot}
             />
@@ -1104,7 +1162,7 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
   );
 }
 
-function AvDayColumn({ dayIndex, dayOfWeek, windows, drag, onPointerDown, onPointerMove, onPointerUp, totalSlots, timeToSlot, isOpen, artistStartSlot, artistEndSlot }) {
+function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, onPointerDown, onPointerMove, onPointerUp, totalSlots, timeToSlot, isOpen, artistStartSlot, artistEndSlot }) {
   const colRef = useRef(null);
   const isDragging = drag?.dayIndex === dayIndex && !drag.isDelete;
   const dragLo = isDragging ? Math.min(drag.startSlot, drag.currentSlot) : -1;
@@ -1115,6 +1173,11 @@ function AvDayColumn({ dayIndex, dayOfWeek, windows, drag, onPointerDown, onPoin
   return (
     <div
       ref={colRef}
+      role="button" aria-label={label} aria-disabled={!isOpen} aria-pressed={windows.length > 0}
+      tabIndex={isOpen ? 0 : -1}
+      aria-description="Press Enter or Space to select the full working day. Drag to select specific times."
+      onClick={event => { if (isOpen && event.detail === 0) onToggleDay(); }}
+      onKeyDown={event => { if (isOpen && ['Enter', ' '].includes(event.key)) { event.preventDefault(); onToggleDay(); } }}
       style={{
         flex: 1, position: 'relative',
         touchAction: 'none', userSelect: 'none',
@@ -1213,7 +1276,7 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone }) {
 
 // ─── Step 4: Review ──────────────────────────────────────────────────────────
 
-function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone }) {
+function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, studio }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
   const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Color — ${colourDetails}` : colourStyle;
 
@@ -1267,6 +1330,12 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
           </div>
         </div>
       )}
+
+      {studio && <ReviewGroup title="STUDIO" rows={[
+        { label: 'Location', value: studio.name },
+        studio.addressString && { label: 'Address', value: studio.addressString },
+        studio.timezone && { label: 'Time zone', value: studio.timezone.replaceAll('_', ' ') },
+      ].filter(Boolean)} />}
 
       <ReviewGroup title="AVAILABILITY" rows={[
         ...availabilityWindows.map(w => {
