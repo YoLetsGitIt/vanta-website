@@ -37,30 +37,30 @@ const captureStyles = 'html,body{height:auto!important;overflow:visible!importan
             const panel = section.getByRole('tabpanel');
             assert.equal(await panel.count(), 1, 'Exposes one primary preview');
             assert.equal(await panel.getAttribute('aria-labelledby'), await tabs.nth(index).getAttribute('id'));
+            await panel.focus();
+            assert.equal(await panel.getByRole('button').count(), 0, 'Screenshots have no extra selectors');
+            assert.equal(await panel.locator('h3, p').count(), 0, 'No captions or counters beneath the images');
+            assert.equal(await section.getByText('Your style. The right people.', { exact: true }).count(), 0);
             const screens = view === 'feed' ? ['feed', 'discovery'] : ['portfolio'];
-            for (const [screenIndex, screen] of screens.entries()) {
-              if (view === 'feed') {
-                const controls = panel.getByRole('group', { name: 'Explore preview' }).getByRole('button');
-                assert.equal(await controls.count(), 2, 'Feed and tattoo details are combined in Explore');
-                await controls.nth(screenIndex).click();
-                assert.equal(await controls.nth(screenIndex).getAttribute('aria-pressed'), 'true');
-              }
-              await panel.locator('img:visible').evaluateAll(imgs => Promise.all(imgs.map(img => img.decode())));
-              const capture = panel.locator('[data-native-capture]:visible');
-              assert.equal(await capture.count(), 1, 'Shows one focused native screen');
+            for (const screen of screens) {
+              const capture = panel.locator(`[data-native-capture][data-app-preview="${screen}"]`);
+              await capture.locator('img').evaluate(img => img.decode());
               assert.equal(await capture.getAttribute('data-app-preview'), screen);
               assert.equal(await capture.getAttribute('data-capture-theme'), theme, 'App capture follows the page theme');
               assert.equal(await capture.locator('img').getAttribute('src'), `/studio/artist/${screen}-${theme}-780.webp`);
-              assert(await capture.locator('img').evaluate(img => Math.abs(img.clientWidth / img.clientHeight - img.naturalWidth / img.naturalHeight) < .005), 'Original capture proportions stay intact');
               assert.equal(await capture.locator('[class*="statusBar"], [class*="appNav"], [class*="tattooGrid"]').count(), 0, 'No recreated app UI overlays the capture');
+            }
+            {
+              const capture = panel.locator('[data-native-capture]:visible');
+              assert.equal(await capture.count(), 1, 'Shows one focused native screen');
+              assert(await capture.locator('img').evaluate(img => Math.abs(img.clientWidth / img.clientHeight - img.naturalWidth / img.naturalHeight) < .005), 'Original capture proportions stay intact');
               assert((await capture.boundingBox()).width >= 196, 'App content stays large');
               if (width === 320 || width === 390) {
                 const style = await page.addStyleTag({ content: captureStyles });
-                await section.screenshot({ path: path.join(output, `${theme}-${width}-${screen}.png`) });
+                await section.screenshot({ path: path.join(output, `${theme}-${width}-${view}.png`) });
                 await style.evaluate(el => el.remove());
               }
             }
-            if (view === 'feed') await panel.getByRole('button', { name: 'Feed', exact: true }).click();
           }
           await tabs.first().focus();
           await page.keyboard.press('ArrowRight');
@@ -115,6 +115,48 @@ const captureStyles = 'html,body{height:auto!important;overflow:visible!importan
     await page.locator('#your-work').getByRole('tabpanel').waitFor();
     assert.equal(await page.locator('#your-work').getByRole('tabpanel').locator('[data-app-preview]:visible').getAttribute('data-app-preview'), 'feed', 'Resize preserves mobile selection');
     await page.close();
+    const cycling = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    await cycling.clock.install();
+    await cycling.goto(base + '/artists/');
+    const cyclingSection = cycling.locator('#your-work[data-portfolio-enhanced="true"]');
+    await cyclingSection.waitFor();
+    await cyclingSection.scrollIntoViewIfNeeded();
+    await cycling.mouse.move(0, 0);
+    await cycling.clock.runFor(200);
+    const currentScreen = () => cyclingSection.locator('[data-native-capture]:visible').getAttribute('data-app-preview');
+    assert.equal(await currentScreen(), 'feed', 'Feed is shown first');
+    const initialHeight = (await cyclingSection.locator('[data-portfolio-showcase]').boundingBox()).height;
+    await cycling.clock.runFor(4100);
+    assert.equal(await currentScreen(), 'discovery', 'Tattoo details appear automatically');
+    assert(Math.abs((await cyclingSection.locator('[data-portfolio-showcase]').boundingBox()).height - initialHeight) < 1, 'Cycling does not move the layout');
+    assert.equal(await cyclingSection.locator('[class*="previewFrame"]:visible').evaluate(el => getComputedStyle(el).animationName), 'none', 'Reduced motion uses a static screen change');
+    await cycling.clock.runFor(4100);
+    assert.equal(await currentScreen(), 'feed', 'The two screenshots loop');
+    await cyclingSection.getByRole('tabpanel').focus();
+    await cycling.clock.runFor(5000);
+    assert.equal(await currentScreen(), 'feed', 'Keyboard focus pauses cycling');
+    await cycling.evaluate(() => document.activeElement.blur());
+    const scene = await cyclingSection.locator('[data-portfolio-showcase]').boundingBox();
+    await cycling.mouse.move(scene.x + scene.width / 2, scene.y + scene.height / 2);
+    await cycling.clock.runFor(5000);
+    assert.equal(await currentScreen(), 'feed', 'Hover pauses cycling');
+    await cycling.mouse.move(0, 0);
+    await cycling.clock.runFor(4100);
+    assert.equal(await currentScreen(), 'discovery', 'Cycling resumes when the preview is released');
+    await cycling.locator('[data-theme]').evaluate(el => el.scrollTo({ top: el.scrollHeight, behavior: 'instant' }));
+    await cycling.waitForFunction(() => document.querySelector('[data-portfolio-showcase]').getBoundingClientRect().bottom < 0);
+    // Native visibility observations run on browser frames, outside the fake clock.
+    await cycling.evaluate(() => new Promise(resolve => {
+      const observer = new IntersectionObserver(([entry]) => {
+        if (!entry.isIntersecting) { observer.disconnect(); resolve(); }
+      });
+      observer.observe(document.querySelector('[data-portfolio-showcase]'));
+    }));
+    await cycling.clock.runFor(200);
+    await cycling.clock.runFor(5000);
+    assert.equal(await currentScreen(), 'discovery', 'Offscreen previews stop cycling');
+    await cycling.close();
+    console.log('PASS automatic screenshots: feed first, looping, stable height, focus/hover pause, resume and offscreen pause');
     const staticPage = await browser.newPage({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false });
     await staticPage.goto(base + '/artists/');
     assert.equal(await staticPage.locator('#your-work [data-app-preview]:visible').count(), 3, 'All app screens are available without JavaScript');

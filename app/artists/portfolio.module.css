@@ -19,8 +19,6 @@
 .tabDescription { max-width: 32ch; color: var(--muted); font-size: 12px; line-height: 1.75; }
 .tabArrow { flex: none; width: 21px; height: 21px; margin: 2px 0 0 auto; opacity: .35; transition: opacity .2s, translate .2s; }
 .tabs button[aria-selected='true'] .tabArrow { opacity: 1; translate: 3px 0; }
-.closing { display: flex; align-items: center; gap: 9px; margin: 24px 0 0; color: var(--tint); font-size: 11px; line-height: 1.7; }
-.closing > span { font-size: 16px; }
 .showcase { position: relative; min-width: 0; }
 .panel { min-width: 0; }
 .section[data-portfolio-enhanced='true'] .panel[data-selected='false'] { display: none; }
@@ -37,16 +35,8 @@
 .previewFrame + .previewFrame { margin-top: 24px; }
 .section[data-portfolio-enhanced='true'] .previewFrame { margin-top: 0; }
 .previewFrame[hidden] { display: none; }
-.exploreControls { display: flex; justify-content: center; gap: 4px; padding-top: 14px; }
-.section .exploreControls button { min-height: 44px; padding: 8px 14px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
-.section .exploreControls button[aria-pressed='true'] { border-color: var(--rule); background: var(--surface); color: var(--paper); }
 .appScreen > img { display: block; width: 100%; height: auto; }
-.panelHeading { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 12px; padding: 20px 0 0; }
-.previewNumber { grid-column: 2; grid-row: 1; color: var(--tint); font-size: 10px; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
-.panelHeading h3 { grid-column: 1; grid-row: 1; margin: 0; color: var(--paper); font-size: 15px; font-weight: 500; line-height: 1.5; letter-spacing: -.02em; }
-.panelHeading p { display: none; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.8; text-wrap: pretty; }
 .section[data-portfolio-enhanced='false'] .panel + .panel { margin-top: 32px; }
-.section[data-portfolio-enhanced='false'] .panelHeading p { display: block; grid-column: 1 / -1; }
 @media (max-width: 1000px) and (min-width: 761px) {
   .section { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; padding-block: 64px; }
   .section .heading h2 { font-size: clamp(38px, 5vw, 48px); }
@@ -67,17 +57,15 @@
   .tabs button::before, .tabNumber, .tabDescription, .tabArrow { display: none; }
   .tabTitle { display: none; }
   .mobileTabTitle { display: block; font-size: 12px; line-height: 1.5; font-weight: 500; }
-  .closing { display: none; }
   .scene { padding: 28px 0; }
   .section .phone { width: clamp(210px, 59vw, 254px); }
   .artwork img { width: 30%; height: 39%; border-width: 4px; }
   .artworkLeft { left: -9%; top: 14%; }
   .artworkRight { right: -9%; bottom: 12%; }
-  .panelHeading { padding-top: 20px; }
-  .panelHeading h3 { font-size: 17px; }
-  .panelHeading p { display: block; grid-column: 1 / -1; max-width: 38ch; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .section[data-portfolio-enhanced='true'] .panel { animation: previewIn .35s ease-out; }
+  .section[data-portfolio-enhanced='true'] .previewFrame:not([hidden]) { animation: captureIn .3s ease-out; }
 }
+@keyframes captureIn { from { opacity: .3; } to { opacity: 1; } }
 @keyframes previewIn { from { opacity: .3; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
