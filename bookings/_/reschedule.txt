@@ -1,20 +1,21 @@
 1:"$Sreact.fragment"
-2:I[8142,[],""]
-3:I[1540,[],""]
-4:I[7731,["345","static/chunks/app/not-found-66b1c630497f8e59.js"],"default"]
-5:"$Sreact.suspense"
-6:I[8356,["820","static/chunks/app/bookings/%5Bid%5D/reschedule/page-8f8451e4563e48fc.js"],"default"]
-8:I[2807,[],"OutletBoundary"]
-a:I[9350,[],"AsyncMetadataOutlet"]
-c:I[2807,[],"ViewportBoundary"]
-e:I[2807,[],"MetadataBoundary"]
-10:I[5638,[],""]
+2:I[8089,["303","static/chunks/303-ea8b25d387ba0e84.js","177","static/chunks/app/layout-50903a65c949152c.js"],"default"]
+3:I[8142,[],""]
+4:I[1540,[],""]
+5:I[7731,["345","static/chunks/app/not-found-9c29955b3dbbf5d5.js"],"default"]
+6:"$Sreact.suspense"
+7:I[8356,["820","static/chunks/app/bookings/%5Bid%5D/reschedule/page-767e9230843f76de.js"],"default"]
+9:I[2807,[],"OutletBoundary"]
+b:I[9350,[],"AsyncMetadataOutlet"]
+d:I[2807,[],"ViewportBoundary"]
+f:I[2807,[],"MetadataBoundary"]
+11:I[5638,[],""]
 :HL["/_next/static/media/36966cca54120369-s.p.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-:HL["/_next/static/css/8cc9e23c7c562848.css","style"]
-0:{"P":null,"b":"perxu37HZ9hZx9SYSGYaL","p":"","c":["","bookings","_","reschedule"],"i":false,"f":[[["",{"children":["bookings",{"children":[["id","_","d"],{"children":["reschedule",{"children":["__PAGE__",{}]}]}]}]},"$undefined","$undefined",true],["",["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/8cc9e23c7c562848.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":["$","body",null,{"className":"__variable_94deb5 __variable_9bcf65","children":["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","$L4",null,{}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}]}]]}],{"children":["bookings",["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["id","_","d"],["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["reschedule",["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["__PAGE__",["$","$1","c",{"children":[["$","$5",null,{"fallback":null,"children":["$","$L6",null,{"params":"$@7"}]}],null,["$","$L8",null,{"children":["$L9",["$","$La",null,{"promise":"$@b"}]]}]]}],{},null,false]},null,false]},null,false]},null,false]},null,false],["$","$1","h",{"children":[null,[["$","$Lc",null,{"children":"$Ld"}],["$","meta",null,{"name":"next-size-adjust","content":""}]],["$","$Le",null,{"children":["$","div",null,{"hidden":true,"children":["$","$5",null,{"fallback":null,"children":"$Lf"}]}]}]]}],false]],"m":"$undefined","G":["$10",[]],"s":false,"S":true}
-7:{"id":"_"}
-d:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
-9:null
-11:I[553,[],"IconMark"]
-b:{"metadata":[["$","title","0",{"children":"Book a tattoo or piercing | Vanta"}],["$","meta","1",{"name":"description","content":"Vanta helps people discover tattoo inspiration, connect with artists, and preview ideas before they commit."}],["$","link","2",{"rel":"icon","href":"/vanta-app-icon.png"}],["$","$L11","3",{}]],"error":null,"digest":"$undefined"}
-f:"$b:metadata"
+:HL["/_next/static/css/57ccb5c5294d5ffc.css","style"]
+0:{"P":null,"b":"c6K3fKFQJPD0KaoTRjJL7","p":"","c":["","bookings","_","reschedule"],"i":false,"f":[[["",{"children":["bookings",{"children":[["id","_","d"],{"children":["reschedule",{"children":["__PAGE__",{}]}]}]}]},"$undefined","$undefined",true],["",["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/57ccb5c5294d5ffc.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":["$","body",null,{"className":"__variable_94deb5 __variable_9bcf65","children":["$","$L2",null,{"children":["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","$L5",null,{}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}]}]}]]}],{"children":["bookings",["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["id","_","d"],["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["reschedule",["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["__PAGE__",["$","$1","c",{"children":[["$","$6",null,{"fallback":null,"children":["$","$L7",null,{"params":"$@8"}]}],null,["$","$L9",null,{"children":["$La",["$","$Lb",null,{"promise":"$@c"}]]}]]}],{},null,false]},null,false]},null,false]},null,false]},null,false],["$","$1","h",{"children":[null,[["$","$Ld",null,{"children":"$Le"}],["$","meta",null,{"name":"next-size-adjust","content":""}]],["$","$Lf",null,{"children":["$","div",null,{"hidden":true,"children":["$","$6",null,{"fallback":null,"children":"$L10"}]}]}]]}],false]],"m":"$undefined","G":["$11",[]],"s":false,"S":true}
+8:{"id":"_"}
+e:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
+a:null
+12:I[553,[],"IconMark"]
+c:{"metadata":[["$","title","0",{"children":"Book a tattoo or piercing | Vanta"}],["$","meta","1",{"name":"description","content":"Discover tattoo inspiration, find your artist, and book your next tattoo. Download Vanta for iPhone or join the Android beta."}],["$","link","2",{"rel":"icon","href":"/vanta-app-icon.png"}],["$","$L12","3",{}]],"error":null,"digest":"$undefined"}
+10:"$c:metadata"
