@@ -2,14 +2,15 @@ const assert = require('node:assert/strict');
 const { chromium } = require(process.env.STUDIO_PLAYWRIGHT_PATH || 'playwright');
 const base = process.env.PUBLIC_TEST_URL || 'http://localhost:4174';
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined });
   try {
     for (const width of [1440, 768, 390, 320]) {
-      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
       const errors = [], missing = [];
       page.on('pageerror', e => errors.push(e.message));
       page.on('response', r => { if (r.url().startsWith(base) && r.status() >= 400) missing.push(r.url()); });
       await page.goto(base + '/');
+      await page.waitForLoadState('networkidle');
       await page.getByRole('heading', { name: 'Find your next tattoo.' }).waitFor();
       const home = page.getByRole('main', { name: 'Vanta home' });
       assert(await home.evaluate(el => el.scrollWidth <= el.clientWidth), 'No horizontal overflow');
