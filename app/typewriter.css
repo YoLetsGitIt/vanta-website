@@ -7,7 +7,9 @@
   background: #000;
   display: grid;
   place-items: center;
-  z-index: 100;
+  z-index: 2147483647;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .typewriter-container {

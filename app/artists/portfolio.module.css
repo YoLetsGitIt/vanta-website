@@ -1,0 +1,83 @@
+/* One story and one focused product scene, with artwork framing the app. */
+.section { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: clamp(40px, 6vw, 88px); padding: 84px 0 88px; border-top: 1px solid var(--rule); }
+.copy { min-width: 0; }
+.heading { text-align: left; }
+.heading > p:first-child { margin-bottom: 28px; }
+.section .heading h2 { margin: 0; font-size: clamp(44px, 4.8vw, 68px); font-weight: 500; line-height: 1.06; letter-spacing: -.06em; text-wrap: balance; }
+.section .heading h2 em { color: var(--tint); }
+.lead { max-width: 32ch; margin: 24px 0 0; color: var(--muted); font-size: 15px; line-height: 1.85; text-wrap: pretty; }
+.tabs { display: grid; margin-top: 36px; border-top: 1px solid var(--rule); }
+.section .tabs button { position: relative; display: flex; align-items: flex-start; gap: 16px; width: 100%; min-width: 0; min-height: 104px; padding: 22px 12px 22px 0; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: transparent; color: var(--muted); cursor: pointer; text-align: left; transition: color .2s, background .2s; }
+.tabs button::before { content: ''; position: absolute; top: -1px; left: 0; width: 0; height: 1px; background: var(--gold); transition: width .3s; }
+.tabs button:hover { background: color-mix(in srgb, var(--paper) 3%, transparent); }
+.tabs button[aria-selected='true'] { color: var(--paper); }
+.tabs button[aria-selected='true']::before { width: 100%; }
+.tabNumber { flex: none; padding-top: 4px; color: var(--tint); font-size: 10px; font-variant-numeric: tabular-nums; }
+.tabCopy { display: grid; gap: 7px; min-width: 0; }
+.tabTitle { font-size: 17px; line-height: 1.4; font-weight: 500; letter-spacing: -.02em; }
+.mobileTabTitle { display: none; }
+.tabDescription { max-width: 32ch; color: var(--muted); font-size: 12px; line-height: 1.75; }
+.tabArrow { flex: none; width: 21px; height: 21px; margin: 2px 0 0 auto; opacity: .35; transition: opacity .2s, translate .2s; }
+.tabs button[aria-selected='true'] .tabArrow { opacity: 1; translate: 3px 0; }
+.closing { display: flex; align-items: center; gap: 9px; margin: 24px 0 0; color: var(--tint); font-size: 11px; line-height: 1.7; }
+.closing > span { font-size: 16px; }
+.showcase { position: relative; min-width: 0; }
+.panel { min-width: 0; }
+.section[data-portfolio-enhanced='true'] .panel[data-selected='false'] { display: none; }
+.panel[role='tabpanel']:focus-visible { outline: 2px solid var(--gold); outline-offset: 8px; border-radius: 4px; }
+.scene { position: relative; isolation: isolate; display: grid; place-items: center; padding: 34px 0; overflow: hidden; border: 1px solid var(--rule); border-radius: 4px; background: color-mix(in srgb, var(--surface) 60%, var(--canvas)); }
+.scene::before { content: ''; position: absolute; z-index: -2; width: 115%; aspect-ratio: 1; border: 1px solid var(--rule); border-radius: 50%; }
+.scene::after { content: ''; position: absolute; z-index: -2; width: 78%; aspect-ratio: 1; border: 1px solid var(--rule); border-radius: 50%; }
+.artwork { position: absolute; z-index: -1; inset: 0; pointer-events: none; }
+.artwork img { position: absolute; display: block; width: 30%; height: 42%; object-fit: cover; border: 5px solid var(--canvas); border-radius: 2px; box-shadow: 0 16px 36px -16px var(--shadow); }
+.artworkLeft { top: 16%; left: -4%; transform: rotate(-10deg); }
+.artworkRight { bottom: 12%; right: -4%; transform: rotate(10deg); }
+.section .phone { width: clamp(218px, 20vw, 264px); min-width: 0; margin: 0; }
+.phone .appScreen { display: block; width: 100%; overflow: hidden; border: 1px solid var(--app-border); border-radius: 30px; background: var(--app-canvas); box-shadow: 0 28px 44px -20px var(--shadow), 0 0 0 4px var(--app-bezel), 0 0 0 5px var(--rule); }
+.previewFrame + .previewFrame { margin-top: 24px; }
+.section[data-portfolio-enhanced='true'] .previewFrame { margin-top: 0; }
+.previewFrame[hidden] { display: none; }
+.exploreControls { display: flex; justify-content: center; gap: 4px; padding-top: 14px; }
+.section .exploreControls button { min-height: 44px; padding: 8px 14px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+.section .exploreControls button[aria-pressed='true'] { border-color: var(--rule); background: var(--surface); color: var(--paper); }
+.appScreen > img { display: block; width: 100%; height: auto; }
+.panelHeading { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 12px; padding: 20px 0 0; }
+.previewNumber { grid-column: 2; grid-row: 1; color: var(--tint); font-size: 10px; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+.panelHeading h3 { grid-column: 1; grid-row: 1; margin: 0; color: var(--paper); font-size: 15px; font-weight: 500; line-height: 1.5; letter-spacing: -.02em; }
+.panelHeading p { display: none; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.8; text-wrap: pretty; }
+.section[data-portfolio-enhanced='false'] .panel + .panel { margin-top: 32px; }
+.section[data-portfolio-enhanced='false'] .panelHeading p { display: block; grid-column: 1 / -1; }
+@media (max-width: 1000px) and (min-width: 761px) {
+  .section { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; padding-block: 64px; }
+  .section .heading h2 { font-size: clamp(38px, 5vw, 48px); }
+  .lead { font-size: 14px; }
+  .tabs { margin-top: 26px; }
+  .section .tabs button { gap: 10px; padding-block: 18px; }
+  .tabTitle { font-size: 15px; }
+  .artwork img { width: 34%; }
+}
+@media (max-width: 760px) {
+  .section { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 40px 0 44px; }
+  .heading > p:first-child { margin-bottom: 22px; }
+  .section .heading h2 { font-size: clamp(36px, 9.5vw, 62px); line-height: 1.08; }
+  .lead { max-width: 34ch; margin-top: 18px; font-size: 13px; line-height: 1.8; }
+  .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 26px; padding: 4px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+  .section .tabs button { align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 10px 8px; border: 1px solid transparent; border-radius: 5px; text-align: center; }
+  .tabs button[aria-selected='true'] { border-color: var(--rule); background: var(--canvas); }
+  .tabs button::before, .tabNumber, .tabDescription, .tabArrow { display: none; }
+  .tabTitle { display: none; }
+  .mobileTabTitle { display: block; font-size: 12px; line-height: 1.5; font-weight: 500; }
+  .closing { display: none; }
+  .scene { padding: 28px 0; }
+  .section .phone { width: clamp(210px, 59vw, 254px); }
+  .artwork img { width: 30%; height: 39%; border-width: 4px; }
+  .artworkLeft { left: -9%; top: 14%; }
+  .artworkRight { right: -9%; bottom: 12%; }
+  .panelHeading { padding-top: 20px; }
+  .panelHeading h3 { font-size: 17px; }
+  .panelHeading p { display: block; grid-column: 1 / -1; max-width: 38ch; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .section[data-portfolio-enhanced='true'] .panel { animation: previewIn .35s ease-out; }
+}
+@keyframes previewIn { from { opacity: .3; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }

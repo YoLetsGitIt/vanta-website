@@ -1,0 +1,281 @@
+/* The client experience: an open gallery and a personal tattoo journal. */
+.page {
+  --font-wordmark: Arial, sans-serif;
+  --paper: #f4eddd; --gold: #dcc69c; --muted: #b9bbab; --rule: #e3d7b82b;
+  height: 100dvh; width: 100%; margin: 0; padding: 0; overflow-y: auto; overflow-x: hidden;
+  scroll-behavior: smooth; isolation: isolate; position: relative;
+  background: #161912; color: var(--paper); font-family: var(--font-body), Arial, sans-serif;
+}
+.page a, .page button { -webkit-tap-highlight-color: transparent; }
+.page a { color: inherit; text-decoration: none; }
+.page button { font: inherit; cursor: pointer; box-shadow: none; }
+.page a:focus-visible, .page button:focus-visible, .chapterPanel:focus-visible { outline: 2px solid var(--gold); outline-offset: 5px; }
+.page em { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; color: var(--gold); }
+.navigation, .hero, .journey, .invitation, .footer { width: min(1280px, 90%); margin: 0 auto; }
+.navigation { height: 104px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 4; }
+.wordmark { font: 800 44px/.9 var(--font-wordmark); letter-spacing: -2.8px; }
+.wordmark > span { color: var(--gold); }
+.navigation nav { display: flex; align-items: center; gap: 30px; }
+.navigation nav a { font-size: 12px; color: #d2cebf; padding-block: 14px; min-height: 44px; display: inline-flex; align-items: center; }
+.navigation nav a:hover { color: var(--paper); }
+.eyebrow { display: block; color: var(--gold); font-size: 10px; letter-spacing: 2.1px; line-height: 1.7; font-weight: 500; }
+/* One uninterrupted opening: the artwork frames the invitation. */
+.hero { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); gap: 6%; align-items: center; min-height: calc(100dvh - 104px); padding: 20px 0 32px; position: relative; text-align: left; }
+.hero:before { content: ''; position: absolute; inset: -104px calc((100vw - 100%)/-2) 0; background: linear-gradient(90deg,#141810db 0%,#1418109c 34%,#14181026 64%,transparent 100%); pointer-events: none; }
+.heroCopy { min-width: 0; width: 100%; position: relative; z-index: 2; }
+.hero h1 { font-family: var(--font-wordmark); font-size: clamp(66px,7.2vw,104px); max-width: none; line-height: 1.08; font-weight: 800; letter-spacing: -.05em; margin: 0; text-wrap: balance; }
+.hero h1 em { font-family: inherit; font-weight: inherit; font-style: normal; letter-spacing: inherit; color: #dcc69c; }
+.hero .downloads { justify-content: flex-start; gap: 12px; }
+.inkAccent { display: block; width: clamp(190px,25vw,340px); height: auto; margin: 14px 0 22px 4px; color: var(--gold); overflow: visible; }
+.hero .storeBadge { flex: 0 1 180px; min-width: 178px; min-height: 58px; justify-content: center; padding: 11px 18px; border-radius: 10px; border-color: #eee3cc59; background: #181c16b8; color: #f4eddd!important; backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 #fff8e509,0 4px 16px #00000012; }
+.hero .storeBadge:hover { background: #303429e8; border-color: #eee3cc99; transform: translateY(-2px); }
+.hero .storeBadge strong { font-size: 20px; letter-spacing: -.35px; }
+.hero .storeBadge small { color: #d0c9b9; }
+.hero .storeBadge svg { width: 24px; height: 27px; }
+.hero .storeBadge[data-preferred=true] { background: #eee3cc; border-color: #eee3cc; color: #20261b!important; }
+.hero .storeBadge[data-preferred=true] small { color: #394030; }
+.hero .storeBadge[data-preferred=true]:hover { background: #fff2d8; border-color: #fff2d8; }
+.downloads { display: flex; gap: 12px; flex-wrap: wrap; }
+.storeBadge { display: flex; align-items: center; gap: 12px; padding: 11px 17px; min-height: 60px; min-width: 180px; background: #eee3cc; color: #20261b!important; border: 1px solid #eee3cc; border-radius: 9px; text-align: left; transition: transform .2s, background .2s; }
+.storeBadge + .storeBadge { background: #1e231bbd; color: #eee3cc!important; border-color: #e9dcc35c; backdrop-filter: blur(10px); }
+.storeBadge svg { width: 25px; height: 29px; flex: none; }
+.storeBadge small { display: block; font: 400 10px/1.4 Arial, sans-serif; margin-bottom: 2px; }
+.storeBadge strong { display: block; font: 500 21px/1.15 Arial, sans-serif; letter-spacing: -.5px; white-space: nowrap; }
+.storeBadge:hover { transform: translateY(-2px); background: #fdf3df; }
+.storeBadge + .storeBadge:hover { background: #34392bd9; }
+.downloadNote { display: block; font-size: 10px; color: #b3b6a6; margin-top: 18px; line-height: 1.6; }
+.heroDescription { max-width: 35ch; margin: 0 0 28px; font-size: 17px; line-height: 1.65; color: #ded8c8; text-wrap: pretty; }
+.heroPreview { position: relative; z-index: 1; margin: 0; display: grid; justify-items: center; gap: 24px; }
+.previewStage { --device-width: clamp(220px,20.5vw,276px); position: relative; width: 100%; display: grid; place-items: center; padding: 14px 0; isolation: isolate; }
+.previewStage:before { content: ''; position: absolute; inset: 3% -5% 0; background: radial-gradient(ellipse,#dcc69c1f,transparent 68%); z-index: -1; }
+.previewArtwork { position: absolute; inset: 0; pointer-events: none; }
+.artworkUpper, .artworkLower { position: absolute; width: 36%; aspect-ratio: .78; overflow: hidden; padding: 5px; border: 1px solid #dcc69c55; border-radius: 3px; background: #24281e; box-shadow: 0 18px 35px #0007; }
+.artworkUpper { right: -2%; top: 8%; transform: rotate(9deg); }
+.artworkLower { left: -2%; bottom: 10%; transform: rotate(-12deg); }
+.previewArtwork img { width: 100%; height: 100%; display: block; object-fit: cover; filter: saturate(.6) sepia(.15); }
+.previewFlourish { position: absolute; width: 46px; height: 46px; right: 1%; bottom: 10%; color: #dcc69ca6; transform: rotate(8deg); }
+.heroDevice { position: relative; width: var(--device-width); padding: 6px; border: 1px solid #cdc4ad; border-radius: 42px; background: linear-gradient(135deg,#696a5d,#20231e 25%,#383b31 75%,#8d8774); box-shadow: inset 0 0 0 2px #171a16,2px 3px 0 #10130f,0 28px 55px #0009; transform: rotate(-4deg); }
+.heroDevice:before, .heroDevice:after { content: ''; position: absolute; width: 3px; border-radius: 2px; background: #8a8778; }
+.heroDevice:before { left: -3px; top: 18%; height: 12%; box-shadow: 0 38px 0 -1px #8a8778; }
+.heroDevice:after { right: -3px; top: 24%; height: 9%; }
+.heroDevice img { width: 100%; height: auto; display: block; border-radius: 35px; background: #10151b; }
+.heroPreview figcaption { display: flex; align-items: center; gap: 12px; color: #e0d4b9; font-size: 11px; line-height: 1.6; }
+.heroPreview figcaption > span { width: 22px; height: 1px; background: #dcc69c70; }
+/* The tattoo feed stays behind the entire homepage, independent of scroll. */
+.background { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; background: #141711; }
+.tattooWall { --wall-gap: 20px; position: absolute; inset: 0; overflow: hidden; isolation: isolate; }
+.wallColumns { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: var(--wall-gap); height: 100%; position: absolute; inset: -15% -8%; transform: rotate(-7deg) scale(1.06); opacity: .5; }
+.wallColumn { min-width: 0; }
+.wallTrack { display: flex; flex-direction: column; gap: var(--wall-gap); will-change: transform; }
+.wallStack { display: flex; flex-direction: column; gap: var(--wall-gap); }
+.wallCard { overflow: hidden; border-radius: 7px; border: 1px solid #e9ddc421; background: #33372d; box-shadow: 0 6px 20px #0004; transform-origin: center; flex: none; }
+.wallCard[data-size=tall] { aspect-ratio: .72; }
+.wallCard[data-size=medium] { aspect-ratio: .82; }
+.wallCard[data-size=compact] { aspect-ratio: .95; }
+.wallCard img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(.65) saturate(.5) contrast(1.02); }
+.wallShade { position: absolute; z-index: 1; inset: 0; background: radial-gradient(ellipse at 50% 45%,#11160fed 0%,#11160fba 32%,#11160f65 72%),linear-gradient(180deg,#11160f66,transparent 25%,transparent 70%,#11160fbb); }
+@keyframes tattooFeed { to { transform: translateY(calc(-50% - var(--wall-gap)/2)); } }
+@keyframes tattooDrift { 50% { transform: translateX(2px) rotate(.3deg); } }
+/* Animate while the page is visible and the OS allows motion. */
+.page .tattooWall[data-motion=true] .wallTrack { animation: tattooFeed var(--duration) linear infinite!important; animation-delay: var(--offset)!important; }
+.page .tattooWall[data-motion=true] .wallColumn:nth-child(even) .wallTrack { animation-direction: reverse!important; }
+.page .tattooWall[data-motion=true] .wallCard { animation: tattooDrift 16s ease-in-out infinite!important; }
+.page .tattooWall[data-motion=true] .wallCard:nth-child(even) { animation-direction: reverse!important; animation-duration: 20s!important; }
+.page .tattooWall[data-running=false] .wallTrack, .page .tattooWall[data-running=false] .wallCard { animation-play-state: paused!important; }
+
+/* Let the art show through without competing with the content. */
+.wallColumns { opacity: .66; }
+.wallShade { background: radial-gradient(ellipse at 50% 44%,#141810f0 0%,#141810d9 27%,#14181082 58%,#14181028 100%),linear-gradient(180deg,#14181060,transparent 35%,#141810a6); }
+.journey { position: relative; padding: 32px 0 72px; scroll-margin-top: 35px; }
+.journey:before { content: ''; position: absolute; inset: 25px -5.6% -25px; background: linear-gradient(180deg,transparent,#141911d9 15%,#141911ed 65%,transparent); z-index: -1; }
+.journeyHeading { display: grid; grid-template-columns: 1.25fr 1fr; align-items: end; gap: 24px 8%; margin-bottom: 58px; }
+.journeyHeading .eyebrow { grid-column: 1/-1; }
+.journey h2, .invitation h2 { font-size: clamp(38px,4vw,58px); letter-spacing: -.05em; font-weight: 500; line-height: 1.12; margin: 0; }
+.journeyHeading > p { color: var(--muted); font-size: 14px; line-height: 1.9; margin: 0 0 3px; }
+.chapterContent { position: relative; }
+.chapterTabs { width: 48%; display: flex; gap: 0; border-bottom: 1px solid var(--rule); }
+.chapterTabs button { display: flex; align-items: center; gap: 10px; flex: 1; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: #a9b09e; padding: 18px 2px; font-size: 13px; text-align: left; transition: border-color .2s, color .2s; }
+.chapterTabs button > span { font-size: 9px; color: #9c9f8a; }
+.chapterTabs button[aria-selected=true] { border-color: var(--gold); color: var(--paper); }
+.chapterTabs button[aria-selected=true] > span { color: var(--gold); }
+.chapterPanel { display: grid; grid-template-columns: 1fr 1fr; gap: 8%; align-items: center; min-height: 475px; }
+.chapterCopy { padding: 40px 0; animation: chapterIn .35s ease both; }
+.chapterLabel { display: block; font-size: 10px; color: var(--gold); letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 20px; }
+.chapterCopy h3 { font-size: clamp(28px,3vw,40px); font-weight: 400; letter-spacing: -.04em; line-height: 1.2; margin: 0 0 22px; max-width: 18ch; }
+.chapterCopy > p { font-size: 14px; line-height: 1.85; color: #c3c7b7; max-width: 43ch; margin: 0; }
+.chapterCopy ul { display: grid; gap: 14px; list-style: none; padding: 0; margin: 30px 0 0; color: #d8d9c8; font-size: 12px; }
+.chapterCopy li { display: flex; align-items: center; gap: 13px; }
+.chapterCopy li > span { color: var(--gold); font-size: 11px; }
+.appPreview { position: relative; display: grid; place-items: center; margin-top: -70px; padding: 10px 0 50px; }
+.phone { width: 230px; position: relative; border: 5px solid #393e32; border-radius: 36px; box-shadow: 0 24px 60px #0005,0 0 0 1px #e0c99c50; overflow: hidden; background: #10151b; }
+.phone img { width: 100%; height: auto; display: block; animation: chapterIn .35s ease both; }
+.orbit { position: absolute; width: 90%; aspect-ratio: 1; border: 1px solid #d6c49a20; border-radius: 50%; transform: rotate(-25deg) scaleY(.8); }
+.orbit:before { content: ''; position: absolute; inset: 22px; border: 1px solid #d6c49a12; border-radius: 50%; }
+.previewMark { position: absolute; left: 7%; top: 23%; font: italic 160px/1 Georgia,serif; color: #d6c49a12; }
+.previewCaption { position: absolute; bottom: 88px; left: 5%; display: flex; align-items: center; gap: 10px; padding: 17px 20px; border: 1px solid #f0dfb83b; background: #303529ed; backdrop-filter: blur(14px); color: #eee6d2; box-shadow: 0 10px 26px #0004; border-radius: 4px; font-size: 11px; }
+.captionDot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 4px #dcc69c13; }
+.actualApp { position: absolute; bottom: 13px; color: #9ba58c; letter-spacing: 2px; font-size: 8px; }
+.chapterFooter { width: 48%; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule); padding-top: 18px; }
+.chapterFooter > span { color: #999f8d; font-size: 10px; }
+.chapterFooter button { display: flex; align-items: center; gap: 16px; background: transparent; color: var(--gold); padding: 10px 0 10px 14px; font-size: 11px; border-radius: 0; }
+.chapterFooter svg { width: 17px; }
+@keyframes chapterIn { from { opacity: .35; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.invitation { border-top: 1px solid var(--rule); padding: 84px 0 96px; position: relative; display: grid; grid-template-columns: .8fr 1.2fr; gap: 10%; align-items: center; scroll-margin-top: 20px; }
+.invitation .eyebrow { margin-bottom: 20px; }
+.invitation h2 { margin-bottom: 22px; }
+.invitationCopy > p { font-size: 15px; color: #c3c5b6; margin: 0 0 28px; }
+.invitationArt { position: relative; height: 335px; margin-left: 14%; }
+.invitationArt img { position: absolute; width: 58%; height: 280px; object-fit: cover; border: 9px solid #d5c9ac; box-shadow: 0 20px 40px #0004; filter: sepia(.18); }
+.invitationArt img:first-child { top: 0; left: 0; transform: rotate(-12deg); }
+.invitationArt img:last-child { top: 42px; right: 0; transform: rotate(9deg); }
+.footer { display: grid; grid-template-columns: 1fr auto; gap: 40px; padding: 40px 0 28px; border-top: 1px solid var(--rule); color: var(--paper); }
+.footerBrand { display: flex; align-items: center; gap: 24px; }
+.footerBrand .wordmark { font-size: 34px; letter-spacing: -2px; }
+.footerBrand > span { color: #aab09d; font-size: 11px; }
+.makerLinks { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.makerLinks > span { font-size: 10px; color: #9ca58f; flex-basis: 100%; }
+.makerLinks a { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; }
+.makerLinks svg { width: 14px; height: 14px; transform: rotate(-45deg); }
+.footerBottom { grid-column: 1/-1; border-top: 1px solid #e3d7b817; padding-top: 22px; display: flex; justify-content: space-between; align-items: center; gap: 16px; color: #9da48f; font-size: 10px; }
+.footerBottom nav { gap: 24px; }
+.footerBottom a { display: inline-flex; align-items: center; min-height: 44px; font-size: 10px; }
+@media (hover:hover) {
+}
+@media (prefers-reduced-motion:no-preference) {
+  .page [data-reveal][data-visible=true] { animation: sectionIn .65s ease both; }
+  @keyframes sectionIn { from { opacity: .5; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+}
+
+@media (max-width:1100px) and (min-width:761px) {
+  .hero { padding-top: 48px; }
+  .hero h1 { font-size: clamp(64px,7.8vw,86px); }
+  .storeBadge { min-width: 155px; gap: 9px; padding: 10px 12px; }
+  .storeBadge strong { font-size: 18px; }
+  .invitation { gap: 7%; }
+  .footerBrand { flex-direction: column; align-items: flex-start; gap: 14px; }
+}
+@media (max-width:760px) {
+  .navigation, .hero, .journey, .invitation, .footer { width: calc(100% - 40px); }
+  .navigation { height: 80px; }
+  .wordmark { font-size: 37px; letter-spacing: -2.5px; }
+  .navigation nav { gap: 18px; }
+  .navigation nav a { font-size: 11px; }
+  .hero { display: flex; min-height: calc(100dvh - 80px); padding: 16px 0 64px; text-align: center; justify-content: center; }
+  .hero:before { top: -80px; background: radial-gradient(ellipse at 50% 46%,#141810c4 0%,#14181080 35%,#14181000 80%); }
+  .heroCopy { padding-bottom: 0; }
+  .heroPreview { display: none; }
+  .heroDescription { font-size: 14px; line-height: 1.6; max-width: 33ch; margin: 0 auto 24px; }
+  .eyebrow { font-size: 8px; letter-spacing: 1.65px; }
+  .hero h1 { font-size: clamp(44px,11.8vw,74px); line-height: 1.09; margin: 0; letter-spacing: -.045em; }
+  .hero .downloads { gap: 10px; justify-content: center; }
+  .inkAccent { width: 190px; margin: 12px auto 20px; }
+  .hero .storeBadge { flex: 1; max-width: 168px; min-width: 0; min-height: 56px; padding: 10px 13px; gap: 10px; }
+  .hero .storeBadge strong { font-size: 18px; }
+  .hero .storeBadge svg { width: 21px; height: 25px; }
+  .downloads { gap: 10px; }
+  .storeBadge { min-width: 0; padding: 11px 13px; gap: 10px; min-height: 57px; }
+  .storeBadge strong { font-size: 19px; }
+  .storeBadge small { font-size: 9px; }
+  .storeBadge svg { width: 23px; height: 28px; }
+  .downloadNote { font-size: 9px; margin-top: 15px; }
+  .tattooWall { --wall-gap: 12px; }
+  .wallColumns { grid-template-columns: repeat(3,minmax(0,1fr)); inset: -10% -28%; transform: rotate(-7deg) scale(1.08); opacity: .65; }
+  .wallColumn:nth-child(n+4) { display: none; }
+  .wallShade { background: radial-gradient(ellipse at 50% 42%,#141810e8 0%,#141810bf 38%,#14181055 100%),linear-gradient(180deg,#14181050,transparent 65%,#14181095); }
+  .journey { padding: 24px 0 44px; scroll-margin-top: 20px; }
+  .journeyHeading { display: block; margin-bottom: 28px; }
+  .journeyHeading .eyebrow { margin-bottom: 18px; }
+  .journey h2, .invitation h2 { font-size: clamp(34px,8.2vw,46px); line-height: 1.16; }
+  .journeyHeading > p { font-size: 13px; margin-top: 19px; }
+  .chapterTabs { width: 100%; }
+  .chapterTabs button { justify-content: center; font-size: 12px; padding: 16px 0; min-height: 48px; gap: 8px; }
+  .chapterTabs button > span { font-size: 8px; }
+  .chapterPanel { display: flex; flex-direction: column; gap: 0; align-items: stretch; min-height: 0; }
+  .chapterCopy { padding: 24px 0 26px; min-height: 230px; }
+  .chapterLabel { display: none; }
+  .chapterCopy h3 { font-size: 25px; max-width: 24ch; margin-bottom: 14px; }
+  .chapterCopy > p { font-size: 12px; line-height: 1.85; max-width: 46ch; }
+  .chapterCopy ul { display: flex; flex-wrap: wrap; gap: 7px 14px; margin-top: 17px; font-size: 9px; }
+  .chapterCopy li { gap: 5px; }
+  .chapterCopy li > span { font-size: 9px; }
+  .appPreview { margin-top: 0; padding: 12px 0 38px; }
+  .orbit { width: 80%; }
+  .phone { width: 206px; border-width: 4px; border-radius: 31px; }
+  .previewCaption { bottom: 77px; left: 0; padding: 13px 16px; font-size: 10px; }
+  .actualApp { bottom: 6px; font-size: 7px; }
+  .previewMark { left: 0; top: 17%; font-size: 140px; }
+  .chapterFooter { width: 100%; margin-top: 15px; padding-top: 12px; }
+  .chapterFooter button { min-height: 44px; }
+  .invitation { display: flex; flex-direction: column; gap: 30px; padding: 40px 0 50px; align-items: stretch; }
+  .invitationArt { height: 190px; width: 220px; margin: 0 auto; }
+  .invitationArt img { height: 165px; border-width: 6px; }
+  .invitationArt img:last-child { top: 20px; }
+  .invitationCopy { text-align: center; }
+  .invitation .eyebrow { margin-bottom: 16px; }
+  .invitationCopy > p { font-size: 13px; margin-bottom: 24px; }
+  .invitation .downloads { justify-content: center; }
+  .footer { display: flex; flex-direction: column; gap: 28px; padding: 30px 0 20px; }
+  .footerBrand { gap: 20px; }
+  .footerBrand > span { font-size: 10px; }
+  .makerLinks { gap: 0 26px; }
+  .makerLinks > span { margin-bottom: 7px; }
+  .makerLinks a { min-height: 44px; }
+  .footerBottom { font-size: 9px; padding-top: 15px; }
+  .footerBottom nav { gap: 17px; }
+  .footerBottom a { font-size: 9px; }
+}
+@media (max-width:359px) {
+  .navigation, .hero, .journey, .invitation, .footer { width: calc(100% - 32px); }
+  .hero { padding-top: 28px; }
+  .hero h1 { font-size: 40px; }
+  .hero .storeBadge { padding: 10px; gap: 8px; }
+  .hero .storeBadge strong { font-size: 17px; }
+  .navigation nav { gap: 14px; }
+  .navigation nav a { font-size: 10px; }
+  .storeBadge { gap: 8px; padding: 10px; }
+  .storeBadge strong { font-size: 17px; }
+  .storeBadge svg { width: 21px; }
+
+  .chapterCopy { min-height: 262px; }
+  .chapterCopy ul { font-size: 8px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .page { scroll-behavior: auto; }
+  .page *, .page *:before, .page *:after { animation: none!important; transition: none!important; }
+  .tattooWall[data-motion=false] .wallTrack { transform: translateY(-18%); }
+  .tattooWall[data-motion=false] .wallTrack, .tattooWall[data-motion=false] .wallCard { will-change: auto; }
+}
+
+@media (max-height:650px) and (min-width:761px) {
+  .hero { padding-top: 16px; padding-bottom: 28px; }
+  .previewStage { --device-width: min(220px,calc((100svh - 190px)*.46)); }
+  .hero h1 { font-size: 60px; margin: 0; }
+  .inkAccent { width: 180px; margin: 8px 0 20px; }
+
+}
+@media (prefers-reduced-motion:no-preference) {
+  .heroDevice { animation: deviceSettle .8s cubic-bezier(.2,.7,.2,1) both; }
+  .artworkUpper { animation: artworkUpperSettle .9s cubic-bezier(.2,.7,.2,1) both; }
+  .artworkLower { animation: artworkLowerSettle 1s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes deviceSettle { from { transform: translateY(12px) rotate(-2deg); } to { transform: translateY(0) rotate(-4deg); } }
+  @keyframes artworkUpperSettle { from { transform: translate(-14px,8px) rotate(5deg); } to { transform: translate(0,0) rotate(9deg); } }
+  @keyframes artworkLowerSettle { from { transform: translate(14px,-8px) rotate(-7deg); } to { transform: translate(0,0) rotate(-12deg); } }
+  .inkStroke { stroke-dasharray: 1; animation: inkDraw .85s .35s ease-out both; }
+  @keyframes inkDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+}
+
+@media (max-height:650px) and (max-width:760px) {
+  .hero { padding-top: 16px; padding-bottom: 32px; }
+}
+/* Keep the primary actions visible on short landscape screens. */
+@media (max-height:500px) and (min-width:761px) {
+  .navigation { height: 64px; }
+  .hero { display: flex; min-height: calc(100dvh - 64px); padding: 12px 0 24px; }
+  .hero:before { top: -64px; }
+  .heroPreview { display: none; }
+  .hero h1 { font-size: 48px; line-height: 1.02; }
+  .heroDescription { font-size: 14px; max-width: 48ch; margin-bottom: 16px; }
+  .inkAccent { width: 160px; margin: 6px 0 12px; }
+  .hero .storeBadge { min-height: 50px; padding-block: 8px; }
+  .hero .storeBadge strong { font-size: 18px; }
+}

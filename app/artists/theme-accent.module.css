@@ -1,0 +1,7 @@
+.accent { display: block; pointer-events: none; user-select: none; }
+.accent[data-flipped='true'] { transform: scaleX(-1); }
+.accent svg { display: none; width: 100%; height: 100%; }
+:global([data-theme='nature']) .nature { display: block; color: #2e663e; }
+:global([data-theme='space']) .space { display: block; color: #756bfa; }
+.ringedPlanet { color: #d959d9; }
+.bluePlanet { color: #59bffa; }

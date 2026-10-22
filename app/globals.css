@@ -3143,3 +3143,13 @@ footer {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Shared warm brand and clear audience destinations. */
+.site-header .brand{font:800 34px/.9 Arial,sans-serif;letter-spacing:-2px;text-transform:none;color:#f5eddd}.site-header .brand span{color:#c2b699}
+.site-header .nav-link{color:#d3c6af}.site-header .nav-link:hover,.site-header .nav-active{color:#f5eddd}
+.home-professionals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;background:#181d17;color:#f5eddd}
+.home-professional{display:flex;flex-direction:column;align-items:flex-start;gap:18px;padding:32px;border:1px solid #e6d4ac33;border-radius:18px;background:#eee0be05;color:inherit;text-decoration:none;transition:background .2s,border-color .2s}
+.home-professional:hover{background:#eee0be0c;border-color:#e6d4ac70}.home-professional:focus-visible{outline:2px solid #eee0be;outline-offset:5px}
+.home-professional h2{font:500 clamp(24px,3vw,36px)/1.15 var(--font-body),sans-serif;letter-spacing:-1px;margin:0;color:#f5eddd}
+.home-professional p{font-size:16px;line-height:1.65;color:#bfb9aa;margin:0;max-width:34ch}.home-professional-action{margin-top:auto;padding-top:10px;font-size:14px;color:#eee0be}.home-professional-action>span{margin-left:12px}
+@media(max-width:700px){.home-professionals{grid-template-columns:1fr}.home-professional{padding:24px}.site-header nav{gap:14px}.site-header .nav-link{font-size:12px}}

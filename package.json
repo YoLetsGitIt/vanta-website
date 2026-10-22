@@ -7,7 +7,11 @@
     "build": "next build && node scripts/prepare-artist-account-static.mjs",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "npm run build && touch out/.nojekyll && gh-pages -d out -t"
+    "deploy": "npm run build && touch out/.nojekyll && gh-pages -d out -t",
+    "prebuild": "node scripts/sync-walkthrough.mjs",
+    "postbuild": "node scripts/prepare-static-routes.mjs",
+    "sync:walkthrough": "node scripts/sync-walkthrough.mjs",
+    "predeploy": "node scripts/verify-deploy-source.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
