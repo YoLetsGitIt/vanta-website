@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { websiteAuth } from '../../../lib/website-auth';
 import SocialSignIn from '../../../components/SocialSignIn';
-import { bookingReceipt } from '../../../lib/booking-state.mjs';
+import { bookingReceipt, hasPayableDeposit } from '../../../lib/booking-state.mjs';
 
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -112,6 +112,19 @@ export default function BookingSelectionClient() {
           const studioMonth = todayInZone(data.studio.timezone);
           studioMonth.setDate(1);
           setCalMonth(studioMonth);
+        }
+
+        // Artist-created appointments are confirmed independently of their deposit.
+        const depositPayable = hasPayableDeposit(data.booking);
+        if (depositPayable && new URLSearchParams(window.location.search).get('deposit') === 'paid') {
+          setView('payment-processing');
+          return;
+        }
+        if (depositPayable && data.booking.chosen_time) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) { setSession(session); setView('pay-deposit'); }
+          else { pendingAuthViewRef.current = 'pay-deposit'; setView('auth'); }
+          return;
         }
 
         // A redirect parameter is not proof of payment. Use the persisted booking state.
@@ -359,7 +372,7 @@ export default function BookingSelectionClient() {
   }
 
   if (view === 'verified-result' || view === 'payment-processing') {
-    const receipt = bookingReceipt(ctx.booking);
+    const receipt = view === 'payment-processing' ? { title: 'Checking your payment', message: 'If you just paid, check again in a moment.' } : bookingReceipt(ctx.booking);
     return <Shell studio={ctx?.studio}><h1 style={s.heading}>{receipt.title}</h1><p style={s.muted}>{receipt.message}</p><div style={s.summaryCard}><div style={s.summaryValue}>{ctx.booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}</div>{ctx.booking.chosen_time && <p>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</p>}{ctx.artists?.find(artist => artist.id === ctx.booking.artist_id)?.name && <p>{ctx.artists.find(artist => artist.id === ctx.booking.artist_id).name}</p>}</div><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Check again</button></Shell>;
   }
 
@@ -410,7 +423,7 @@ export default function BookingSelectionClient() {
       <Shell studio={ctx?.studio}>
         <h1 style={s.heading}>Pay deposit</h1>
         <p style={s.muted}>
-          Your time is held. Pay the deposit to confirm your appointment.
+          {ctx?.booking?.status === 'confirmed' ? 'Your appointment is confirmed. Pay your deposit below.' : 'Your time is held. Pay the deposit to confirm your appointment.'}
         </p>
 
         <div style={s.reviewCard}>
