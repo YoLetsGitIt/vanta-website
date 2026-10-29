@@ -8,8 +8,8 @@ export default function PricingPage() {
     <p className={styles.eyebrow}>VANTA STUDIO</p>
     <h1>One studio plan.<br /><span>Room for your whole team.</span></h1>
     <section className={styles.plan} aria-label="Studio plan">
-      <p className={styles.price}>A$60 <span>/ month</span></p>
-      <p>Includes up to 6 artists.<br />A$15/month per additional artist.</p>
+      <p className={styles.price}>A$30 <span>/ month</span></p>
+      <p>Includes up to 6 artists.<br />A$5/month per additional artist.</p>
       <a className={styles.cta} href={`${studioApp}/signup/`}>Start your 14-day free trial</a>
       <p className={styles.note}>Card required. Billing begins when the trial ends unless you cancel.</p>
     </section>
