@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import ArtistTour, { ArtistTourButton, ArtistTourProvider } from './ArtistTour';
 import ArtistAppearance, { ArtistThemePicker } from './ArtistAppearance';
 import ThemeAccent from './ThemeAccent';
@@ -91,8 +90,8 @@ export default function ArtistsPage() {
   return <ArtistAppearance><ArtistTourProvider>
     <a className={styles.skipLink} href="#artist-main">Skip to content</a>
     <header className={styles.navigation} data-artist-header="">
-      <Link href="/" className={styles.wordmark} aria-label="Vanta home">vanta<span>.</span></Link>
-      <nav aria-label="Vanta products"><Link href="/artists" aria-current="page" aria-label="For artists"><span className={styles.navPrefix}>For </span>artists</Link><Link href="/studio" aria-label="For studios"><span className={styles.navPrefix}>For </span>studios</Link></nav>
+      <a href="/" className={styles.wordmark} aria-label="Vanta home">vanta<span>.</span></a>
+      <nav aria-label="Vanta products"><a href="/artists" aria-current="page" aria-label="For artists"><span className={styles.navPrefix}>For </span>artists</a><a href="/studio" aria-label="For studios"><span className={styles.navPrefix}>For </span>studios</a></nav>
       <ArtistThemePicker />
     </header>
     <main id="artist-main" tabIndex={-1} className={styles.main}>
@@ -119,6 +118,6 @@ export default function ArtistsPage() {
       </div>
       <DownloadInvitation />
     </main>
-    <footer className={styles.footer}><Link href="/studio">Run a studio? <span>Explore Vanta Studio ↗</span></Link><nav aria-label="Footer"><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><a href="mailto:support@vanta.tattoo">Contact</a></nav></footer>
+    <footer className={styles.footer}><a href="/studio">Run a studio? <span>Explore Vanta Studio ↗</span></a><nav aria-label="Footer"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="mailto:support@vanta.tattoo">Contact</a></nav></footer>
   </ArtistTourProvider></ArtistAppearance>;
 }

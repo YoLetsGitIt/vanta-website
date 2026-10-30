@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './NavBar.module.css';
 
@@ -12,18 +11,19 @@ const links = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  // Load HTML directly on the static host; failed Next data fetches can open .txt.
   return (
     <header className="site-header">
-      <Link href="/" className={styles.wordmark} aria-label="Vanta home">vanta<span>.</span></Link>
+      <a href="/" className={styles.wordmark} aria-label="Vanta home">vanta<span>.</span></a>
       <nav style={{ gap: 'clamp(12px, 3vw, 32px)' }}>
         {links.map(({ href, label }) => (
-          <Link
+          <a
             key={href}
             href={href}
             className={`nav-link${pathname === href ? ' nav-active' : ''}`}
           >
             {label}
-          </Link>
+          </a>
         ))}
       </nav>
     </header>

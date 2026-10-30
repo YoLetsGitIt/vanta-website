@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import styles from './home.module.css';
 
 const appStore = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
@@ -129,8 +128,8 @@ export default function Home() {
   return <main ref={page} className={styles.page} aria-label="Vanta home">
     <TattooWall/>
     <header className={styles.navigation}>
-      <Link href="/" aria-label="Vanta home"><Wordmark/></Link>
-      <nav aria-label="Vanta products"><Link href="/artists">For artists</Link><Link href="/studio">For studios</Link></nav>
+      <a href="/" aria-label="Vanta home"><Wordmark/></a>
+      <nav aria-label="Vanta products"><a href="/artists">For artists</a><a href="/studio">For studios</a></nav>
     </header>
     <section className={styles.hero} aria-labelledby="home-heading">
       <div className={styles.heroCopy}>
@@ -163,9 +162,9 @@ export default function Home() {
       <div className={styles.invitationCopy}><span className={styles.eyebrow}>KEEP THE INSPIRATION CLOSE.</span><h2 id="download-heading">Your next tattoo<br/>starts with <em>a feeling.</em></h2><p>Follow it. Find your artist on Vanta.</p><Downloads/><span className={styles.downloadNote}>Available on iPhone · Android beta now open</span></div>
     </section>
     <footer className={styles.footer}>
-      <div className={styles.footerBrand}><Link href="/" aria-label="Vanta home"><Wordmark/></Link><span>A home for your next tattoo.</span></div>
-      <nav className={styles.makerLinks} aria-label="For tattoo professionals"><span>On the other side of the needle?</span><Link href="/artists">Vanta Artist <Arrow/></Link><Link href="/studio">Vanta Studio <Arrow/></Link></nav>
-      <div className={styles.footerBottom}><span>© {new Date().getFullYear()} Vanta Ink</span><nav aria-label="Footer"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><a href="mailto:support@vanta.tattoo">Contact</a></nav></div>
+      <div className={styles.footerBrand}><a href="/" aria-label="Vanta home"><Wordmark/></a><span>A home for your next tattoo.</span></div>
+      <nav className={styles.makerLinks} aria-label="For tattoo professionals"><span>On the other side of the needle?</span><a href="/artists">Vanta Artist <Arrow/></a><a href="/studio">Vanta Studio <Arrow/></a></nav>
+      <div className={styles.footerBottom}><span>© {new Date().getFullYear()} Vanta Ink</span><nav aria-label="Footer"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="mailto:support@vanta.tattoo">Contact</a></nav></div>
     </footer>
   </main>;
 }
