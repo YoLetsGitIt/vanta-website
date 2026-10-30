@@ -41,7 +41,7 @@ function ClientReminders() {
     <dl className={styles.reminderTimeline} data-artist-reveal="notifications" aria-label="Client notification schedule">
       <div><dt><span className={styles.timelineRail} aria-hidden="true"><span data-reminder-line="" /></span><ReminderMarker kind="confirmation" /><span>When booked</span></dt><dd><NotificationIcon />Confirmation email</dd></div>
       <div><dt><span className={styles.timelineRail} aria-hidden="true"><span data-reminder-line="" /></span><ReminderMarker kind="week" /><span>7 days before</span></dt><dd><NotificationIcon />Email reminder</dd></div>
-      <div><dt><ReminderMarker kind="day" /><span>24 hours before</span></dt><dd><span className={styles.notificationChannel}><NotificationIcon />Email</span><span>+</span><span className={styles.notificationChannel}><NotificationIcon sms />SMS reminders</span></dd></div>
+      <div><dt><ReminderMarker kind="day" /><span>24 hours before</span></dt><dd><span className={styles.notificationChannel}><NotificationIcon />Email</span><span className={styles.notificationPair}><span>+</span><span className={styles.notificationChannel}><NotificationIcon sms />SMS reminders</span></span></dd></div>
     </dl>
     <div className={styles.senderSetup} data-artist-reveal="after-notifications">
       <svg className={styles.inboxArrow} data-inbox-arrow="" viewBox="0 0 20 28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 3v20m-5-5 5 5 5-5" /></svg>
@@ -99,7 +99,7 @@ export default function ArtistsPage() {
         <div className={styles.heroScenery} aria-hidden="true"><ThemeAccent className={styles.sceneryLeft} /><ThemeAccent className={styles.sceneryRight} flipped /></div>
         <div className={styles.heroCopy}>
           <h1 id="artist-heading" data-artist-reveal="rise">Your art. <em>Less admin.</em></h1>
-          <p className={styles.intro} data-artist-reveal="rise" data-reveal-delay="60">Your portfolio, bookings and clients. All in one app.</p>
+          <p className={styles.intro} data-artist-reveal="rise" data-reveal-delay="60">Your portfolio, bookings and clients. <span className={styles.nowrap}>All in one app.</span></p>
           <div className={styles.heroActions} data-artist-reveal="rise" data-reveal-delay="120">
             <a className={`${styles.primaryLink} ${styles.downloadLink}`} href={APP_STORE_URL} aria-label="Get Vanta for iPhone">
               <svg width="19" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.1 12.4c0-2 1.6-3 1.7-3.1-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.5.8-3.1.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.9.9-3.7 2.2-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.6 2.3 2.8 2.2 1.1 0 1.6-.7 3-.7s1.9.7 3.1.7c1.3 0 2-1.1 2.7-2.2.9-1.3 1.2-2.6 1.2-2.7-.1 0-3-1.1-3-3.8ZM15 6.3c.6-.8 1.1-1.9 1-3-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3Z" /></svg>

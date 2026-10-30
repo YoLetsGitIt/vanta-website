@@ -141,7 +141,7 @@ export function ArtistTourProvider({ children }) {
 export default function ArtistTour() {
   const { openTour, launchLabel, duration } = useContext(ArtistTourContext);
   return <figure id="artist-tour" className={styles.tour}>
-    <div className={styles.tourControls} data-artist-reveal="after-spread">
+    <div className={styles.tourControls} data-artist-reveal="after-spread" data-reveal-delay="300">
     <button className={styles.playButton} onClick={openTour} aria-label={launchLabel} aria-haspopup="dialog" aria-controls="artist-tour-player">
       <span className={styles.playIcon} aria-hidden="true"><PlayIcon /></span><span className={styles.tourButtonCopy}>{launchLabel}</span><span className={styles.tourDuration} aria-hidden="true">{duration}</span>
     </button>

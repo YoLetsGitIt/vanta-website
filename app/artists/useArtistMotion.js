@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-const easing = 'cubic-bezier(.22, 1, .36, 1)';
+const easing = 'cubic-bezier(0.23, 1, 0.32, 1)';
 
 // Content stays visible without JavaScript or motion APIs. Each effect returns
 // to the composition's existing styles and releases its animation afterwards.
@@ -88,7 +88,7 @@ export default function useArtistMotion(rootRef) {
         senderReady = false;
         hideSender();
         const vertical = window.matchMedia('(max-width: 760px)').matches;
-        const timing = vertical ? .8 : .8 / 1.1;
+        const timing = vertical ? .45 : .4;
         const animateReminder = (target, frames, wait, duration, curve = easing) =>
           animate(target, frames, wait * timing, duration * timing, curve);
         const marks = [...element.querySelectorAll('[data-reminder-mark]')];
@@ -153,6 +153,11 @@ export default function useArtistMotion(rootRef) {
             { transform: vertical ? 'scaleY(1)' : 'scaleX(1)' },
           ], arrival + 1200, 700));
         }
+        window.setTimeout(() => {
+          if (disposed || runs.get(element) !== run) return;
+          senderReady = true;
+          if (senderVisible) showSender(true);
+        }, (marks.length - 1) * 1900 * timing + 600);
       } else if (variant === 'after-notifications') {
         element.querySelectorAll('[data-inbox-part]').forEach((part, index) => {
           animations.push(animate(part, [
@@ -161,6 +166,7 @@ export default function useArtistMotion(rootRef) {
           ], index * 160, 600));
         });
       } else if (variant === 'spread') {
+        if (tourControls && !seen.has(tourControls)) reveal(tourControls);
         const phones = [...element.children].filter(child => child.querySelector('[data-app-preview]') && child.getClientRects().length);
         const front = phones.find(phone => phone.tagName === 'BUTTON');
         const centre = front.getBoundingClientRect();
@@ -268,10 +274,6 @@ export default function useArtistMotion(rootRef) {
         return;
       }
       if (senderSetup && !seen.has(senderSetup)) hideSender();
-      if (tourControls && !seen.has(tourControls)) {
-        tourControls.style.opacity = '0';
-        tourControls.style.pointerEvents = 'none';
-      }
       // Prepare the scene before it reaches the viewport, preventing a visible
       // phone from blinking away when its sequenced entrance begins.
       for (const part of dayParts) {
