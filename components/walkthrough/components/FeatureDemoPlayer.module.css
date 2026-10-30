@@ -20,3 +20,10 @@
 .player[data-tour] .chapters button{min-height:48px;font-size:14px!important;align-items:center}
 .player[data-tour] .chapters button span{min-width:32px;font-variant-numeric:tabular-nums}
 @media(max-width:700px){.player[data-tour]{display:flex;flex-direction:column;padding:12px;gap:4px}.player[data-tour] .stage{max-width:100%;order:0}.player[data-tour] video{height:auto;max-height:66dvh;width:auto;max-width:100%}.player[data-tour] .meta{order:1;font-size:15px}.player[data-tour] .chapters{order:2;display:grid;grid-template-columns:1fr 1fr}.player[data-tour] .chapters button{font-size:11px!important;gap:6px;padding:8px;min-height:48px}}
+
+/* The narrated tour has a landscape composition and chapters below the video. */
+.player[data-tour]:not([data-portrait]){display:block}
+.player[data-tour]:not([data-portrait]) .stage{width:100%}
+.player[data-tour]:not([data-portrait]) video{width:100%;height:auto;max-height:68dvh;aspect-ratio:16/9}
+.player[data-tour]:not([data-portrait]) .chapters{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:700px){.player[data-tour]:not([data-portrait]) .chapters{grid-template-columns:1fr 1fr}}

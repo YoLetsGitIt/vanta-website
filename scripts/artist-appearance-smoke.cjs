@@ -116,7 +116,7 @@ function contrast(a,b) {
   await blocked.keyboard.press('Escape');
   await blocked.getByRole('button',{name:'Watch the app tour',exact:true}).click();
   await blocked.waitForFunction(()=>{const v=document.querySelector('video');return !v.paused&&v.readyState>=2;});
-  await blocked.getByText('Recorded in Dark',{exact:true}).waitFor();
+  await blocked.getByText('Narrated by Matthew, founder of Vanta',{exact:true}).waitFor();
   await blocked.getByRole('button',{name:'Close app tour'}).click();
   await blocked.getByRole('dialog').waitFor({state:'hidden'});assert(await blocked.locator('video').evaluate(v=>v.paused));
   console.log('PASS unavailable browser storage, themed-page fullscreen playback and paused close');

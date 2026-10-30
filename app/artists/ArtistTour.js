@@ -23,7 +23,9 @@ export function ArtistTourProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [ended, setEnded] = useState(false);
   const [error, setError] = useState(false);
+  const [time, setTime] = useState(0);
   const duration = `${Math.floor(tour.duration / 60)}:${String(tour.duration % 60).padStart(2, '0')}`;
+  const chapter = Math.max(0, tour.chapters.findLastIndex(item => time >= item.at));
 
   useEffect(() => {
     if (!open) return;
@@ -76,12 +78,23 @@ export function ArtistTourProvider({ children }) {
     }).catch(() => {});
     play();
   }
+  function seekChapter(event) {
+    const video = videoRef.current;
+    if (!video) return;
+    const at = tour.chapters[Number(event.target.value)].at;
+    video.currentTime = at;
+    setTime(at);
+    setEnded(false);
+  }
   function closeTour() {
+    // An exit-fullscreen event can arrive after the other CTA reopens the dialog.
+    nativeFullscreenRef.current = false;
     videoRef.current?.pause();
     setLoading(false);
     dialogRef.current.close();
   }
   function onClosed() {
+    nativeFullscreenRef.current = false;
     videoRef.current?.pause();
     setLoading(false);
     setOpen(false);
@@ -99,8 +112,9 @@ export function ArtistTourProvider({ children }) {
       <div ref={playerRef} className={styles.fullscreenPlayer}>
         <header className={styles.playerHeader}><span>Vanta <span>for artists</span></span><button type="button" onClick={closeTour} aria-label="Close app tour"><span>Close</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button></header>
         <div className={styles.playerMedia}>
-          <video id="artist-tour-video" ref={videoRef} preload="none" playsInline controls
+          <video id="artist-tour-video" ref={videoRef} preload="none" playsInline controls poster={tour.poster}
             aria-label="Meet Vanta for artists: app tour"
+            onTimeUpdate={event => setTime(event.currentTarget.currentTime)}
             onPlay={() => { setPlaying(true); setEnded(false); setError(false); }}
             onPlaying={() => { setLoading(false); setError(false); }}
             onWaiting={() => setLoading(true)}
@@ -110,7 +124,15 @@ export function ArtistTourProvider({ children }) {
           {loading && !error && <div className={styles.tourLoading} role="status"><span className={styles.tourSpinner} aria-hidden="true" /><span>Loading the tour…</span></div>}
           {error && <div className={styles.videoError} role="alert"><p>The tour couldn’t play.</p><button onClick={play}>Try again</button><a href={tour.src}>open the video</a></div>}
         </div>
-        <footer className={styles.playerFooter}><span>The artist app tour <span aria-hidden="true">· {duration}</span><small>Recorded in Dark</small></span>{!error && <button onClick={play}>{playbackLabel}</button>}</footer>
+        <footer className={styles.playerFooter}>
+          <span>The artist app tour <span aria-hidden="true">· {duration}</span><small>{tour.context}</small></span>
+          <label className={styles.playerChapters}>Jump to chapter
+            <select value={chapter} onChange={seekChapter} disabled={!started || error}>
+              {tour.chapters.map((item, index) => <option key={item.at} value={index}>{`${Math.floor(item.at / 60)}:${String(Math.floor(item.at % 60)).padStart(2, '0')} · ${item.title}`}</option>)}
+            </select>
+          </label>
+          {!error && <button onClick={play}>{playbackLabel}</button>}
+        </footer>
       </div>
     </dialog>
   </ArtistTourContext.Provider>;

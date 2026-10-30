@@ -64,7 +64,7 @@ const output = process.env.ARTIST_REVIEW_OUTPUT || '/private/tmp/vanta-artist-sp
     const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     let releaseMedia;
     const gate = new Promise(resolve => { releaseMedia = resolve; });
-    await page.route('**/artist-app-tour.mp4', async route => { await gate; await route.continue(); });
+    await page.route('**/artist-app-tour.mp4*', async route => { await gate; await route.continue(); });
     await page.goto(base + '/artists/');
     const closingTour = page.locator('#get-vanta').getByRole('button', { name: 'Watch the full app tour', exact: true });
     await closingTour.click();

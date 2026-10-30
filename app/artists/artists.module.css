@@ -132,6 +132,19 @@
 .playerMedia video { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #0a0d12; }
 .playerFooter small { display: block; margin-top: 4px; font-size: 10px; color: #bfc3c9; }
 .playerFooter { color: #bfc3c9; padding-bottom: max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #ffffff12; }
+.playerFooter > span { min-width: 0; }
+.playerChapters { display: grid; gap: 4px; width: min(42%, 420px); min-width: 0; margin-left: auto; font-size: 10px; }
+.playerChapters select { width: 100%; min-height: 44px; min-width: 0; padding: 8px 12px; border: 1px solid #ffffff29; border-radius: 7px; color: #fff; background: #151b22; font: inherit; font-size: 12px; text-overflow: ellipsis; }
+.playerChapters select:focus-visible { outline: 2px solid #67dfac; outline-offset: 2px; }
+@media (max-width: 600px) {
+  .playerFooter { flex-wrap: wrap; gap: 8px 12px; }
+  .playerChapters { order: 1; width: 100%; margin: 0; }
+  .playerFooter > button { margin-left: auto; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .playerFooter { flex-wrap: nowrap; }
+  .playerChapters { order: 0; width: min(42%, 420px); }
+}
 .tourLoading { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; background: #0a0d12e0; color: #ffffff; font-size: 13px; }
 .tourSpinner { width: 24px; height: 24px; border: 1.5px solid #ffffff2b; border-top-color: #ffffff; border-radius: 50%; animation: tourSpin .8s linear infinite; }
 .videoError { position: absolute; inset: 0; display: flex; flex-wrap: wrap; justify-content: center; align-content: center; align-items: center; gap: 12px; padding: 24px; background: #0a0d12; text-align: center; font-size: 14px; }
