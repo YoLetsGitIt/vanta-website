@@ -1,22 +1,22 @@
 1:"$Sreact.fragment"
-2:I[8089,["303","static/chunks/303-ea8b25d387ba0e84.js","177","static/chunks/app/layout-1681c673576c0288.js"],"default"]
-3:I[8142,[],""]
-4:I[1540,[],""]
-5:I[7731,["345","static/chunks/app/not-found-9c6fc8ceef21702d.js"],"default"]
-6:I[2557,["558","static/chunks/app/studio/page-48a6dc7a9f25c207.js"],"default"]
-7:I[2807,[],"OutletBoundary"]
-9:I[9350,[],"AsyncMetadataOutlet"]
-b:I[2807,[],"ViewportBoundary"]
-d:I[2807,[],"MetadataBoundary"]
+2:I[3379,["619","static/chunks/619-e67e1b342775c45e.js","177","static/chunks/app/layout-7791ad4bf914190e.js"],"default"]
+3:I[5592,[],""]
+4:I[2430,[],""]
+5:I[187,["345","static/chunks/app/not-found-e29bdac1fed5030d.js"],"default"]
+6:I[5323,["558","static/chunks/app/studio/page-9b5ed4d283b6f512.js"],"default"]
+7:I[5861,[],"OutletBoundary"]
+9:I[8432,[],"AsyncMetadataOutlet"]
+b:I[5861,[],"ViewportBoundary"]
+d:I[5861,[],"MetadataBoundary"]
 e:"$Sreact.suspense"
-10:I[5638,[],""]
+10:I[4212,[],""]
 :HL["/_next/static/media/36966cca54120369-s.p.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/_next/static/css/57ccb5c5294d5ffc.css","style"]
-:HL["/_next/static/css/b519078208f97dd4.css","style"]
-:HL["/_next/static/css/86545109db638640.css","style"]
-0:{"P":null,"b":"hul7s_eX6UiVgY9sKxZif","p":"","c":["","studio"],"i":false,"f":[[["",{"children":["studio",{"children":["__PAGE__",{}]}]},"$undefined","$undefined",true],["",["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/57ccb5c5294d5ffc.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":["$","body",null,{"className":"__variable_94deb5 __variable_9bcf65","children":["$","$L2",null,{"children":["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","$L5",null,{}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}]}]}]]}],{"children":["studio",["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["__PAGE__",["$","$1","c",{"children":[["$","$L6",null,{"audience":"owner"}],[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/b519078208f97dd4.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","link","1",{"rel":"stylesheet","href":"/_next/static/css/86545109db638640.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","$L7",null,{"children":["$L8",["$","$L9",null,{"promise":"$@a"}]]}]]}],{},null,false]},null,false]},null,false],["$","$1","h",{"children":[null,[["$","$Lb",null,{"children":"$Lc"}],["$","meta",null,{"name":"next-size-adjust","content":""}]],["$","$Ld",null,{"children":["$","div",null,{"hidden":true,"children":["$","$e",null,{"fallback":null,"children":"$Lf"}]}]}]]}],false]],"m":"$undefined","G":["$10",[]],"s":false,"S":true}
+:HL["/_next/static/css/64096e2ff1734852.css","style"]
+:HL["/_next/static/css/9bc209fa7753d550.css","style"]
+0:{"P":null,"b":"dHFT83ty0EbkrFzZScD9t","p":"","c":["","studio"],"i":false,"f":[[["",{"children":["studio",{"children":["__PAGE__",{}]}]},"$undefined","$undefined",true],["",["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/57ccb5c5294d5ffc.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":["$","body",null,{"className":"__variable_94deb5 __variable_9bcf65","children":["$","$L2",null,{"children":["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","$L5",null,{}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}]}]}]}]]}],{"children":["studio",["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":["__PAGE__",["$","$1","c",{"children":[["$","$L6",null,{"audience":"owner"}],[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/64096e2ff1734852.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","link","1",{"rel":"stylesheet","href":"/_next/static/css/9bc209fa7753d550.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]],["$","$L7",null,{"children":["$L8",["$","$L9",null,{"promise":"$@a"}]]}]]}],{},null,false]},null,false]},null,false],["$","$1","h",{"children":[null,[["$","$Lb",null,{"children":"$Lc"}],["$","meta",null,{"name":"next-size-adjust","content":""}]],["$","$Ld",null,{"children":["$","div",null,{"hidden":true,"children":["$","$e",null,{"fallback":null,"children":"$Lf"}]}]}]]}],false]],"m":"$undefined","G":["$10",[]],"s":false,"S":true}
 c:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
 8:null
-11:I[553,[],"IconMark"]
+11:I[2608,[],"IconMark"]
 a:{"metadata":[["$","title","0",{"children":"For Studios — Vanta"}],["$","meta","1",{"name":"description","content":"Bookings, client records, consent, artist scheduling and studio finances. Step inside Vanta Studio."}],["$","link","2",{"rel":"canonical","href":"https://vanta.tattoo/studio"}],["$","link","3",{"rel":"icon","href":"/vanta-app-icon.png"}],["$","$L11","4",{}]],"error":null,"digest":"$undefined"}
 f:"$a:metadata"
