@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { websiteAuth } from '../../../lib/website-auth';
 import SocialSignIn from '../../../components/SocialSignIn';
 import { bookingReceipt, hasPayableDeposit } from '../../../lib/booking-state.mjs';
+import ManualDepositDetails, { hasManualDeposit } from '../../../components/ManualDepositDetails';
 
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -373,7 +374,8 @@ export default function BookingSelectionClient() {
 
   if (view === 'verified-result' || view === 'payment-processing') {
     const receipt = view === 'payment-processing' ? { title: 'Checking your payment', message: 'If you just paid, check again in a moment.' } : bookingReceipt(ctx.booking);
-    return <Shell studio={ctx?.studio}><h1 style={s.heading}>{receipt.title}</h1><p style={s.muted}>{receipt.message}</p><div style={s.summaryCard}><div style={s.summaryValue}>{ctx.booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}</div>{ctx.booking.chosen_time && <p>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</p>}{ctx.artists?.find(artist => artist.id === ctx.booking.artist_id)?.name && <p>{ctx.artists.find(artist => artist.id === ctx.booking.artist_id).name}</p>}</div><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Check again</button></Shell>;
+    const owesManualDeposit = view === 'verified-result' && ctx.booking.deposit_required && !ctx.booking.deposit_paid_at && !ctx.booking.deposit_confirmed_at && hasManualDeposit(ctx.booking.deposit_options);
+    return <Shell studio={ctx?.studio}><h1 style={s.heading}>{receipt.title}</h1><p style={s.muted}>{receipt.message}</p>{owesManualDeposit && <><p style={{ ...s.muted, margin: '0 0 0' }}>Pay your ${Number(ctx.booking.deposit_amount ?? 0).toFixed(2)} deposit using the details below.</p><ManualDepositDetails options={ctx.booking.deposit_options} amount={ctx.booking.deposit_amount} /></>}<div style={s.summaryCard}><div style={s.summaryValue}>{ctx.booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}</div>{ctx.booking.chosen_time && <p>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</p>}{ctx.artists?.find(artist => artist.id === ctx.booking.artist_id)?.name && <p>{ctx.artists.find(artist => artist.id === ctx.booking.artist_id).name}</p>}</div><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Check again</button></Shell>;
   }
 
   if (view === 'invalid') {
@@ -419,6 +421,9 @@ export default function BookingSelectionClient() {
   }
 
   if (view === 'pay-deposit') {
+    const options = ctx?.booking?.deposit_options;
+    const card = options ? options.card !== false : true;
+    const manual = hasManualDeposit(options);
     return (
       <Shell studio={ctx?.studio}>
         <h1 style={s.heading}>Pay deposit</h1>
@@ -446,13 +451,17 @@ export default function BookingSelectionClient() {
 
         {payDepositError && <p style={{ ...s.error, marginTop: 20 }}>{payDepositError}</p>}
 
-        <button
-          style={{ ...s.btn, marginTop: 24, ...(payingDeposit ? s.btnDisabled : {}) }}
-          disabled={payingDeposit}
-          onClick={payDeposit}
-        >
-          {payingDeposit ? 'Redirecting…' : 'Pay deposit'}
-        </button>
+        {card && (
+          <button
+            style={{ ...s.btn, marginTop: 24, ...(payingDeposit ? s.btnDisabled : {}) }}
+            disabled={payingDeposit}
+            onClick={payDeposit}
+          >
+            {payingDeposit ? 'Redirecting…' : manual ? 'Pay deposit by card' : 'Pay deposit'}
+          </button>
+        )}
+        {card && manual && <p style={{ ...s.muted, margin: '24px 0 0' }}>Or pay by PayID or bank transfer:</p>}
+        <ManualDepositDetails options={options} amount={ctx?.booking?.deposit_amount} />
       </Shell>
     );
   }
@@ -796,7 +805,9 @@ export default function BookingSelectionClient() {
 
           <p style={{ ...s.muted, marginTop: 20 }}>
             {ctx?.booking?.deposit_required
-              ? `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. You'll be taken to a secure payment page to confirm your appointment.`
+              ? (ctx.booking.deposit_options?.card === false
+                ? `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. After you request this time you'll see how to pay by ${ctx.booking.deposit_options?.manual?.payid ? 'PayID' : ''}${ctx.booking.deposit_options?.manual?.payid && ctx.booking.deposit_options?.manual?.bank_bsb ? ' or ' : ''}${ctx.booking.deposit_options?.manual?.bank_bsb ? 'bank transfer' : ''}.`
+                : `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. You'll be taken to a secure payment page to confirm your appointment.`)
               : 'The studio will confirm your appointment. You\'ll receive an email once it\'s locked in.'}
           </p>
 
@@ -812,8 +823,8 @@ export default function BookingSelectionClient() {
               onClick={handleSubmit}
             >
               {submitting
-                ? (ctx?.booking?.deposit_required ? 'Redirecting to payment…' : 'Submitting…')
-                : (ctx?.booking?.deposit_required ? 'Continue to payment' : 'Request appointment')}
+                ? (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? 'Redirecting to payment…' : 'Submitting…')
+                : (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? 'Continue to payment' : 'Request appointment')}
             </button>
           </div>
         </div>
