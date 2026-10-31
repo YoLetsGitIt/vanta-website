@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import SocialSignIn from '../../components/SocialSignIn';
-import { websiteAuth, ensureWebsiteProfile, rememberWebsiteSignIn } from '../../lib/website-auth';
+import { websiteAuth, ensureWebsiteProfile, rememberWebsiteSignIn, BACKEND_URL } from '../../lib/website-auth';
 
 const field = { display: 'block', width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: 48, padding: '12px 14px', border: '1px solid #4d5562', borderRadius: 12, background: '#1b222d', color: '#fff', fontSize: 16 };
 
@@ -15,7 +15,6 @@ export default function SignupPage() {
   const [session, setSession] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [confirmEmail, setConfirmEmail] = useState(false);
 
   useEffect(() => {
     if (new URLSearchParams(location.search).get('mode') === 'login') setMode('login');
@@ -37,13 +36,21 @@ export default function SignupPage() {
     if (mode === 'signup' && !accepted) { setError('Please agree to the Terms of Use and Privacy Policy.'); return; }
     setBusy(true);
     try {
-      if (mode === 'signup') rememberWebsiteSignIn(accepted);
-      const result = mode === 'signup'
-        ? await websiteAuth().auth.signUp({ email, password, options: { data: { full_name: name }, emailRedirectTo: location.origin + '/auth/callback' } })
-        : await websiteAuth().auth.signInWithPassword({ email, password });
+      if (mode === 'signup') {
+        rememberWebsiteSignIn(accepted);
+        // The backend creates an already-confirmed account, so there is no email step.
+        const created = await fetch(`${BACKEND_URL}/users`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password, name: name.trim(), accountType: 'user', termsAcceptedVersion: '1.0' }),
+        });
+        if (created.status === 409) { setMode('login'); throw new Error('You already have a Vanta account with this email. Log in with your password.'); }
+        if (!created.ok) throw new Error((await created.text()).trim() || 'Could not create your account. Please try again.');
+      }
+      const result = await websiteAuth().auth.signInWithPassword({ email: email.trim(), password });
       if (result.error) throw result.error;
-      if (result.data.session) { await ensureWebsiteProfile(result.data.session, accepted); setSession(result.data.session); }
-      else setConfirmEmail(true);
+      if (mode === 'signup' && name.trim()) await websiteAuth().auth.updateUser({ data: { full_name: name.trim(), name: name.trim() } }).catch(() => {});
+      await ensureWebsiteProfile(result.data.session, accepted);
+      setSession(result.data.session);
     } catch (error) { setError(error.message || 'Unable to sign in. Please try again.'); }
     finally { setBusy(false); }
   }
@@ -59,9 +66,6 @@ export default function SignupPage() {
         <p><a href="/artists" style={{ color: '#fff' }}>Explore Vanta for artists</a></p>
         <p><a href="https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738" style={{ color: '#fff' }}>Get Vanta for iPhone</a></p>
         <button type="button" onClick={async () => { await websiteAuth().auth.signOut(); setSession(null); }} style={{ minHeight: 44, padding: '8px 16px', borderRadius: 10 }}>Sign out</button>
-      </> : confirmEmail ? <>
-        <h1 style={{ marginTop: 32 }}>Check your email</h1><p style={{ lineHeight: 1.6 }}>Confirm the email sent to {email}, then return to sign in.</p>
-        <button type="button" onClick={() => { setConfirmEmail(false); setMode('login'); }} style={{ minHeight: 44, padding: '8px 16px', borderRadius: 10 }}>Back to sign-in</button>
       </> : <>
         <h1 style={{ marginTop: 32 }}>{mode === 'signup' ? 'Create your Vanta account' : 'Welcome back'}</h1>
         <p style={{ color: '#bac1cb', lineHeight: 1.6 }}>Book with your artist and manage your appointments.</p>

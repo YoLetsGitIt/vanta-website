@@ -28,7 +28,9 @@ const BODY_PARTS = [
   'Stomach','Thigh','Wrist','Other',
 ];
 
-const COLOUR_STYLES = ['Black', 'Color', 'Grey'];
+const COLOUR_STYLES = ['Black & Grey', 'Color'];
+// Saved values stay as the backend expects; people see these labels.
+const colourLabel = value => ({ 'Black & Grey': 'Black & grey', Color: 'Colour' }[value] || value);
 
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const DAY_VALUES = [1,2,3,4,5,6,0]; // ISO weekday → JS dayOfWeek (0=Sun)
@@ -858,7 +860,7 @@ function StepDesign({
                 style={{ ...s.colourBtn, ...(selected ? s.colourBtnActive : {}) }}
                 onClick={() => { setColourStyle(selected ? '' : c); if (c !== 'Color') setColourDetails(''); }}
               >
-                {c}
+                {colourLabel(c)}
               </button>
             );
           })}
@@ -1278,7 +1280,7 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone }) {
 
 function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, studio }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
-  const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Color — ${colourDetails}` : colourStyle;
+  const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Colour — ${colourDetails}` : colourLabel(colourStyle);
 
   function ReviewGroup({ title, rows }) {
     return (
