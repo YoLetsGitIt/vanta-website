@@ -12,6 +12,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
   try {
     for (const scenario of ['signup-google', 'booking-google', 'booking-username-google', 'booking-username-apple-slash', 'existing-booking-google', 'studio-google', 'confirm-apple', 'provider-unavailable', 'cancelled', 'profile-failure', 'profile-unauthorized', 'existing-signup','signup-email']) {
       const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      await context.addInitScript(() => { sessionStorage.setItem('vanta-intro-seen', 'true'); });
       const page = await context.newPage();
       let created = ['existing-signup', 'existing-booking-google'].includes(scenario), creations = 0, exchanges = 0, starts = 0, signupCompletions = 0;
       await context.route('**/*', async route => {
