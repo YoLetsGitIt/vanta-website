@@ -5,8 +5,9 @@ import { BACKEND_URL } from '../lib/website-auth';
 
 const BOOKING_CONFIRM_RE = /^\/bookings\/([^/]+)\/confirm$/;
 const BOOKING_CONFIRMED_RE = /^\/bookings\/([^/]+)\/confirmed$/;
-// Studio short links: /b/<slug> opens the booking form, /c/<slug> the consent form.
-const STUDIO_LINK_RE = /^\/(b|c)\/([a-z0-9-]{3,40})\/?$/i;
+// Studio short links: /b/<slug> opens the booking form, /c/<slug> the consent form,
+// /w/<slug> the walk-in form.
+const STUDIO_LINK_RE = /^\/(b|c|w)\/([a-z0-9-]{3,40})\/?$/i;
 const studioApp = (process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.vanta.tattoo').replace(/\/$/, '');
 
 export default function NotFound() {
@@ -15,7 +16,7 @@ export default function NotFound() {
     const path = window.location.pathname;
     let m;
     if ((m = STUDIO_LINK_RE.exec(path))) {
-      const page = m[1].toLowerCase() === 'b' ? 'studio-booking' : 'consent';
+      const page = { b: 'studio-booking', c: 'consent', w: 'walkin' }[m[1].toLowerCase()];
       fetch(`${BACKEND_URL}/booking-links/${encodeURIComponent(m[2].toLowerCase())}`)
         .then(res => (res.ok ? res.json() : Promise.reject(res.status)))
         .then(({ studio_id }) => window.location.replace(`${studioApp}/${page}?s=${encodeURIComponent(studio_id)}`))
