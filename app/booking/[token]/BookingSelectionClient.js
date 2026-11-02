@@ -713,7 +713,7 @@ export default function BookingSelectionClient() {
                 <p style={{ ...s.muted, fontSize: 13, marginBottom: 12 }}>
                   {ctx.booking.duration_minutes && <>Showing start times for a {fmtDuration(ctx.booking.duration_minutes)} appointment</>}
                   {ctx.booking.duration_minutes && ctx.booking.estimated_quote && ' · '}
-                  {ctx.booking.estimated_quote && <><strong style={{ color: 'var(--text)' }}>Est. ${Math.round(ctx.booking.estimated_quote)}</strong></>}
+                  {ctx.booking.estimated_quote && <><strong style={{ color: 'var(--text)' }}>Estimated quote ${Math.round(ctx.booking.estimated_quote)}</strong> <EstimateTag /></>}
                 </p>
               )}
               {slotsLoading && <div style={{ ...s.spinner, margin: '20px auto' }} />}
@@ -780,7 +780,10 @@ export default function BookingSelectionClient() {
             {ctx?.booking?.estimated_quote && (
               <>
                 <div style={s.reviewDivider} />
-                <ReviewRow label="Estimated Quote" value={`$${Math.round(ctx.booking.estimated_quote)}`} />
+                <ReviewRow label="Quote" value={<>
+                  <span style={{ fontWeight: 600 }}>${Math.round(ctx.booking.estimated_quote)}</span> <EstimateTag />
+                  <span style={{ display: 'block', marginTop: 6, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.65)' }}>{QUOTE_ESTIMATE_NOTE}</span>
+                </>} />
               </>
             )}
             {ctx?.booking?.deposit_required && ctx?.booking?.deposit_amount && (
@@ -853,6 +856,17 @@ function Shell({ studio, children }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Shown with every quote so clients don't read it as a fixed price.
+const QUOTE_ESTIMATE_NOTE = 'This is an estimate, not a final price. The final price may change depending on the size, detail and time your tattoo takes.';
+
+function EstimateTag() {
+  return (
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', padding: '2px 8px', borderRadius: 999, background: 'rgba(251,191,36,0.14)', color: '#fbbf24', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+      Estimate only
+    </span>
   );
 }
 
