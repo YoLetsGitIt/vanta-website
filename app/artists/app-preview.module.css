@@ -1,0 +1,81 @@
+.device { container-type: inline-size; position: relative; display: block; width: 100%; aspect-ratio: 390 / 848; min-width: 0; border: 1px solid var(--app-border); border-radius: 30px; background: var(--app-bezel); color: var(--app-text); font-family: Arial, sans-serif; text-align: left; overflow: hidden; box-shadow: 0 20px 35px -12px #0006; }
+.screen { position: absolute; inset: 4px; border-radius: 10cqw; overflow: hidden; background: var(--app-canvas); }
+.statusBar { height: 12cqw; padding: 4cqw 5cqw 0; display: flex; justify-content: space-between; align-items: flex-start; color: var(--app-text); font-size: 3cqw; font-weight: 600; }
+.statusBar i { width: 29cqw; height: 7cqw; margin-top: -2cqw; border-radius: 9cqw; background: #050506; }
+.content { position: absolute; top: 12cqw; left: 4cqw; right: 4cqw; bottom: 19cqw; overflow: hidden; font-size: 3.3cqw; line-height: 1.45; }
+.content svg { width: 4.4cqw; height: 4.4cqw; flex: none; }
+.appHeader { display: flex; justify-content: space-between; align-items: center; gap: 3cqw; height: 12cqw; margin-bottom: 3cqw; font-size: 4.5cqw; font-weight: 600; }
+.profileSummary { display: flex; align-items: center; justify-content: space-between; gap: 3cqw; margin: 5cqw 0; }
+.profileSummary > div:not(.avatar) { display: grid; gap: 1.5cqw; text-align: center; }
+.profileSummary b { font-size: 5.3cqw; }
+.profileSummary span, .profileBio > span { font-size: 3cqw; color: var(--app-secondary); }
+.avatar { display: grid; place-items: center; width: 20cqw; height: 20cqw; flex: none; border-radius: 50%; background: var(--app-primary); color: var(--app-on-primary); font-size: 11cqw; font-weight: 700; letter-spacing: -1.4cqw; }
+.profileBio { display: grid; gap: 1cqw; margin: 4cqw 0; }
+.profileBio strong { font-size: 3.9cqw; }
+.profileBio p { margin: 2cqw 0 0; font-size: 3.1cqw; color: var(--app-secondary); }
+.editProfile, .secondaryAction { text-align: center; padding: 2.5cqw; border: 1px solid var(--app-border); border-radius: 3cqw; background: var(--app-surface); font-weight: 600; }
+.profileTabs { display: flex; gap: 7cqw; justify-content: center; padding: 4cqw 0 2.5cqw; margin-bottom: 3cqw; border-bottom: 1px solid var(--app-border); font-size: 3cqw; color: var(--app-secondary); }
+.profileTabs span { display: flex; align-items: center; gap: 2cqw; }
+.profileTabs span:first-child { color: var(--app-text); }
+.profileTabs svg { width: 3.4cqw; height: 3.4cqw; }
+.tattooGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4cqw; }
+.tattooGrid > img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 2cqw; }
+.summaryCard { display: grid; gap: 2.5cqw; padding: 4cqw; border: 1px solid var(--app-border); border-radius: 4cqw; background: var(--app-surface); color: var(--app-secondary); }
+.summaryCard strong { display: flex; justify-content: space-between; color: var(--app-text); font-size: 3.8cqw; }
+.calendarTitle { display: flex; justify-content: space-between; margin: 6cqw 0 4cqw; font-size: 4cqw; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1cqw; padding-bottom: 5cqw; border-bottom: 1px solid var(--app-border); }
+.week > div { display: grid; justify-items: center; gap: 2cqw; color: var(--app-secondary); font-size: 3cqw; }
+.week b { display: grid; place-items: center; width: 9cqw; height: 9cqw; border-radius: 50%; color: var(--app-text); }
+.week > div[data-selected='true'] b { background: var(--app-primary); color: var(--app-on-primary); }
+.week i { width: 1cqw; height: 1cqw; border-radius: 50%; background: var(--app-secondary); }
+.sectionLabel { margin: 5cqw 0 3cqw; font-size: 2.7cqw; font-weight: 600; letter-spacing: .2cqw; color: var(--app-secondary); }
+.calendarRows > div { position: relative; display: flex; gap: 3cqw; height: 19cqw; }
+.calendarRows > div > span { width: 10cqw; font-size: 2.6cqw; color: var(--app-secondary); }
+.calendarRows > div::after { content: ''; position: absolute; top: 1cqw; left: 13cqw; right: 0; height: 1px; background: var(--app-border); }
+.appointment { position: relative; z-index: 1; display: grid; align-content: start; gap: 2cqw; width: calc(100% - 13cqw); height: 55cqw; padding: 4cqw; border-left: 2px solid var(--app-primary); border-radius: 2cqw; background: var(--app-card); font-size: 3cqw; }
+.appointment small, .appointment span { color: var(--app-secondary); font-size: 2.8cqw; }
+.appointment b { width: fit-content; padding: 1cqw 2cqw; margin-top: 4cqw; border: 1px solid var(--app-border); border-radius: 3cqw; color: var(--app-primary); font-size: 2.5cqw; }
+.client { display: flex; align-items: center; gap: 3cqw; margin: 5cqw 0; }
+.client .avatar { width: 13cqw; height: 13cqw; font-size: 7cqw; letter-spacing: -.8cqw; }
+.client > div:last-child { display: grid; gap: 1cqw; }
+.client span { font-size: 2.7cqw; color: var(--app-secondary); }
+.infoBanner { padding: 3cqw 4cqw; border: 1px solid var(--app-border); border-radius: 3cqw; background: var(--app-surface); font-size: 3cqw; color: var(--app-secondary); }
+.quote { padding: 1cqw 4cqw; border: 1px solid var(--app-border); border-radius: 4cqw; }
+.quote > div { display: flex; justify-content: space-between; padding: 3.6cqw 0; border-bottom: 1px solid var(--app-border); }
+.quote > div:last-child { border: 0; }
+.quote span { color: var(--app-secondary); }
+.primaryAction { padding: 3cqw; border-radius: 3cqw; background: var(--app-primary); color: var(--app-on-primary); text-align: center; font-size: 3.3cqw; font-weight: 600; }
+.secondaryAction { margin-top: 3cqw; font-size: 3cqw; }
+.designThumb { display: flex; align-items: center; gap: 3cqw; font-size: 3.2cqw; }
+.designThumb img { width: 16cqw; height: 20cqw; border-radius: 2cqw; object-fit: cover; }
+.designThumb small { font-size: 2.6cqw; color: var(--app-secondary); }
+.formHeading { margin-top: 5cqw; font-size: 5cqw; font-weight: 600; }
+.referencePhotos { display: flex; gap: 3cqw; height: 29cqw; }
+.referencePhotos img { width: 29cqw; height: 29cqw; object-fit: cover; border-radius: 3cqw; }
+.referencePhotos > div { flex: 1; display: grid; place-content: center; justify-items: center; gap: 2cqw; border: 1px dashed var(--app-border); border-radius: 3cqw; font-size: 2.7cqw; color: var(--app-secondary); }
+.formField { display: flex; justify-content: space-between; min-height: 11cqw; padding: 3cqw; border: 1px solid var(--app-border); border-radius: 3cqw; color: var(--app-secondary); font-size: 3cqw; }
+.colourChoices { display: flex; gap: 3cqw; }
+.colourChoices span { flex: 1; padding: 2.5cqw; border: 1px solid var(--app-border); border-radius: 3cqw; text-align: center; color: var(--app-secondary); font-size: 3cqw; }
+.colourChoices span:first-child { background: var(--app-primary); color: var(--app-on-primary); }
+.content > .primaryAction { margin-top: 6cqw; }
+.discoverPhoto { position: relative; overflow: hidden; height: 135cqw; border-radius: 4cqw; }
+.discoverPhoto > img { width: 100%; height: 100%; object-fit: cover; }
+.discoverPhoto > div { position: absolute; inset: auto 0 0; display: grid; gap: 1cqw; padding: 14cqw 4cqw 5cqw; background: linear-gradient(transparent, #000b); color: #fff; font-size: 3.9cqw; }
+.discoverPhoto span { font-size: 3cqw; }
+.socialActions { display: flex; justify-content: space-between; padding: 4cqw 0 0; }
+.socialActions > span { display: flex; gap: 4cqw; }
+.appNav { position: absolute; bottom: 5cqw; left: 3cqw; right: 3cqw; display: flex; justify-content: space-around; padding: 2cqw 0; border: 1px solid var(--app-border); border-radius: 4cqw; background: var(--app-card); color: var(--app-secondary); }
+.appNav > span { display: grid; justify-items: center; gap: 1cqw; padding: 1cqw; }
+.appNav > span[data-active='true'] { color: var(--app-text); }
+.appNav svg { width: 4.5cqw; height: 4.5cqw; }
+.appNav small { font-size: 2.2cqw; }
+.homeIndicator { position: absolute; width: 28cqw; height: 1cqw; bottom: 1.6cqw; left: calc(50% - 14cqw); border-radius: 1cqw; background: var(--app-text); opacity: .7; }
+
+.headerAccent { position: absolute; z-index: 0; width: 19cqw; height: 19cqw; top: -1cqw; right: 2cqw; opacity: .26; }
+.appHeader { position: relative; z-index: 1; }
+.appNav > .navAccent { position: absolute; display: block; width: 15cqw; height: 15cqw; right: 0; bottom: 0; padding: 0; opacity: .27; }
+.content .headerAccent svg, .appNav .navAccent svg { width: 100%; height: 100%; }
+
+/* Native captures retain their original dimensions, colours and interface. */
+.nativeDevice { display: block; width: 100%; min-width: 0; overflow: hidden; border: 1px solid var(--app-border); border-radius: 30px; background: var(--app-canvas); box-shadow: 0 20px 35px -12px #0006; }
+.nativeDevice > img { display: block; width: 100%; height: auto; }

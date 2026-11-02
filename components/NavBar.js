@@ -1,27 +1,29 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import styles from './NavBar.module.css';
 
 const links = [
   { href: '/artists', label: 'For artists' },
-  { href: 'https://studio.vanta.tattoo/', label: 'For studios' },
+  { href: '/studio', label: 'For studios' },
+  { href: '/signup', label: 'Sign in' },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
+  // Load HTML directly on the static host; failed Next data fetches can open .txt.
   return (
     <header className="site-header">
-      <Link href="/" className="brand">VANTA</Link>
-      <nav>
+      <a href="/" className={styles.wordmark} aria-label="Vanta home">vanta<span>.</span></a>
+      <nav style={{ gap: 'clamp(12px, 3vw, 32px)' }}>
         {links.map(({ href, label }) => (
-          <Link
+          <a
             key={href}
             href={href}
             className={`nav-link${pathname === href ? ' nav-active' : ''}`}
           >
             {label}
-          </Link>
+          </a>
         ))}
       </nav>
     </header>

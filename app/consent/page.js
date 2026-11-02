@@ -6,14 +6,18 @@ import { useSearchParams } from 'next/navigation';
 const BACKEND = 'https://inkspire-backend-xa2a.onrender.com';
 
 async function getPublicConsentInfo(token) {
-  const res = await fetch(`${BACKEND}/public/consent/${token}`);
+  const resource = token.startsWith('bc_') ? 'booking-consent' : 'consent';
+  const res = await fetch(`${BACKEND}/public/${resource}/${encodeURIComponent(token)}`, { cache: 'no-store' });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error ?? 'Invalid or expired consent link');
   return data;
 }
 
-async function signatureUploadSign(studioId, files) {
-  const res = await fetch(`${BACKEND}/studios/${studioId}/signature-upload-sign`, {
+async function signatureUploadSign(studioId, files, token) {
+  const url = token.startsWith('bc_')
+    ? `${BACKEND}/public/booking-consent/${encodeURIComponent(token)}/signature-upload-sign`
+    : `${BACKEND}/studios/${studioId}/signature-upload-sign`;
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ files }),
@@ -23,11 +27,12 @@ async function signatureUploadSign(studioId, files) {
   return data.uploads;
 }
 
-async function submitPublicConsent(token, submissions) {
-  const res = await fetch(`${BACKEND}/public/consent/${token}`, {
+async function submitPublicConsent(token, submissions, signerName, dob) {
+  const resource = token.startsWith('bc_') ? 'booking-consent' : 'consent';
+  const res = await fetch(`${BACKEND}/public/${resource}/${encodeURIComponent(token)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ submissions }),
+    body: JSON.stringify({ submissions, signer_name: signerName, dob }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error ?? 'Failed to submit consent');
@@ -39,6 +44,8 @@ function ConsentForm() {
   const token = searchParams.get('token');
 
   const [info, setInfo]           = useState(null);
+  const [signerName, setSignerName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [loadErr, setLoadErr]     = useState('');
   const [templateState, setTemplateState] = useState({});
   const [guardianName, setGuardianName]           = useState('');
@@ -53,7 +60,7 @@ function ConsentForm() {
   useEffect(() => {
     if (!token) { setLoadErr('No consent token provided.'); return; }
     getPublicConsentInfo(token)
-      .then(setInfo)
+      .then(data => { setInfo(data); setSignerName(data.signer_name || ''); setDateOfBirth(data.dob || ''); })
       .catch(e => setLoadErr(e.message));
   }, [token]);
 
@@ -73,7 +80,7 @@ function ConsentForm() {
   }
 
   const isMinor = (() => {
-    const dob = info?.dob;
+    const dob = info?.dob || dateOfBirth;
     if (!dob) return false;
     const birth = new Date(dob + 'T12:00:00');
     const cutoff = new Date();
@@ -84,6 +91,11 @@ function ConsentForm() {
   async function handleSubmit(e) {
     e.preventDefault();
     const templates = info?.templates ?? [];
+
+    if (info?.booking_consent && (!signerName.trim() || !dateOfBirth)) {
+      setSubmitErr('Please enter your full name and date of birth.');
+      return;
+    }
 
     for (const t of templates) {
       const ts = templateState[t.id] ?? {};
@@ -107,7 +119,7 @@ function ConsentForm() {
     setSubmitErr('');
     try {
       async function uploadSig(blob) {
-        const [slot] = await signatureUploadSign(info.studio_id, [{ mime_type: 'image/png', byte_size: blob.size }]);
+        const [slot] = await signatureUploadSign(info.studio_id, [{ mime_type: 'image/png', byte_size: blob.size }], token);
         const resp = await fetch(slot.upload_url, { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: blob });
         if (!resp.ok) throw new Error('Signature upload failed — please try again.');
         return slot.storage_object_path;
@@ -134,7 +146,7 @@ function ConsentForm() {
         });
       }
 
-      await submitPublicConsent(token, submissions);
+      await submitPublicConsent(token, submissions, signerName.trim(), dateOfBirth);
       setDone(true);
     } catch (e) {
       setSubmitErr(e.message);
@@ -149,7 +161,7 @@ function ConsentForm() {
         <div style={s.statusIcon}>✕</div>
         <h2 style={s.heading}>Link unavailable</h2>
         <p style={s.muted}>{loadErr}</p>
-        <p style={s.hint}>Ask your studio for a new consent link.</p>
+        <p style={s.hint}>Ask your artist or studio for a new consent link.</p>
       </div>
     );
   }
@@ -181,9 +193,17 @@ function ConsentForm() {
       <p style={s.muted}>Please read and complete the form below.</p>
 
       <form onSubmit={handleSubmit} style={s.form}>
+        {info.booking_consent && <div style={s.fieldStack}>
+          <label style={s.label}>Full name
+            <input style={s.input} autoComplete="name" value={signerName} onChange={e => setSignerName(e.target.value)} required />
+          </label>
+          <label style={s.label}>Date of birth
+            <input style={s.input} type="date" autoComplete="bday" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} readOnly={Boolean(info.dob)} max={new Date().toLocaleDateString('en-CA')} required />
+          </label>
+        </div>}
         {templates.length === 0 && (
           <p style={s.muted}>
-            By submitting you confirm that you have read and agree to the studio&apos;s consent policy and consent to receive tattoo services.
+            By submitting you confirm that you have read and agree to the studio&apos;s consent policy and consent to receive the agreed studio services.
           </p>
         )}
 
@@ -354,6 +374,10 @@ function ConsentFormField({ field, value, onChange }) {
 
 function SignaturePad({ onCapture }) {
   const canvasRef = useRef(null);
+  const captureVersion = useRef(0);
+  const [signatureMode, setSignatureMode] = useState('draw');
+  const [typedName, setTypedName] = useState('');
+  const [signatureStatus, setSignatureStatus] = useState('');
   const [drawing, setDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
 
@@ -392,27 +416,65 @@ function SignaturePad({ onCapture }) {
   function endDraw() {
     if (!drawing) return;
     setDrawing(false);
-    if (hasDrawn) canvasRef.current.toBlob(blob => onCapture(blob), 'image/png');
+    if (hasDrawn) {
+      const version = ++captureVersion.current;
+      canvasRef.current.toBlob(blob => {
+        if (version === captureVersion.current) onCapture(blob);
+      }, 'image/png');
+    }
   }
 
   function clear() {
+    captureVersion.current += 1;
     const canvas = canvasRef.current;
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     setHasDrawn(false);
+    setSignatureStatus('');
     onCapture(null);
+  }
+
+  function captureTyped() {
+    const name = typedName.trim();
+    if (!name) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '28px serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name, 20, canvas.height / 2, canvas.width - 40);
+    const version = ++captureVersion.current;
+    canvas.toBlob(blob => {
+      if (version !== captureVersion.current) return;
+      onCapture(blob);
+      setSignatureStatus(blob ? 'Signature added.' : 'Unable to add signature. Please try again.');
+    }, 'image/png');
   }
 
   return (
     <div style={s.sigWrap}>
+      <div style={{ display: 'flex', gap: 8, padding: 8 }} role="group" aria-label="Signature method">
+        <button type="button" aria-pressed={signatureMode === 'draw'} onClick={() => { clear(); setSignatureMode('draw'); }} style={{ minHeight: 44 }}>Draw signature</button>
+        <button type="button" aria-pressed={signatureMode === 'type'} onClick={() => { clear(); setSignatureMode('type'); }} style={{ minHeight: 44 }}>Type signature</button>
+      </div>
+      {signatureMode === 'type' && <div style={{ padding: 12 }}>
+        <label style={{ display: 'block' }}>Full name for your electronic signature
+          <input value={typedName} maxLength={120} autoComplete="name" onChange={event => { clear(); setTypedName(event.target.value); }} style={{ ...s.input, width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: 44, marginTop: 8, padding: 10 }} />
+        </label>
+        <button type="button" disabled={!typedName.trim()} onClick={captureTyped} style={{ minHeight: 44, marginTop: 8 }}>Use typed signature</button>
+        <p role="status">{signatureStatus}</p>
+      </div>}
+
       <canvas
         ref={canvasRef}
+        aria-label="Draw your signature, or choose Type signature for keyboard entry"
         width={440}
         height={140}
-        style={s.sigCanvas}
+        style={{ ...s.sigCanvas, display: signatureMode === 'draw' ? 'block' : 'none' }}
         onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
         onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
       />
-      <div style={s.sigFooter}>
+      <div style={{ ...s.sigFooter, display: signatureMode === 'draw' ? 'flex' : 'none' }}>
         <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>Draw your signature above</span>
         <button type="button" onClick={clear} style={s.sigClear}>Clear</button>
       </div>

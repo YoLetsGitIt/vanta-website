@@ -1,16 +1,21 @@
 'use client';
 
+import { resolveBookingArtist } from '../../lib/booking-artist.mjs';
+import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
+
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { websiteAuth } from '../../lib/website-auth';
+import SocialSignIn from '../../components/SocialSignIn';
 
-const SUPABASE_URL = 'https://aznxvdnpvbcofaqxgmtu.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_SrxxKBifFjEUF8Is9ipQwQ_HVvvLPn_';
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = websiteAuth();
+
+const PIERCING_PLACEMENTS = ['Earlobe', 'Helix', 'Tragus', 'Conch', 'Daith', 'Rook', 'Industrial', 'Nostril', 'Septum', 'Eyebrow', 'Lip', 'Tongue', 'Navel', 'Nipple', 'Other'];
 
 const SESSION_TYPES = [
+  { value: 'piercing', label: 'Piercing', desc: 'Piercing placement and jewellery', duration: '30–60 min', size: null },
   { value: 'touch_up', label: 'Touch-up', desc: 'Small fixes, colour fills', duration: '1–2 hrs', size: null },
   { value: 'small',    label: 'Small',    desc: 'Simple designs, freehand',      duration: '2–3 hrs', size: '5–10 cm' },
   { value: 'medium',   label: 'Medium',   desc: 'Detailed pieces, large scripts', duration: '3–5 hrs', size: '10–20 cm' },
@@ -68,7 +73,8 @@ function uploadFileXHR(url, file, onProgress) {
 
 function BookingContent() {
   const searchParams = useSearchParams();
-  const artistId = searchParams.get('artist');
+  const artistReference = searchParams.get('artist');
+  const [artistId, setArtistId] = useState(null);
 
   const [artist, setArtist] = useState(null);
   const [referralCode, setReferralCode] = useState(null);
@@ -90,6 +96,7 @@ function BookingContent() {
 
   // Step 0 – session type
   const [sessionType, setSessionType] = useState(null);
+  const isPiercing = sessionType === 'piercing';
 
   // Step 1 – design
   const [designDetails, setDesignDetails] = useState('');
@@ -107,6 +114,11 @@ function BookingContent() {
   const [pushToLater, setPushToLater] = useState(false);
   const [earliestDate, setEarliestDate] = useState('');
   const [artistSchedule, setArtistSchedule] = useState([]);
+  const [selectedStudioId, setSelectedStudioId] = useState('');
+  const studios = bookingStudios(artist);
+  const selectedStudio = studios.find(studio => studio.id === selectedStudioId);
+  const studioSchedule = scheduleForStudio(artistSchedule, studios, selectedStudioId);
+  const restrictSchedule = studios.length > 0 || artistSchedule.length > 0;
 
   // Step 3 – contact
   const [contactName, setContactName] = useState('');
@@ -136,42 +148,54 @@ function BookingContent() {
   // ── Init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!artistId) { setView('error'); return; }
+    if (!artistReference) { setView('error'); return; }
+    const controller = new AbortController();
+    let active = true;
+    setView('loading');
+    setArtistId(null);
 
     async function init() {
+      const resolvedArtistId = await resolveBookingArtist(artistReference, BACKEND_URL, fetch, controller.signal);
       const [artistData, refData, scheduleData, { data: { session } }] = await Promise.all([
-        fetch(`${BACKEND_URL}/artists/${artistId}`).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch(`${BACKEND_URL}/artists/${artistId}/referral-code`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch(`${BACKEND_URL}/artists/${artistId}/work-schedule`).then(r => r.ok ? r.json() : { schedule: [] }).catch(() => ({ schedule: [] })),
+        fetch(`${BACKEND_URL}/artists/${resolvedArtistId}`, { signal: controller.signal }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/referral-code`, { signal: controller.signal }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/work-schedule`, { signal: controller.signal }).then(r => r.ok ? r.json() : { schedule: [] }).catch(() => ({ schedule: [] })),
         supabase.auth.getSession(),
       ]);
+      if (!active) return;
       if (!artistData || artistData.error) { setView('error'); return; }
+      setArtistId(resolvedArtistId);
       setArtist(artistData);
+      const locations = bookingStudios(artistData);
+      setSelectedStudioId(locations.length === 1 ? locations[0].id : '');
+      setAvailabilityWindows([]);
+      setPushToLater(false);
+      setEarliestDate('');
       setReferralCode(refData?.referral_code || null);
       const sched = scheduleData?.schedule || [];
-      console.log('[Booking] work-schedule:', sched);
       setArtistSchedule(sched);
       if (session) { setSession(session); prefillContact(session); setView('form'); }
       else { setView('auth'); }
     }
-    init();
+    init().catch(() => { if (active) setView('error'); });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) return;
       // Covers email-confirmation redirects and any other path that establishes
       // a session outside handleAuth (which already calls this itself).
       if (event === 'SIGNED_IN') createProfile(session, '');
-      setSession(session); prefillContact(session); setView('form');
+      setSession(session); prefillContact(session);
+      setView(current => ['auth', 'confirm-email'].includes(current) ? 'form' : current);
     });
-    return () => subscription.unsubscribe();
-  }, [artistId]);
+    return () => { active = false; controller.abort(); subscription.unsubscribe(); };
+  }, [artistReference]);
 
   async function prefillContact(session) {
     const meta = session.user?.user_metadata;
     setContactName(n => n || meta?.full_name || '');
     setContactEmail(e => e || session.user?.email || '');
     try {
-      const res = await fetch(`${BACKEND_URL}/users/me`, {
+      const res = await fetch(`${BACKEND_URL}/auth/users/me`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (res.ok) {
@@ -179,25 +203,35 @@ function BookingContent() {
         if (profile.phone) setContactPhone(p => p || profile.phone);
       }
     } catch {}
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/users/me/contact-email`, { headers: { Authorization: `Bearer ${session.access_token}` }, cache: 'no-store' });
+      if (response.ok) {
+        const { contact_email } = await response.json();
+        if (contact_email) setContactEmail(current => !current || current === session.user?.email ? contact_email : current);
+      }
+    } catch {}
   }
+
+  useEffect(() => {
+    function updateContact(event) {
+      if (event.detail?.userId !== session?.user?.id || !event.detail?.email) return;
+      setContactEmail(current => !current || current === session.user?.email ? event.detail.email : current);
+    }
+    window.addEventListener('vanta:contact-email-updated', updateContact);
+    return () => window.removeEventListener('vanta:contact-email-updated', updateContact);
+  }, [session?.user?.id]);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
-  async function createProfile(session, name) {
+  async function createProfile(session, name, code = '', complete = false) {
     try {
-      await fetch(`${BACKEND_URL}/auth/users/me`, {
+      const profileResponse = await fetch(`${BACKEND_URL}/auth/users/me`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ name: name || 'User', accountType: 'user', termsAcceptedVersion: '1.0' }),
       });
-    } catch {}
-  }
-
-  async function redeemReferral(session, code) {
-    try {
-      await fetch(`${BACKEND_URL}/referral/redeem`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      if (profileResponse.ok && complete) await fetch(`${BACKEND_URL}/referral/signup`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ code }),
       });
     } catch {}
@@ -228,7 +262,7 @@ function BookingContent() {
         // Idempotent on the backend (returns the existing profile if one's already
         // there) -- covers a returning client whose profile never got created,
         // e.g. because the signup-time call below failed silently.
-        await createProfile(data.session, '');
+        await createProfile(data.session, '', '', true);
         setSession(data.session);
         prefillContact(data.session);
         setView('form');
@@ -239,8 +273,7 @@ function BookingContent() {
         });
         if (error) throw error;
         if (data.session) {
-          await createProfile(data.session, authName);
-          if (referralCode) await redeemReferral(data.session, referralCode);
+          await createProfile(data.session, authName, referralCode || '', true);
           await patchReferralSource(data.session, 'artist');
           setContactName(authName || '');
           setContactEmail(authEmail);
@@ -280,11 +313,21 @@ function BookingContent() {
   function nextEnabled() {
     switch (step) {
       case 0: return !!sessionType;
-      case 1: return designDetails.trim() && bodyLocations.length > 0 && colourStyle && photoFiles.length > 0;
-      case 2: return availabilityWindows.length > 0 || (pushToLater && earliestDate);
+      case 1: return designDetails.trim() && bodyLocations.length > 0 && (isPiercing || (colourStyle && photoFiles.length > 0));
+      case 2: return (!studios.length || !!selectedStudio) &&
+        (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
       case 3: return contactName.trim() && contactEmail.trim() && contactEmail.includes('@');
       default: return true;
     }
+  }
+
+  function chooseStudio(id) {
+    if (id === selectedStudioId) return;
+    setSelectedStudioId(id);
+    setAvailabilityWindows([]);
+    setPushToLater(false);
+    setEarliestDate('');
+    setSubmitError('');
   }
 
   function handleNext() {
@@ -301,7 +344,11 @@ function BookingContent() {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (!session) return;
+    if (!session || !artistId) return;
+    if (studios.length && !selectedStudio) { setSubmitError('Choose a studio for your booking.'); return; }
+    if (availabilityWindows.length && !windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule)) {
+      setSubmitError('Choose availability within the working hours at your selected studio.'); return;
+    }
     setSubmitting(true);
     setSubmitError('');
     setSubmitProgress(0);
@@ -360,13 +407,14 @@ function BookingContent() {
 
       const body = {
         artist_id: artistId,
+        ...(selectedStudio ? { studio_id: selectedStudio.id } : {}),
         requester_name: contactName.trim(),
         requester_email: contactEmail.trim(),
         requester_phone: contactPhone.trim(),
         session_type: sessionType,
         design_details: designDetails.trim(),
         body_location: bodyLocations.join(', '),
-        color: colourValue,
+        color: isPiercing ? undefined : colourValue,
         availability_windows: availabilityWindows.map(w => ({
           day_of_week: w.dayOfWeek,
           start_time: w.startTime,
@@ -515,6 +563,7 @@ function BookingContent() {
                   {authLoading ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Log in'}
                 </button>
               </form>
+              <SocialSignIn referralCode={authMode === 'signup' ? referralCode || '' : ''} consentAccepted={authConsent} requireConsent={authMode === 'signup'} disabled={authLoading} />
             </>
           )}
 
@@ -555,9 +604,10 @@ function BookingContent() {
 
               {/* Step content */}
               <div style={{ marginTop: 28 }}>
-                {step === 0 && <StepSessionType sessionType={sessionType} setSessionType={setSessionType} />}
+                {step === 0 && <StepSessionType sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
                 {step === 1 && (
                   <StepDesign
+                    isPiercing={isPiercing}
                     designDetails={designDetails} setDesignDetails={setDesignDetails}
                     bodyLocations={bodyLocations} setBodyLocations={setBodyLocations}
                     colourStyle={colourStyle} setColourStyle={setColourStyle}
@@ -575,7 +625,9 @@ function BookingContent() {
                     pushToLater={pushToLater} setPushToLater={setPushToLater}
                     earliestDate={earliestDate} setEarliestDate={setEarliestDate}
                     sessionType={sessionType}
-                    artistSchedule={artistSchedule}
+                    artistSchedule={studioSchedule}
+                    studios={studios} selectedStudio={selectedStudio}
+                    onChooseStudio={chooseStudio} restrictSchedule={restrictSchedule}
                   />
                 )}
                 {step === 3 && (
@@ -594,6 +646,7 @@ function BookingContent() {
                     availabilityWindows={availabilityWindows} pushToLater={pushToLater}
                     earliestDate={earliestDate}
                     name={contactName} email={contactEmail} phone={contactPhone}
+                    studio={selectedStudio}
                   />
                 )}
               </div>
@@ -669,7 +722,7 @@ function BookingContent() {
 function StepSessionType({ sessionType, setSessionType }) {
   return (
     <div>
-      <h2 style={s.stepHeading}>What size is your piece?</h2>
+      <h2 style={s.stepHeading}>What appointment would you like?</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
         {SESSION_TYPES.map(t => {
           const selected = sessionType === t.value;
@@ -701,6 +754,7 @@ function StepSessionType({ sessionType, setSessionType }) {
 // ─── Step 1: Design details ──────────────────────────────────────────────────
 
 function StepDesign({
+  isPiercing,
   designDetails, setDesignDetails, bodyLocations, setBodyLocations,
   colourStyle, setColourStyle, colourDetails, setColourDetails,
   notes, setNotes, photoPreviews, photoFiles, photoInputRef,
@@ -708,7 +762,7 @@ function StepDesign({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <h2 style={s.stepHeading}>Tell us about your design</h2>
+      <h2 style={s.stepHeading}>{isPiercing ? 'Tell us about your piercing' : 'Tell us about your design'}</h2>
 
       {/* Reference photos */}
       <div>
@@ -744,10 +798,10 @@ function StepDesign({
 
       {/* Design description */}
       <div style={s.field}>
-        <label style={s.sectionLabel}>DESIGN DESCRIPTION</label>
+        <label style={s.sectionLabel}>{isPiercing ? 'PIERCING DETAILS' : 'DESIGN DESCRIPTION'}</label>
         <textarea
           style={{ ...s.input, ...s.textarea }}
-          placeholder="e.g. Japanese dragon on the upper arm with waves…"
+          placeholder={isPiercing ? 'e.g. Left nostril, one piercing, jewellery preference…' : 'e.g. Japanese dragon on the upper arm with waves…'}
           value={designDetails}
           onChange={e => setDesignDetails(e.target.value)}
           rows={4}
@@ -781,7 +835,7 @@ function StepDesign({
                 </button>
               </div>
               <div style={s.bodyGrid}>
-                {BODY_PARTS.map(part => {
+                {(isPiercing ? PIERCING_PLACEMENTS : BODY_PARTS).map(part => {
                   const selected = bodyLocations.includes(part);
                   return (
                     <button
@@ -802,7 +856,7 @@ function StepDesign({
       </div>
 
       {/* Colour */}
-      <div>
+      {!isPiercing && <div>
         <div style={s.sectionLabel}>COLOUR</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           {COLOUR_STYLES.map(c => {
@@ -829,6 +883,8 @@ function StepDesign({
         )}
       </div>
 
+      }
+
       {/* Notes */}
       <div style={s.field}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -849,11 +905,31 @@ function StepDesign({
 
 // ─── Step 2: Availability ────────────────────────────────────────────────────
 
-function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToLater, setPushToLater, earliestDate, setEarliestDate, sessionType, artistSchedule }) {
+function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToLater, setPushToLater, earliestDate, setEarliestDate, sessionType, artistSchedule, studios, selectedStudio, onChooseStudio, restrictSchedule }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
+  const ready = !studios.length || !!selectedStudio;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <h2 style={s.stepHeading}>When are you available?</h2>
+      <h2 style={s.stepHeading}>{studios.length ? 'Where would you like to book?' : 'When are you available?'}</h2>
+      {studios.length > 0 && <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+        <legend style={{ ...s.label, marginBottom: 12 }}>{studios.length > 1 ? 'Choose a studio to see the artist’s working hours.' : 'Your appointment location'}</legend>
+        <div style={{ display: 'grid', gap: 10 }}>
+          {studios.map(studio => <label key={studio.id} style={{ display: 'flex', alignItems: 'center', gap: 12,
+            border: selectedStudio?.id === studio.id ? '1px solid rgba(255,255,255,0.65)' : '1px solid rgba(255,255,255,0.12)',
+            background: selectedStudio?.id === studio.id ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+            borderRadius: 12, padding: 16, cursor: 'pointer' }}>
+            <input type="radio" name="booking-studio" value={studio.id} checked={selectedStudio?.id === studio.id}
+              onChange={() => onChooseStudio(studio.id)} style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, padding: 0, margin: 0, flex: '0 0 18px', accentColor: '#fff' }} />
+            <span style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+              <span style={{ fontWeight: 600, fontSize: 15 }}>{studio.name}</span>
+              {studio.addressString && <span style={{ ...s.label, lineHeight: 1.5 }}>{studio.addressString}</span>}
+            </span>
+          </label>)}
+        </div>
+      </fieldset>}
+      {ready && <>
+      {studios.length > 0 && <h3 style={{ ...s.stepHeading, fontSize: 20 }}>When are you available?</h3>}
+      {selectedStudio?.timezone && <p style={{ ...s.label, margin: 0 }}>Studio local time · {selectedStudio.timezone.replaceAll('_', ' ')}</p>}
 
       <div>
         {st && (
@@ -866,7 +942,9 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
         </p>
       </div>
 
-      <AvailabilityGrid windows={availabilityWindows} setWindows={setAvailabilityWindows} schedule={artistSchedule} />
+      {restrictSchedule && !artistSchedule.length
+        ? <p role="status" style={{ ...s.muted, margin: 0 }}>Weekly hours haven’t been set for this studio. You can request a later date for the artist to arrange.</p>
+        : <AvailabilityGrid key={selectedStudio?.id || 'independent'} windows={availabilityWindows} setWindows={setAvailabilityWindows} schedule={artistSchedule} />}
 
       {/* Push to later */}
       <div style={s.pushCard}>
@@ -895,6 +973,7 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
           />
         </div>
       )}
+      </>}
     </div>
   );
 }
@@ -928,7 +1007,7 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
   }
   function timeToSlot(time) {
     const [h, m] = (time || '00:00').split(':').map(Number);
-    return (h - startHour) * (60 / AV_SLOT_MINS) + Math.floor((m || 0) / AV_SLOT_MINS);
+    return (h - startHour) * (60 / AV_SLOT_MINS) + (m || 0) / AV_SLOT_MINS;
   }
   function commitDrag(wins, dayOfWeek, startSlot, endSlot) {
     const lo = Math.min(startSlot, endSlot);
@@ -953,8 +1032,8 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
   function clampToArtistRange(slot, dayOfWeek) {
     const sched = scheduleMap[dayOfWeek];
     if (!sched) return slot;
-    const artistStart = timeToSlot(sched.start_time);
-    const artistEnd = timeToSlot(sched.end_time);
+    const artistStart = Math.ceil(timeToSlot(sched.start_time));
+    const artistEnd = Math.floor(timeToSlot(sched.end_time));
     return Math.max(artistStart, Math.min(artistEnd - 1, slot));
   }
 
@@ -966,7 +1045,10 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
     e.preventDefault();
     colEl.setPointerCapture?.(e.pointerId);
     const rect = colEl.getBoundingClientRect();
-    const slot = clampToArtistRange(getSlotFromY(e.clientY - rect.top), dayOfWeek);
+    const rawSlot = getSlotFromY(e.clientY - rect.top);
+    const day = scheduleMap[dayOfWeek];
+    if (hasSchedule && (!day || rawSlot < Math.ceil(timeToSlot(day.start_time)) || rawSlot >= Math.floor(timeToSlot(day.end_time)))) return;
+    const slot = clampToArtistRange(rawSlot, dayOfWeek);
     const insideBlock = windows.some(w =>
       w.dayOfWeek === dayOfWeek &&
       timeToSlot(w.startTime) <= slot && timeToSlot(w.endTime) > slot
@@ -1046,8 +1128,8 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
           const sched = scheduleMap[dayOfWeek];
           const isOpen = !hasSchedule || !!sched;
           // Only highlight artist range when day is open AND schedule is configured
-          const artistStartSlot = (hasSchedule && sched) ? timeToSlot(sched.start_time) : (isOpen ? 0 : -1);
-          const artistEndSlot = (hasSchedule && sched) ? timeToSlot(sched.end_time) : (isOpen ? totalSlots : -1);
+          const artistStartSlot = (hasSchedule && sched) ? Math.ceil(timeToSlot(sched.start_time)) : (isOpen ? 0 : -1);
+          const artistEndSlot = (hasSchedule && sched) ? Math.floor(timeToSlot(sched.end_time)) : (isOpen ? totalSlots : -1);
           return (
             <AvDayColumn
               key={dayIndex}
@@ -1060,7 +1142,11 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
               onPointerUp={onColPointerUp}
               totalSlots={totalSlots}
               timeToSlot={timeToSlot}
-              isOpen={isOpen}
+              isOpen={isOpen && artistEndSlot > artistStartSlot}
+              label={`${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dayOfWeek]} availability`}
+              onToggleDay={() => setWindows(previous => previous.some(window => window.dayOfWeek === dayOfWeek)
+                ? previous.filter(window => window.dayOfWeek !== dayOfWeek)
+                : [...previous, { dayOfWeek, startTime: slotToTime(artistStartSlot), endTime: slotToTime(artistEndSlot) }])}
               artistStartSlot={artistStartSlot}
               artistEndSlot={artistEndSlot}
             />
@@ -1085,7 +1171,7 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
   );
 }
 
-function AvDayColumn({ dayIndex, dayOfWeek, windows, drag, onPointerDown, onPointerMove, onPointerUp, totalSlots, timeToSlot, isOpen, artistStartSlot, artistEndSlot }) {
+function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, onPointerDown, onPointerMove, onPointerUp, totalSlots, timeToSlot, isOpen, artistStartSlot, artistEndSlot }) {
   const colRef = useRef(null);
   const isDragging = drag?.dayIndex === dayIndex && !drag.isDelete;
   const dragLo = isDragging ? Math.min(drag.startSlot, drag.currentSlot) : -1;
@@ -1096,6 +1182,11 @@ function AvDayColumn({ dayIndex, dayOfWeek, windows, drag, onPointerDown, onPoin
   return (
     <div
       ref={colRef}
+      role="button" aria-label={label} aria-disabled={!isOpen} aria-pressed={windows.length > 0}
+      tabIndex={isOpen ? 0 : -1}
+      aria-description="Press Enter or Space to select the full working day. Drag to select specific times."
+      onClick={event => { if (isOpen && event.detail === 0) onToggleDay(); }}
+      onKeyDown={event => { if (isOpen && ['Enter', ' '].includes(event.key)) { event.preventDefault(); onToggleDay(); } }}
       style={{
         flex: 1, position: 'relative',
         touchAction: 'none', userSelect: 'none',
@@ -1194,9 +1285,9 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone }) {
 
 // ─── Step 4: Review ──────────────────────────────────────────────────────────
 
-function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone }) {
+function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, studio }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
-  const colourValue = colourStyle === 'Color' && colourDetails ? `Color — ${colourDetails}` : colourStyle;
+  const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Color — ${colourDetails}` : colourStyle;
 
   function ReviewGroup({ title, rows }) {
     return (
@@ -1231,7 +1322,7 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
         </div>
       )}
 
-      <ReviewGroup title="DESIGN" rows={[
+      <ReviewGroup title={sessionType === 'piercing' ? 'PIERCING' : 'DESIGN'} rows={[
         { label: 'Details', value: designDetails },
         { label: 'Placement', value: bodyLocations.join(', ') },
         colourValue && { label: 'Colour', value: colourValue },
@@ -1248,6 +1339,12 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
           </div>
         </div>
       )}
+
+      {studio && <ReviewGroup title="STUDIO" rows={[
+        { label: 'Location', value: studio.name },
+        studio.addressString && { label: 'Address', value: studio.addressString },
+        studio.timezone && { label: 'Time zone', value: studio.timezone.replaceAll('_', ' ') },
+      ].filter(Boolean)} />}
 
       <ReviewGroup title="AVAILABILITY" rows={[
         ...availabilityWindows.map(w => {

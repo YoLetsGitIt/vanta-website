@@ -2,23 +2,23 @@
 
 import { useState, useEffect, use, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { websiteAuth } from '../../../../lib/website-auth';
+import SocialSignIn from '../../../../components/SocialSignIn';
+import { bookingHeaders, proposalState, proposalTimes, bookingReceipt } from '../../../../lib/booking-state.mjs';
 
-const SUPABASE_URL = 'https://aznxvdnpvbcofaqxgmtu.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_SrxxKBifFjEUF8Is9ipQwQ_HVvvLPn_';
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = websiteAuth();
 
 function formatTime(iso) {
   const d = new Date(iso);
   return d.toLocaleString('en-AU', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-    hour: 'numeric', minute: '2-digit', hour12: true,
+    hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short',
   });
 }
 
-export default function ConfirmBookingPage({ params }) {
+export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const searchParams = useSearchParams();
   const { id: pathId } = use(params);
   const id = pathId === '_' ? (searchParams.get('id') ?? pathId) : pathId;
@@ -56,16 +56,21 @@ export default function ConfirmBookingPage({ params }) {
     setView('loading');
     try {
       const res = await fetch(`${BACKEND_URL}/bookings/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { ...bookingHeaders, Authorization: `Bearer ${token}` },
+        cache: 'no-store',
       });
-      if (!res.ok) throw new Error('Booking not found');
+      if (!res.ok) throw new Error(res.status === 404 ? 'Booking not found.' : res.status === 403 ? 'Please sign in with the email address your artist sent this booking to.' : 'Unable to load your booking. Please try again.');
       const data = await res.json();
       setBooking(data);
-      if (data.status !== 'proposed') {
+      if (receiptOnly || ['confirmed', 'completed', 'requires_confirmation', 'awaiting_payment', 'awaiting_deposit'].includes(data.status)) {
+        setView('receipt');
+        return;
+      }
+      const state = proposalState(data);
+      if (state !== 'selecting') {
         setView('error');
         setErrorMsg(
-          data.status === 'confirmed' ? 'This booking is already confirmed.' :
-          data.status === 'awaiting_deposit' ? 'Waiting for payment confirmation.' :
+          state === 'expired' ? 'This proposal has expired. Contact your artist for new times.' :
           'This booking is no longer awaiting your response.'
         );
         return;
@@ -80,9 +85,9 @@ export default function ConfirmBookingPage({ params }) {
   async function sendOtp() {
     setAuthLoading(true);
     setAuthError('');
-    const { error } = await supabase.auth.signInWithOtp({ email: authEmail, options: { shouldCreateUser: false } });
+    const { error } = await supabase.auth.signInWithOtp({ email: authEmail, options: { shouldCreateUser: true } });
     if (error) {
-      setAuthError('No account found for that email. Please check the address and try again.');
+      setAuthError('Unable to send a code. Please check the email address and try again.');
     } else {
       setOtpSent(true);
     }
@@ -99,22 +104,27 @@ export default function ConfirmBookingPage({ params }) {
 
   async function confirmBooking() {
     if (!chosen) return;
+    if (proposalState(booking) !== 'selecting' || !proposalTimes(booking).includes(chosen)) {
+      setErrorMsg('These proposed times are no longer available. Contact your artist for new times.');
+      setView('error');
+      return;
+    }
     setView('submitting');
     try {
       const res = await fetch(`${BACKEND_URL}/bookings/${id}/web-accept`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          ...bookingHeaders, 'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ chosen_time: chosen }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Something went wrong');
+      if (!res.ok) throw new Error(data.error || data.message || 'Unable to confirm. Please try again.');
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
-        window.location.href = `/bookings/${id}/confirmed`;
+        await loadBooking(session.access_token);
       }
     } catch (e) {
       setErrorMsg(e.message);
@@ -122,11 +132,8 @@ export default function ConfirmBookingPage({ params }) {
     }
   }
 
-  const times = booking ? [
-    booking.proposed_time_primary,
-    booking.proposed_time_alt1,
-    booking.proposed_time_alt2,
-  ].filter(Boolean) : [];
+  const times = proposalTimes(booking);
+  const receipt = bookingReceipt(booking);
 
   const depositAmount = booking?.deposit_amount;
   const depositRequired = booking?.deposit_required;
@@ -144,14 +151,18 @@ export default function ConfirmBookingPage({ params }) {
 
         {view === 'auth' && (
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Sign in to confirm</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>{receiptOnly ? 'Sign in to view your booking' : 'Sign in to confirm'}</h1>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 32 }}>
               Enter the email address you used when making your booking.
             </p>
+            <SocialSignIn disabled={authLoading} />
+            <p style={{ color: '#bac1cb', fontSize: 13, marginTop: 24 }}>or continue with email</p>
             {!otpSent ? (
               <>
                 <input
                   type="email"
+                  aria-label="Booking email address"
+                  autoComplete="email"
                   placeholder="Email address"
                   value={authEmail}
                   onChange={e => setAuthEmail(e.target.value)}
@@ -182,6 +193,9 @@ export default function ConfirmBookingPage({ params }) {
                 </p>
                 <input
                   type="text"
+                  aria-label="Email verification code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   placeholder="000000"
                   value={otpCode}
                   onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -225,6 +239,7 @@ export default function ConfirmBookingPage({ params }) {
                 <button
                   key={t}
                   onClick={() => setChosen(t)}
+                  aria-pressed={chosen === t}
                   style={{
                     padding: '18px 20px', borderRadius: 14, textAlign: 'left',
                     background: chosen === t ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
@@ -270,10 +285,26 @@ export default function ConfirmBookingPage({ params }) {
           <p style={{ color: 'rgba(255,255,255,0.5)' }}>Confirming your booking…</p>
         )}
 
+        {view === 'receipt' && booking && (
+          <section aria-live="polite">
+            <h1 style={{ fontSize: 24, fontWeight: 700 }}>{receipt.title}</h1>
+            <p style={{ color: '#bbc0ca', lineHeight: 1.6 }}>{receipt.message}</p>
+            <p>{booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}{booking.artist_name ? ` with ${booking.artist_name}` : ''}</p>
+            {booking.chosen_time && <p>{formatTime(booking.chosen_time)}</p>}
+            {booking.status === 'awaiting_payment' && !booking.deposit_paid_at && !booking.deposit_confirmed_at && booking.selection_token && (
+              <p><a href={`/booking/_?token=${encodeURIComponent(booking.selection_token)}`} style={{ color: '#fff' }}>Continue to deposit payment</a></p>
+            )}
+            <button onClick={() => loadBooking(session.access_token)} style={{ minHeight: 44, padding: '10px 20px', borderRadius: 12 }}>Check again</button>
+            {['confirmed', 'completed'].includes(booking.status) && <p><a href="https://www.vanta.tattoo" style={{ color: '#fff' }}>Get Vanta to chat with your artist and track your appointment</a></p>}
+          </section>
+        )}
+
         {view === 'error' && (
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Something went wrong</h1>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 32 }}>{errorMsg}</p>
+            {session && <button onClick={() => loadBooking(session.access_token)} style={{ minHeight: 44, padding: '10px 20px', marginRight: 16, borderRadius: 12 }}>Try again</button>}
+            {session && <button onClick={async () => { await supabase.auth.signOut(); setSession(null); setOtpSent(false); setOtpCode(''); setAuthError(''); setView('auth'); }} style={{ minHeight: 44, padding: '10px 20px', marginRight: 16, borderRadius: 12 }}>Use a different email</button>}
             <a href="https://www.vanta.tattoo" style={{ color: '#fff', fontSize: 14 }}>Back to home</a>
           </div>
         )}

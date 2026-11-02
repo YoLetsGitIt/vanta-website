@@ -28,7 +28,6 @@ export default function TypewriterIntro({ onComplete }) {
       const t = setTimeout(() => {
         if (isLastWord) {
           setIsComplete(true);
-          onComplete?.();
         } else {
           setIsDeleting(true);
         }
@@ -47,13 +46,14 @@ export default function TypewriterIntro({ onComplete }) {
       setIsDeleting(false);
       setWordIndex(prev => prev + 1);
     }
-  }, [currentText, isDeleting, wordIndex, isComplete, onComplete]);
+  }, [currentText, isDeleting, wordIndex, isComplete]);
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" onExitComplete={onComplete}>
       {!isComplete && (
         <motion.div
           className="typewriter-overlay"
+          aria-hidden="true"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: 'easeInOut' }}

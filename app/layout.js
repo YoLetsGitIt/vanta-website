@@ -1,6 +1,8 @@
 import './globals.css';
 import './typewriter.css';
 import { Space_Grotesk } from 'next/font/google';
+import ContactEmailSignupGate from '../components/ContactEmailSignupGate';
+import SiteIntro from '../components/SiteIntro';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -12,7 +14,7 @@ const spaceGroteskBody = Space_Grotesk({ subsets: ['latin'], variable: '--font-b
 export const metadata = {
   title: 'Vanta | Find Your Next Tattoo',
   description:
-    'Vanta helps people discover tattoo inspiration, connect with artists, and preview ideas before they commit.',
+    'Discover tattoo inspiration, find your artist, and book your next tattoo. Download Vanta for iPhone or join the Android beta.',
   icons: {
     icon: '/vanta-app-icon.png',
   },
@@ -21,7 +23,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${spaceGroteskBody.variable}`}>{children}</body>
+      <body className={`${spaceGrotesk.variable} ${spaceGroteskBody.variable}`}>
+        <SiteIntro>{children}<ContactEmailSignupGate /></SiteIntro>
+      </body>
     </html>
   );
 }

@@ -52,6 +52,7 @@ export default function RescheduleClient({ params }) {
   const tok = searchParams.get('t') ?? '';
 
   const [view, setView] = useState('loading');
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [booking, setBooking] = useState(null);
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -60,9 +61,14 @@ export default function RescheduleClient({ params }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setView('loading');
     if (!id || !tok) { setView('invalid'); return; }
     fetch(`${BACKEND_URL}/bookings/${id}/manage?t=${tok}`)
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if ([400, 401, 403, 404, 410].includes(r.status)) return null;
+        if (!r.ok) throw new Error('Unable to load booking');
+        return r.json();
+      })
       .then(data => {
         if (!data) { setView('invalid'); return; }
         setBooking(data);
@@ -73,8 +79,8 @@ export default function RescheduleClient({ params }) {
         }
         setView('form');
       })
-      .catch(() => setView('invalid'));
-  }, [id, tok]);
+      .catch(() => setView('load-error'));
+  }, [id, tok, loadAttempt]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -103,6 +109,18 @@ export default function RescheduleClient({ params }) {
       <main style={s.wrap}>
         <div style={{ ...s.inner, textAlign: 'center', paddingTop: 80 }}>
           <p style={{ color: 'rgba(255,255,255,0.4)' }}>Loading…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (view === 'load-error') {
+    return (
+      <main style={s.wrap}>
+        <div style={s.inner} role="alert">
+          <h1 style={{ fontSize: 24 }}>Unable to load your booking</h1>
+          <p>Please check your connection and try again.</p>
+          <button style={s.btn} onClick={() => setLoadAttempt(value => value + 1)}>Try again</button>
         </div>
       </main>
     );

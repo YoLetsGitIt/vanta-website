@@ -1,6 +1,7 @@
 export const metadata = {
-  title: 'For Artists — Vanta',
-  description: 'Grow your audience, track what resonates, and connect with clients. Vanta for tattoo artists.',
+  title: 'Vanta for artists — Your art. Less admin.',
+  alternates: { canonical: 'https://vanta.tattoo/artists' },
+  description: 'Your portfolio, bookings and client reminders in one app. Explore Vanta tools for tattoo artists, including automatic email and SMS appointment reminders.',
 };
 
 export default function ArtistsLayout({ children }) {

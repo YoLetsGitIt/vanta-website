@@ -1,0 +1,18 @@
+/* Match the lowercase wordmark on the home and artist pages. */
+.wordmark {
+  font: 800 34px/0.9 Arial, sans-serif;
+  letter-spacing: -2px;
+  text-transform: none;
+  white-space: nowrap;
+  text-decoration: none;
+  color: #f5eddd;
+  transition: opacity 200ms ease;
+}
+
+.wordmark > span {
+  color: #c2b699;
+}
+
+.wordmark:hover {
+  opacity: 0.6;
+}

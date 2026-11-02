@@ -9,12 +9,12 @@ const sections = [
   {
     id: 1,
     title: '1. Introduction',
-    body: 'Welcome to Vanta ("we," "our," or "us").\n\nThis Privacy Policy explains how we collect, use, and protect your information when you use our mobile application.\n\nBy using Vanta, you agree to the collection and use of information in accordance with this policy.',
+    body: 'Welcome to Vanta ("we," "our," or "us").\n\nThis Privacy Policy explains how we collect, use, and protect your information when you use our mobile application, public website, and Vanta Studio management service.\n\nBy using Vanta, you agree to the collection and use of information in accordance with this policy.',
   },
   {
     id: 2,
     title: '2. Information We Collect',
-    body: 'We collect the following types of information:\n\na. Information You Provide\n- Account information (e.g. email, username)\n- Profile details (if provided)\n- Content you upload (e.g. tattoo images, captions)\n- Actions within the app (e.g. likes, saves, follows)\n\nb. Automatically Collected Information\n- Device information (device type, operating system)\n- Log data (IP address, timestamps, app interactions)\n- Usage data (features used, screens viewed, session duration)\n\nc. Location Information\nWe may collect approximate location data based on your IP address or device settings.\n\nThis information is used to:\n- Personalize content and recommendations\n- Improve app functionality\n- Analyze usage trends\n\nWe do not collect precise GPS location unless explicitly stated and permitted by you.',
+    body: 'We collect the following types of information:\n\na. Information You Provide\n- Account information (e.g. email, username)\n- Profile details (if provided)\n- Content you upload (e.g. tattoo images, captions)\n- Actions within the app (e.g. likes, saves, follows)\n- Studio and client records, bookings, consent preferences, email templates, and message submission records when you use Vanta Studio\n\nb. Automatically Collected Information\n- Device information (device type, operating system)\n- Log data (IP address, timestamps, app interactions)\n- Usage data (features used, screens viewed, session duration)\n\nc. Location Information\nWe may collect approximate location data based on your IP address or device settings.\n\nThis information is used to:\n- Personalize content and recommendations\n- Improve app functionality\n- Analyze usage trends\n\nWe do not collect precise GPS location unless explicitly stated and permitted by you.',
   },
   {
     id: 3,
@@ -73,7 +73,27 @@ const sections = [
   },
   {
     id: 14,
-    title: '14. Summary',
+    title: "14. Google Account Data We Access",
+    body: "Google connections are optional and are initiated by you.\n\nGoogle sign-in and connected-account identity: We access the Google account identity and email address authorized by you to identify the connected account and display the account being used.\n\nGmail sending: If a studio owner connects Gmail, we request gmail.send to send emails from that account. Vanta submits the owner-selected recipient addresses, subject, and message to Google. Owners can send a saved template to an individual client or confirm a campaign to selected clients with marketing consent. The Gmail integration does not read inbox messages, retrieve existing email content, manage drafts, or delete email.\n\nGoogle Calendar: If an artist connects Google Calendar, we access authorized calendar events and availability to display appointments, check scheduling conflicts, and create, update, or delete events for booking management. This connection is separate from the Gmail connection.\n\nConnected services provide OAuth access and refresh tokens that allow Vanta to perform these authorized actions. We store the connected account details and the credentials needed to maintain the connection.",
+  },
+  {
+    id: 15,
+    title: "15. Use and Sharing of Google User Data",
+    body: "We use Google user data to provide the connected-account identity, email sending, and calendar features described above. We do not sell Google user data, use it for advertising, or use it to train generalized artificial intelligence or machine-learning models.\n\nGoogle user data is processed by the infrastructure providers we use to host and operate these features. Gmail messages are submitted to Google for delivery to the recipients selected by the studio owner; calendar actions are submitted to Google Calendar. Studio-selected email content is shared with its intended recipients. We do not share connected-account data with unrelated third parties.\n\nAccess by people is limited to circumstances permitted by the Google API Services User Data Policy, such as support with your consent, security investigations, or legal requirements. Our use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including its Limited Use requirements.",
+  },
+  {
+    id: 16,
+    title: "16. Google Data Security and Retention",
+    body: "We protect access to connected-account data through authenticated account access, studio or artist permissions, and HTTPS connections to Google. Gmail OAuth credentials are encrypted at rest.\n\nWe retain connected-account credentials while the connection remains active so the authorized features can operate. Disconnecting Gmail in Marketing \u2192 Sender deletes the stored Gmail connection and tokens from Vanta and stops queued messages using that connection. Disconnecting Google Calendar removes the stored calendar connection. Disconnecting does not delete messages already sent through Gmail or events already created in Google Calendar.\n\nEmail templates, submission records, and booking records remain subject to our general data-retention policy. You may request deletion of Vanta-held account and integration data by emailing matthew.m.kwon@gmail.com. Records may be retained where required for legal obligations, security, or resolving disputes.",
+  },
+  {
+    id: 17,
+    title: "17. Control and Revoke Google Access",
+    body: "You can disconnect Gmail from Marketing \u2192 Sender in Vanta Studio, disconnect the calendar in the calendar connection settings, or revoke Vanta\u2019s access through your Google Account\u2019s third-party connections page. Revoking Google access prevents further authorized API operations, but does not automatically erase Vanta-held templates or historical booking and send records. Contact matthew.m.kwon@gmail.com to request deletion of that data.\n\nClients can unsubscribe using the link included in marketing emails. Vanta excludes unsubscribed addresses from further marketing sends.",
+  },
+  {
+    id: 18,
+    title: '18. Summary',
     body: 'Key points:\n- We collect data to run and improve the app\n- Users can upload and share content publicly\n- We use analytics to understand app usage\n- We collect approximate location for personalization\n- We do not sell personal data\n- Users can request deletion at any time',
   },
 ];
@@ -122,7 +142,7 @@ export default function PrivacyPage() {
         </header>
 
         <h1 className="legal-title">Privacy Policy</h1>
-        <p className="legal-date">Last Updated: 25 March 2026</p>
+        <p className="legal-date">Last Updated: 5 October 2026</p>
 
         {sections.map((section) => (
           <div key={section.id} className="legal-section">
@@ -130,6 +150,12 @@ export default function PrivacyPage() {
             <BodyText text={section.body} />
           </div>
         ))}
+
+        <div className="legal-section">
+          <h2 className="legal-section-title">Google policy and account controls</h2>
+          <p className="legal-para"><a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy and Limited Use requirements</a></p>
+          <p className="legal-para"><a href="https://myaccount.google.com/connections">Manage or revoke Vanta’s access in your Google Account</a></p>
+        </div>
 
         <footer className="legal-footer">
           <span>© 2026 Vanta Ink</span>
