@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import SocialSignIn from '../../components/SocialSignIn';
-import { websiteAuth, ensureWebsiteProfile, rememberWebsiteSignIn, BACKEND_URL } from '../../lib/website-auth';
+import { websiteAuth, ensureWebsiteProfile, rememberWebsiteSignIn, createAccountAndSignIn } from '../../lib/website-auth';
 
 const field = { display: 'block', width: '100%', minWidth: 0, boxSizing: 'border-box', minHeight: 48, padding: '12px 14px', border: '1px solid #4d5562', borderRadius: 12, background: '#1b222d', color: '#fff', fontSize: 16 };
 
@@ -40,16 +40,19 @@ export default function SignupPage() {
     if (mode === 'signup' && !accepted) { setError('Please agree to the Terms of Use and Privacy Policy.'); return; }
     setBusy(true);
     try {
+      let result;
       if (mode === 'signup') {
         rememberWebsiteSignIn(accepted, referralCode);
-        const created = await fetch(`${BACKEND_URL}/users`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), password, name: name.trim(), accountType: 'user', termsAcceptedVersion: '1.0' }),
-        });
-        if (created.status === 409) { setMode('login'); throw new Error('You already have a Vanta account with this email. Log in with your password.'); }
-        if (!created.ok) throw new Error((await created.text()).trim() || 'Could not create your account. Please try again.');
+        try {
+          const session = await createAccountAndSignIn({ email, password, name });
+          result = { data: { session }, error: null };
+        } catch (error) {
+          if (error.code === 'exists') setMode('login');
+          throw error;
+        }
+      } else {
+        result = await websiteAuth().auth.signInWithPassword({ email: email.trim(), password });
       }
-      const result = await websiteAuth().auth.signInWithPassword({ email: email.trim(), password });
       if (result.error) throw result.error;
       if (mode === 'signup' && name.trim()) await websiteAuth().auth.updateUser({ data: { full_name: name.trim(), name: name.trim() } }).catch(() => {});
       await ensureWebsiteProfile(result.data.session, accepted);

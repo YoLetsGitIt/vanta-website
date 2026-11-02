@@ -34,14 +34,14 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
           if (url.pathname.endsWith('/token')) {
             exchanges++;
             const body = request.postDataJSON();
-            assert.equal(body.auth_code, 'fixture-code');
-            assert(body.code_verifier.length >= 40);
+            if (scenario !== 'signup-email') { assert.equal(body.auth_code, 'fixture-code'); assert(body.code_verifier.length >= 40); }
             return route.fulfill({ json: auth });
           }
           return route.fulfill({ json: { user: auth.user } });
         }
         if (url.origin === backend) {
           // Match the deployed router: /users/me is treated as /users/{id}.
+          if (url.pathname === '/users' && request.method() === 'POST') { creations++; created = true; return route.fulfill({ status: 201, json: { id: auth.user.id, name: 'Test client', termsAcceptedVersion: '1.0' } }); }
           if (url.pathname === '/users/me') return route.fulfill({ status: 400, json: { error: 'Invalid user ID format' } });
           if (url.pathname === '/auth/users/me' && request.method() === 'GET') {
             assert.equal(request.headers().authorization, 'Bearer test-access-token');
@@ -78,7 +78,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
         assert.equal(creations, 0);
       } else {
         const path = scenario.startsWith('booking-username-') ? `/bookings${scenario.endsWith('-slash') ? '/' : ''}?artist=vanta.app` : ['booking-google', 'existing-booking-google'].includes(scenario) ? `/bookings?artist=${artistId}` : scenario === 'studio-google' ? '/booking/_?token=studio-token' : scenario === 'confirm-apple' ? '/bookings/_/confirm?id=booking-test' : '/signup';
-        const response = await page.goto(base + path);
+        const response = await page.goto(base + path, { waitUntil: 'networkidle' });
         assert.equal(response.status(), 200, 'Booking and auth routes must resolve on the static host');
         if (['signup-google','existing-signup'].includes(scenario)) await page.getByLabel('Artist referral code (optional)',{exact:true}).fill('ABC234');
         if (scenario === 'signup-email') {

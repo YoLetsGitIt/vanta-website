@@ -291,8 +291,7 @@ function BookingContent() {
           if (err.code === 'exists') setAuthMode('login');
           throw err;
         }
-        await createProfile(session, authName);
-        if (referralCode) await redeemReferral(session, referralCode);
+        await createProfile(session, authName, referralCode || '', true);
         await patchReferralSource(session, 'artist');
         setContactName(authName || '');
         setContactEmail(authEmail);
