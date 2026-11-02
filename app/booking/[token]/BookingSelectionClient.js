@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { websiteAuth } from '../../../lib/website-auth';
+import { websiteAuth, createAccountAndSignIn } from '../../../lib/website-auth';
 import SocialSignIn from '../../../components/SocialSignIn';
 import { bookingReceipt, hasPayableDeposit } from '../../../lib/booking-state.mjs';
+import ManualDepositDetails, { hasManualDeposit } from '../../../components/ManualDepositDetails';
 
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -67,7 +68,6 @@ export default function BookingSelectionClient() {
   const [authConsent, setAuthConsent] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [confirmEmail, setConfirmEmail] = useState(false);
 
   // Selection state
   const [step, setStep] = useState(0); // 0=artist 1=time 2=review
@@ -123,6 +123,7 @@ export default function BookingSelectionClient() {
         if (depositPayable && data.booking.chosen_time) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) { setSession(session); setView('pay-deposit'); }
+          else if (data.booking.guest_allowed) setView('pay-deposit');
           else { pendingAuthViewRef.current = 'pay-deposit'; setView('auth'); }
           return;
         }
@@ -142,6 +143,7 @@ export default function BookingSelectionClient() {
         if (data.booking.status === 'awaiting_payment' && data.booking.chosen_time) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) { setSession(session); setView('pay-deposit'); }
+          else if (data.booking.guest_allowed) setView('pay-deposit');
           else { pendingAuthViewRef.current = 'pay-deposit'; setView('auth'); }
           return;
         }
@@ -163,6 +165,8 @@ export default function BookingSelectionClient() {
 
         const { data: { session } } = await supabase.auth.getSession();
         if (session) { setSession(session); setView('select'); }
+        // Guest bookings continue with the emailed link alone; no account needed.
+        else if (data.booking.guest_allowed) setView('select');
         else { setView('auth'); }
       } catch { setView('load-error'); }
     }
@@ -262,18 +266,16 @@ export default function BookingSelectionClient() {
         setSession(data.session);
         setView(pendingAuthViewRef.current);
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: authEmail, password: authPassword,
-          options: { data: { full_name: authName } },
-        });
-        if (error) throw error;
-        if (data.session) {
-          await createProfile(data.session, authName);
-          setSession(data.session);
-          setView(pendingAuthViewRef.current);
-        } else {
-          setConfirmEmail(true);
+        let created;
+        try {
+          created = await createAccountAndSignIn({ email: authEmail, password: authPassword, name: authName });
+        } catch (err) {
+          if (err.code === 'exists') setAuthMode('login');
+          throw err;
         }
+        await createProfile(created, authName);
+        setSession(created);
+        setView(pendingAuthViewRef.current);
       }
     } catch (err) { setAuthError(err.message || 'Something went wrong'); }
     finally { setAuthLoading(false); }
@@ -282,13 +284,13 @@ export default function BookingSelectionClient() {
   // ── Submit selection ──────────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (!session || !selectedArtist || !selectedSlot) return;
+    if ((!session && !ctx?.booking?.guest_allowed) || !selectedArtist || !selectedSlot) return;
     setSubmitting(true);
     setSubmitError('');
     try {
       const res = await fetch(`${BACKEND_URL}/booking/${token}/select`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
         body: JSON.stringify({ artist_id: selectedArtist.id, chosen_time: selectedSlot.toISOString(), offer: availability?.offer || undefined }),
       });
       if (!res.ok) {
@@ -318,13 +320,13 @@ export default function BookingSelectionClient() {
   // ── Pay deposit (for awaiting_payment bookings with a chosen time) ────────────
 
   async function payDeposit() {
-    if (!session) return;
+    if (!session && !ctx?.booking?.guest_allowed) return;
     setPayingDeposit(true);
     setPayDepositError('');
     try {
       const res = await fetch(`${BACKEND_URL}/booking/${token}/checkout`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -373,7 +375,8 @@ export default function BookingSelectionClient() {
 
   if (view === 'verified-result' || view === 'payment-processing') {
     const receipt = view === 'payment-processing' ? { title: 'Checking your payment', message: 'If you just paid, check again in a moment.' } : bookingReceipt(ctx.booking);
-    return <Shell studio={ctx?.studio}><h1 style={s.heading}>{receipt.title}</h1><p style={s.muted}>{receipt.message}</p><div style={s.summaryCard}><div style={s.summaryValue}>{ctx.booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}</div>{ctx.booking.chosen_time && <p>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</p>}{ctx.artists?.find(artist => artist.id === ctx.booking.artist_id)?.name && <p>{ctx.artists.find(artist => artist.id === ctx.booking.artist_id).name}</p>}</div><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Check again</button></Shell>;
+    const owesManualDeposit = view === 'verified-result' && ctx.booking.deposit_required && !ctx.booking.deposit_paid_at && !ctx.booking.deposit_confirmed_at && hasManualDeposit(ctx.booking.deposit_options);
+    return <Shell studio={ctx?.studio}><h1 style={s.heading}>{receipt.title}</h1><p style={s.muted}>{receipt.message}</p>{owesManualDeposit && <><p style={{ ...s.muted, margin: '0 0 0' }}>Pay your ${Number(ctx.booking.deposit_amount ?? 0).toFixed(2)} deposit using the details below.</p><ManualDepositDetails options={ctx.booking.deposit_options} amount={ctx.booking.deposit_amount} /></>}<div style={s.summaryCard}><div style={s.summaryValue}>{ctx.booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}</div>{ctx.booking.chosen_time && <p>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</p>}{ctx.artists?.find(artist => artist.id === ctx.booking.artist_id)?.name && <p>{ctx.artists.find(artist => artist.id === ctx.booking.artist_id).name}</p>}</div><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Check again</button></Shell>;
   }
 
   if (view === 'invalid') {
@@ -419,6 +422,9 @@ export default function BookingSelectionClient() {
   }
 
   if (view === 'pay-deposit') {
+    const options = ctx?.booking?.deposit_options;
+    const card = options ? options.card !== false : true;
+    const manual = hasManualDeposit(options);
     return (
       <Shell studio={ctx?.studio}>
         <h1 style={s.heading}>Pay deposit</h1>
@@ -446,29 +452,22 @@ export default function BookingSelectionClient() {
 
         {payDepositError && <p style={{ ...s.error, marginTop: 20 }}>{payDepositError}</p>}
 
-        <button
-          style={{ ...s.btn, marginTop: 24, ...(payingDeposit ? s.btnDisabled : {}) }}
-          disabled={payingDeposit}
-          onClick={payDeposit}
-        >
-          {payingDeposit ? 'Redirecting…' : 'Pay deposit'}
-        </button>
+        {card && (
+          <button
+            style={{ ...s.btn, marginTop: 24, ...(payingDeposit ? s.btnDisabled : {}) }}
+            disabled={payingDeposit}
+            onClick={payDeposit}
+          >
+            {payingDeposit ? 'Redirecting…' : manual ? 'Pay deposit by card' : 'Pay deposit'}
+          </button>
+        )}
+        {card && manual && <p style={{ ...s.muted, margin: '24px 0 0' }}>Or pay by PayID or bank transfer:</p>}
+        <ManualDepositDetails options={options} amount={ctx?.booking?.deposit_amount} />
       </Shell>
     );
   }
 
   if (view === 'auth') {
-    if (confirmEmail) {
-      return (
-        <Shell studio={ctx?.studio}>
-          <h1 style={s.heading}>Check your email</h1>
-          <p style={s.muted}>
-            We sent a confirmation to <strong style={{ color: 'var(--main)' }}>{authEmail}</strong>.
-            Confirm your email then come back to choose your appointment.
-          </p>
-        </Shell>
-      );
-    }
     return (
       <Shell studio={ctx?.studio}>
         <h1 style={s.heading}>Sign in to book</h1>
@@ -704,7 +703,7 @@ export default function BookingSelectionClient() {
                 <p style={{ ...s.muted, fontSize: 13, marginBottom: 12 }}>
                   {ctx.booking.duration_minutes && <>Showing start times for a {fmtDuration(ctx.booking.duration_minutes)} appointment</>}
                   {ctx.booking.duration_minutes && ctx.booking.estimated_quote && ' · '}
-                  {ctx.booking.estimated_quote && <><strong style={{ color: 'var(--text)' }}>Est. ${Math.round(ctx.booking.estimated_quote)}</strong></>}
+                  {ctx.booking.estimated_quote && <><strong style={{ color: 'var(--text)' }}>Estimated quote ${Math.round(ctx.booking.estimated_quote)}</strong> <EstimateTag /></>}
                 </p>
               )}
               {slotsLoading && <div style={{ ...s.spinner, margin: '20px auto' }} />}
@@ -771,7 +770,10 @@ export default function BookingSelectionClient() {
             {ctx?.booking?.estimated_quote && (
               <>
                 <div style={s.reviewDivider} />
-                <ReviewRow label="Estimated Quote" value={`$${Math.round(ctx.booking.estimated_quote)}`} />
+                <ReviewRow label="Quote" value={<>
+                  <span style={{ fontWeight: 600 }}>${Math.round(ctx.booking.estimated_quote)}</span> <EstimateTag />
+                  <span style={{ display: 'block', marginTop: 6, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.65)' }}>{QUOTE_ESTIMATE_NOTE}</span>
+                </>} />
               </>
             )}
             {ctx?.booking?.deposit_required && ctx?.booking?.deposit_amount && (
@@ -796,7 +798,9 @@ export default function BookingSelectionClient() {
 
           <p style={{ ...s.muted, marginTop: 20 }}>
             {ctx?.booking?.deposit_required
-              ? `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. You'll be taken to a secure payment page to confirm your appointment.`
+              ? (ctx.booking.deposit_options?.card === false
+                ? `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. After you request this time you'll see how to pay by ${ctx.booking.deposit_options?.manual?.payid ? 'PayID' : ''}${ctx.booking.deposit_options?.manual?.payid && ctx.booking.deposit_options?.manual?.bank_bsb ? ' or ' : ''}${ctx.booking.deposit_options?.manual?.bank_bsb ? 'bank transfer' : ''}.`
+                : `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. You'll be taken to a secure payment page to confirm your appointment.`)
               : 'The studio will confirm your appointment. You\'ll receive an email once it\'s locked in.'}
           </p>
 
@@ -812,8 +816,8 @@ export default function BookingSelectionClient() {
               onClick={handleSubmit}
             >
               {submitting
-                ? (ctx?.booking?.deposit_required ? 'Redirecting to payment…' : 'Submitting…')
-                : (ctx?.booking?.deposit_required ? 'Continue to payment' : 'Request appointment')}
+                ? (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? 'Redirecting to payment…' : 'Submitting…')
+                : (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? 'Continue to payment' : 'Request appointment')}
             </button>
           </div>
         </div>
@@ -842,6 +846,17 @@ function Shell({ studio, children }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Shown with every quote so clients don't read it as a fixed price.
+const QUOTE_ESTIMATE_NOTE = 'This is an estimate, not a final price. The final price may change depending on the size, detail and time your tattoo takes.';
+
+function EstimateTag() {
+  return (
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', padding: '2px 8px', borderRadius: 999, background: 'rgba(251,191,36,0.14)', color: '#fbbf24', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+      Estimate only
+    </span>
   );
 }
 

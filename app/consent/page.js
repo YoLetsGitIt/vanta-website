@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import PhotoIdField from '../../components/PhotoIdField';
+import { uploadPhotoIdAnswers } from '../../lib/photoId';
 
 const BACKEND = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -25,6 +27,17 @@ async function signatureUploadSign(studioId, files, token) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error ?? 'Failed to get upload URL');
   return data.uploads;
+}
+
+// Studio forms can ask for a photo of the client's ID; it uploads privately.
+async function photoIdUploadSign(studioId, file, token) {
+  const url = token.startsWith('bc_')
+    ? `${BACKEND}/public/booking-consent/${encodeURIComponent(token)}/id-upload-sign`
+    : `${BACKEND}/studios/${studioId}/id-upload-sign`;
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(file) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? 'Could not prepare your ID upload');
+  return data;
 }
 
 async function submitPublicConsent(token, submissions, signerName, dob) {
@@ -135,7 +148,7 @@ function ConsentForm() {
         if (needsGuardian && guardianSigBlobs[t.id]) guardianSigPath = await uploadSig(guardianSigBlobs[t.id]);
         submissions.push({
           template_id:            t.id,
-          answers:                ts.answers ?? {},
+          answers:                await uploadPhotoIdAnswers(ts.answers ?? {}, file => photoIdUploadSign(info.studio_id, file, token)),
           is_minor:               isMinor,
           client_signature_path:  clientSigPath,
           guardian_name:          needsGuardian ? guardianName : '',
@@ -299,6 +312,8 @@ const typeBadgeColor = {
 
 function ConsentFormField({ field, value, onChange }) {
   switch (field.type) {
+    case 'photo_id':
+      return <PhotoIdField label={field.label} required={field.required} value={value} onChange={onChange} labelStyle={s.label} accent="#f5ecd9" />;
     case 'heading':
       return <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f5f5f5', margin: 0 }}>{field.label}</p>;
     case 'paragraph':

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { afterSiteIntro } from '@/lib/siteIntro';
 
 const easing = 'cubic-bezier(0.23, 1, 0.32, 1)';
 
@@ -326,10 +327,16 @@ export default function useArtistMotion(rootRef) {
         if (element === event.target || element.contains(event.target)) animation.cancel();
       }
     }
-    configure();
-    preference.addEventListener('change', configure);
+    // Hold the entrance until the site intro starts fading, so it isn't played
+    // unseen behind the overlay.
+    const stopWaiting = afterSiteIntro(() => {
+      if (disposed) return;
+      configure();
+      preference.addEventListener('change', configure);
+    });
     root.addEventListener('focusin', focus);
     return () => {
+      stopWaiting();
       showTourControls(false);
       disposed = true;
       observer?.disconnect();

@@ -5,7 +5,7 @@ import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { websiteAuth } from '../../lib/website-auth';
+import { websiteAuth, createAccountAndSignIn } from '../../lib/website-auth';
 import SocialSignIn from '../../components/SocialSignIn';
 
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
@@ -28,7 +28,9 @@ const BODY_PARTS = [
   'Stomach','Thigh','Wrist','Other',
 ];
 
-const COLOUR_STYLES = ['Black', 'Color', 'Grey'];
+const COLOUR_STYLES = ['Black & Grey', 'Color'];
+// Saved values stay as the backend expects; people see these labels.
+const colourLabel = value => ({ 'Black & Grey': 'Black & grey', Color: 'Colour' }[value] || value);
 
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const DAY_VALUES = [1,2,3,4,5,6,0]; // ISO weekday → JS dayOfWeek (0=Sun)
@@ -79,7 +81,22 @@ function BookingContent() {
   const [artist, setArtist] = useState(null);
   const [referralCode, setReferralCode] = useState(null);
   const [session, setSession] = useState(null);
-  const [view, setView] = useState('loading'); // loading|auth|confirm-email|form|success|error
+  // Guests book without an account; a signed-in session takes precedence.
+  // Guest mode lives in the URL (?guest=1) so the browser Back button returns to the sign-in choice.
+  const guest = searchParams.get('guest') === '1';
+  const setGuest = on => {
+    const url = new URL(window.location.href);
+    if (on) url.searchParams.set('guest', '1'); else url.searchParams.delete('guest');
+    window.history.pushState(null, '', url);
+  };
+  const [showEmailAuth, setShowEmailAuth] = useState(false);
+  const [contactDob, setContactDob] = useState('');
+  const [view, setView] = useState('loading'); // loading|auth|form|success|error
+  useEffect(() => {
+    if (session) return;
+    if (guest && view === 'auth') setView('form');
+    if (!guest && view === 'form') setView('auth');
+  }, [guest, session, view]);
   const [authMode, setAuthMode] = useState('signup');
 
   // Auth fields
@@ -185,7 +202,7 @@ function BookingContent() {
       // a session outside handleAuth (which already calls this itself).
       if (event === 'SIGNED_IN') createProfile(session, '');
       setSession(session); prefillContact(session);
-      setView(current => ['auth', 'confirm-email'].includes(current) ? 'form' : current);
+      setView(current => current === 'auth' ? 'form' : current);
     });
     return () => { active = false; controller.abort(); subscription.unsubscribe(); };
   }, [artistReference]);
@@ -267,21 +284,20 @@ function BookingContent() {
         prefillContact(data.session);
         setView('form');
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: authEmail, password: authPassword,
-          options: { data: { full_name: authName } },
-        });
-        if (error) throw error;
-        if (data.session) {
-          await createProfile(data.session, authName, referralCode || '', true);
-          await patchReferralSource(data.session, 'artist');
-          setContactName(authName || '');
-          setContactEmail(authEmail);
-          setSession(data.session);
-          setView('form');
-        } else {
-          setView('confirm-email');
+        let session;
+        try {
+          session = await createAccountAndSignIn({ email: authEmail, password: authPassword, name: authName });
+        } catch (err) {
+          if (err.code === 'exists') setAuthMode('login');
+          throw err;
         }
+        await createProfile(session, authName);
+        if (referralCode) await redeemReferral(session, referralCode);
+        await patchReferralSource(session, 'artist');
+        setContactName(authName || '');
+        setContactEmail(authEmail);
+        setSession(session);
+        setView('form');
       }
     } catch (err) {
       setAuthError(err.message || 'Something went wrong. Please try again.');
@@ -316,7 +332,8 @@ function BookingContent() {
       case 1: return designDetails.trim() && bodyLocations.length > 0 && (isPiercing || (colourStyle && photoFiles.length > 0));
       case 2: return (!studios.length || !!selectedStudio) &&
         (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
-      case 3: return contactName.trim() && contactEmail.trim() && contactEmail.includes('@');
+      case 3: return contactName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim()) &&
+        (!guest || (contactPhone.trim() && contactDob));
       default: return true;
     }
   }
@@ -344,7 +361,8 @@ function BookingContent() {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (!session || !artistId) return;
+    if ((!session && !guest) || !artistId) return;
+    const asGuest = !session;
     if (studios.length && !selectedStudio) { setSubmitError('Choose a studio for your booking.'); return; }
     if (availabilityWindows.length && !windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule)) {
       setSubmitError('Choose availability within the working hours at your selected studio.'); return;
@@ -361,10 +379,11 @@ function BookingContent() {
         setSubmitPhase('Preparing photos…');
         setSubmitProgress(0.05);
 
-        const signRes = await fetch(`${BACKEND_URL}/bookings/uploads/sign`, {
+        const signRes = await fetch(`${BACKEND_URL}/bookings/${asGuest ? 'guest/' : ''}uploads/sign`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          headers: asGuest ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({
+            artist_id: artistId,
             files: photoFiles.map(f => ({
               mime_type: f.type === 'image/png' ? 'image/png' : 'image/jpeg',
               byte_size: f.size,
@@ -423,14 +442,15 @@ function BookingContent() {
         push_to_later: pushToLater,
         reference_images: refImages,
         source: 'personal',
+        ...(asGuest ? { dob: contactDob } : {}),
       };
       if (notes.trim()) body.additional_notes = notes.trim();
       if (!pushToLater && earliestDate) body.earliest_date = earliestDate;
       if (pushToLater && earliestDate) body.earliest_date = earliestDate;
 
-      const res = await fetch(`${BACKEND_URL}/bookings`, {
+      const res = await fetch(`${BACKEND_URL}/bookings${asGuest ? '/guest' : ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: asGuest ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -498,30 +518,40 @@ function BookingContent() {
           {/* ── Auth ── */}
           {view === 'auth' && (
             <>
-              <h1 style={s.heading}>
-                {authMode === 'signup' ? 'Create an account to book' : 'Log in to book'}
-              </h1>
-              <p style={s.muted}>
-                {authMode === 'signup'
-                  ? "You'll need a Vanta account to send a booking request."
-                  : 'Welcome back. Log in to continue.'}
+              <h1 style={s.heading}>Book with {artist?.name || 'your artist'}</h1>
+              <p style={s.muted}>No account needed. Continue as a guest, or sign in to save your details for next time.</p>
+
+              <button type="button" style={{ ...s.submitBtn, marginTop: 4 }} onClick={() => setGuest(true)}>
+                Continue as guest
+              </button>
+
+              <SocialSignIn consentAccepted disabled={authLoading} />
+              <p style={{ ...s.muted, fontSize: 12, marginTop: 12 }}>
+                By continuing with Apple or Google, you agree to the{' '}
+                <a href="https://www.vanta.tattoo/terms" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Terms of Use</a> and{' '}
+                <a href="https://www.vanta.tattoo/privacy" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Privacy Policy</a>.
               </p>
 
-              <a
-                href="https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={s.appCta}
-              >
-                <img src="/vanta-app-icon.png" alt="Vanta" style={s.appCtaIcon} />
-                <span>Have the Vanta app? Book directly from there</span>
-              </a>
+              {!showEmailAuth && (
+                // One tap each: returning clients go straight to log-in, new ones to sign-up.
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  <button type="button" style={{ ...s.emailAuthLink, margin: 0, padding: '0 4px' }} onClick={() => { setAuthMode('login'); setShowEmailAuth(true); }}>
+                    Log in with email
+                  </button>
+                  <span aria-hidden="true" style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
+                  <button type="button" style={{ ...s.emailAuthLink, margin: 0, padding: '0 4px' }} onClick={() => { setAuthMode('signup'); setShowEmailAuth(true); }}>
+                    Create account
+                  </button>
+                </div>
+              )}
 
+              {showEmailAuth && <>
               <div style={s.authDivider}>
                 <div style={s.authDividerLine} />
-                <span style={s.authDividerLabel}>or continue on web</span>
+                <span style={s.authDividerLabel}>or use email</span>
                 <div style={s.authDividerLine} />
               </div>
+
 
               <div style={s.tabs}>
                 <button style={{ ...s.tab, ...(authMode === 'signup' ? s.tabActive : {}) }} onClick={() => { setAuthMode('signup'); setAuthError(''); }}>
@@ -563,19 +593,17 @@ function BookingContent() {
                   {authLoading ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Log in'}
                 </button>
               </form>
-              <SocialSignIn referralCode={authMode === 'signup' ? referralCode || '' : ''} consentAccepted={authConsent} requireConsent={authMode === 'signup'} disabled={authLoading} />
-            </>
-          )}
+              </>}
 
-          {/* ── Confirm email ── */}
-          {view === 'confirm-email' && (
-            <>
-              <h1 style={s.heading}>Check your email</h1>
-              <p style={s.muted}>
-                We sent a confirmation link to{' '}
-                <strong style={{ color: 'var(--main)' }}>{authEmail}</strong>.
-                Confirm your email, then come back to complete your booking.
-              </p>
+              <a
+                href="https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...s.appCta, marginTop: 24 }}
+              >
+                <img src="/vanta-app-icon.png" alt="Vanta" style={s.appCtaIcon} />
+                <span>Have the Vanta app? Book directly from there</span>
+              </a>
             </>
           )}
 
@@ -635,6 +663,8 @@ function BookingContent() {
                     name={contactName} setName={setContactName}
                     email={contactEmail} setEmail={setContactEmail}
                     phone={contactPhone} setPhone={setContactPhone}
+                    guest={guest && !session} dob={contactDob} setDob={setContactDob}
+                    onSignIn={() => setGuest(false)}
                   />
                 )}
                 {step === 4 && (
@@ -867,7 +897,7 @@ function StepDesign({
                 style={{ ...s.colourBtn, ...(selected ? s.colourBtnActive : {}) }}
                 onClick={() => { setColourStyle(selected ? '' : c); if (c !== 'Color') setColourDetails(''); }}
               >
-                {c}
+                {colourLabel(c)}
               </button>
             );
           })}
@@ -1236,11 +1266,17 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
 
 // ─── Step 3: Contact info ────────────────────────────────────────────────────
 
-function StepContact({ name, setName, email, setEmail, phone, setPhone }) {
+function StepContact({ name, setName, email, setEmail, phone, setPhone, guest, dob, setDob, onSignIn }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       <h2 style={{ ...s.stepHeading, marginBottom: 8 }}>Your contact details</h2>
-      <p style={{ ...s.muted, marginBottom: 24 }}>We need your details to confirm the booking.</p>
+      <p style={{ ...s.muted, marginBottom: guest ? 8 : 24 }}>We need your details to confirm the booking.</p>
+      {guest && (
+        <p style={{ ...s.muted, fontSize: 13, marginBottom: 24 }}>
+          Booking as a guest.{' '}
+          <button type="button" onClick={onSignIn} style={{ ...s.emailAuthLink, display: 'inline', margin: 0, minHeight: 0, fontSize: 13 }}>Sign in instead</button>
+        </p>
+      )}
 
       <div style={s.contactGroup}>
         <div style={s.contactRow}>
@@ -1261,6 +1297,9 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone }) {
           <input
             style={s.contactInput}
             type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoComplete="email"
             placeholder="jane@example.com"
             value={email}
             onChange={e => setEmail(e.target.value)}
@@ -1273,12 +1312,29 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone }) {
           <input
             style={s.contactInput}
             type="tel"
+            autoComplete="tel"
             placeholder="+1 555 0100"
             value={phone}
             onChange={e => setPhone(e.target.value)}
           />
         </div>
+        {guest && <>
+          <div style={s.contactDivider} />
+          <label style={s.contactRow}>
+            <span style={s.contactIcon}>🎂</span>
+            <span style={{ ...s.contactFieldLabel, width: "auto", whiteSpace: "nowrap" }}>Date of birth</span>
+            <input
+              style={{ ...s.contactInput, colorScheme: 'dark' }}
+              type="date"
+              autoComplete="bday"
+              max={new Date().toISOString().slice(0, 10)}
+              value={dob}
+              onChange={e => setDob(e.target.value)}
+            />
+          </label>
+        </>}
       </div>
+      {guest && <p style={{ ...s.muted, fontSize: 12, marginTop: 12 }}>Name, email, phone and date of birth are all required.</p>}
     </div>
   );
 }
@@ -1287,7 +1343,7 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone }) {
 
 function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, studio }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
-  const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Color — ${colourDetails}` : colourStyle;
+  const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Colour — ${colourDetails}` : colourLabel(colourStyle);
 
   function ReviewGroup({ title, rows }) {
     return (
@@ -1445,6 +1501,11 @@ const s = {
     fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500,
   },
   appCtaIcon: { width: 32, height: 32, borderRadius: 8, flexShrink: 0 },
+  emailAuthLink: {
+    background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', minHeight: 44,
+    fontFamily: 'var(--font-body)', fontSize: 14, textDecoration: 'underline', textUnderlineOffset: 3,
+    display: 'block', margin: '12px auto 0', padding: 0, boxShadow: 'none', borderRadius: 0,
+  },
   authDivider: { display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0 20px' },
   authDividerLine: { flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' },
   authDividerLabel: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' },

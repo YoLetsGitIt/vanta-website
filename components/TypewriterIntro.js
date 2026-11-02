@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { INTRO_EXIT_EVENT } from '../lib/siteIntro';
 
 const words = ['#ink', '#tattoo', '#inspo'];
 
@@ -47,6 +48,11 @@ export default function TypewriterIntro({ onComplete }) {
       setWordIndex(prev => prev + 1);
     }
   }, [currentText, isDeleting, wordIndex, isComplete]);
+
+  // Let the page start its own entrance while the overlay fades away.
+  useEffect(() => {
+    if (isComplete) window.dispatchEvent(new Event(INTRO_EXIT_EVENT));
+  }, [isComplete]);
 
   return (
     <AnimatePresence mode="wait" onExitComplete={onComplete}>
