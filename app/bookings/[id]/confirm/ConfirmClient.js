@@ -22,6 +22,8 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const searchParams = useSearchParams();
   const { id: pathId } = use(params);
   const id = pathId === '_' ? (searchParams.get('id') ?? pathId) : pathId;
+  // Emails carry a private link token, so clients confirm without an account or code.
+  const linkToken = searchParams.get('t') || '';
 
   const [session, setSession] = useState(null);
   const [view, setView] = useState('loading'); // loading | auth | selecting | submitting | confirmed | error
@@ -29,14 +31,11 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const [chosen, setChosen] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Auth state
-  const [authEmail, setAuthEmail] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState('');
+  const [linkSent, setLinkSent] = useState(false);
+  const [linkSending, setLinkSending] = useState(false);
 
   useEffect(() => {
+    if (linkToken) { loadBooking(null); return; }
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
@@ -50,16 +49,20 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
       if (session) loadBooking(session.access_token);
     });
     return () => subscription.unsubscribe();
-  }, [id]);
+  }, [id, linkToken]);
+
+  const reload = () => loadBooking(session?.access_token ?? null);
 
   async function loadBooking(token) {
     setView('loading');
     try {
-      const res = await fetch(`${BACKEND_URL}/bookings/${id}`, {
-        headers: { ...bookingHeaders, Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
-      if (!res.ok) throw new Error(res.status === 404 ? 'Booking not found.' : res.status === 403 ? 'Please sign in with the email address your artist sent this booking to.' : 'Unable to load your booking. Please try again.');
+      const res = linkToken
+        ? await fetch(`${BACKEND_URL}/bookings/${id}/proposal?t=${encodeURIComponent(linkToken)}`, { headers: bookingHeaders, cache: 'no-store' })
+        : await fetch(`${BACKEND_URL}/bookings/${id}`, {
+          headers: { ...bookingHeaders, Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+      if (!res.ok) throw new Error(res.status === 404 ? (linkToken ? 'This link is no longer valid. Use the latest email from your artist.' : 'Booking not found.') : res.status === 403 ? 'Please sign in with the email address your artist sent this booking to.' : 'Unable to load your booking. Please try again.');
       const data = await res.json();
       setBooking(data);
       if (receiptOnly || ['confirmed', 'completed', 'requires_confirmation', 'awaiting_payment', 'awaiting_deposit'].includes(data.status)) {
@@ -82,24 +85,12 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
     }
   }
 
-  async function sendOtp() {
-    setAuthLoading(true);
-    setAuthError('');
-    const { error } = await supabase.auth.signInWithOtp({ email: authEmail, options: { shouldCreateUser: true } });
-    if (error) {
-      setAuthError('Unable to send a code. Please check the email address and try again.');
-    } else {
-      setOtpSent(true);
-    }
-    setAuthLoading(false);
-  }
-
-  async function verifyOtp() {
-    setAuthLoading(true);
-    setAuthError('');
-    const { error } = await supabase.auth.verifyOtp({ email: authEmail, token: otpCode, type: 'email' });
-    if (error) setAuthError('Invalid code. Please try again.');
-    setAuthLoading(false);
+  // Older emails had no link token: send a fresh link to the booking's email address.
+  async function emailNewLink() {
+    setLinkSending(true);
+    await fetch(`${BACKEND_URL}/bookings/${id}/proposal/resend`, { method: 'POST' }).catch(() => {});
+    setLinkSending(false);
+    setLinkSent(true);
   }
 
   async function confirmBooking() {
@@ -111,11 +102,11 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
     }
     setView('submitting');
     try {
-      const res = await fetch(`${BACKEND_URL}/bookings/${id}/web-accept`, {
+      const res = await fetch(linkToken ? `${BACKEND_URL}/bookings/${id}/proposal/accept?t=${encodeURIComponent(linkToken)}` : `${BACKEND_URL}/bookings/${id}/web-accept`, {
         method: 'POST',
         headers: {
           ...bookingHeaders, 'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
+          ...(linkToken ? {} : { Authorization: `Bearer ${session.access_token}` }),
         },
         body: JSON.stringify({ chosen_time: chosen }),
       });
@@ -124,7 +115,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
-        await loadBooking(session.access_token);
+        await reload();
       }
     } catch (e) {
       setErrorMsg(e.message);
@@ -151,80 +142,29 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
 
         {view === 'auth' && (
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>{receiptOnly ? 'Sign in to view your booking' : 'Sign in to confirm'}</h1>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 32 }}>
-              Enter the email address you used when making your booking.
+            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>{receiptOnly ? 'View your booking' : 'Confirm your booking'}</h1>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+              Open the link in the latest email from your artist, or we can email you a new one. No account needed.
             </p>
-            <SocialSignIn disabled={authLoading} />
-            <p style={{ color: '#bac1cb', fontSize: 13, marginTop: 24 }}>or continue with email</p>
-            {!otpSent ? (
-              <>
-                <input
-                  type="email"
-                  aria-label="Booking email address"
-                  autoComplete="email"
-                  placeholder="Email address"
-                  value={authEmail}
-                  onChange={e => setAuthEmail(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && sendOtp()}
-                  style={{
-                    width: '100%', boxSizing: 'border-box', padding: '14px 16px',
-                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12, color: '#fff', fontSize: 16, marginBottom: 12, outline: 'none',
-                  }}
-                />
-                {authError && <p style={{ color: '#ff6b6b', fontSize: 14, marginBottom: 12 }}>{authError}</p>}
-                <button
-                  onClick={sendOtp}
-                  disabled={authLoading || !authEmail}
-                  style={{
-                    width: '100%', padding: '14px', background: '#fff', color: '#11151b',
-                    border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 15,
-                    cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1,
-                  }}
-                >
-                  {authLoading ? 'Sending…' : 'Send code'}
-                </button>
-              </>
+            {linkSent ? (
+              <p role="status" style={{ color: '#fff', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+                If this booking is waiting on you, we’ve emailed a new link to the address on the booking.
+              </p>
             ) : (
-              <>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 16 }}>
-                  Enter the 6-digit code sent to <strong>{authEmail}</strong>
-                </p>
-                <input
-                  type="text"
-                  aria-label="Email verification code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="000000"
-                  value={otpCode}
-                  onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  onKeyDown={e => e.key === 'Enter' && verifyOtp()}
-                  style={{
-                    width: '100%', boxSizing: 'border-box', padding: '14px 16px',
-                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12, color: '#fff', fontSize: 24, letterSpacing: 8,
-                    marginBottom: 12, outline: 'none', textAlign: 'center',
-                  }}
-                />
-                {authError && <p style={{ color: '#ff6b6b', fontSize: 14, marginBottom: 12 }}>{authError}</p>}
-                <button
-                  onClick={verifyOtp}
-                  disabled={authLoading || otpCode.length < 6}
-                  style={{
-                    width: '100%', padding: '14px', background: '#fff', color: '#11151b',
-                    border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 15,
-                    cursor: authLoading ? 'not-allowed' : 'pointer', opacity: (authLoading || otpCode.length < 6) ? 0.5 : 1,
-                  }}
-                >
-                  {authLoading ? 'Verifying…' : 'Verify'}
-                </button>
-                <button onClick={() => { setOtpSent(false); setOtpCode(''); setAuthError(''); }}
-                  style={{ marginTop: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 14, cursor: 'pointer', width: '100%' }}>
-                  Use a different email
-                </button>
-              </>
+              <button
+                onClick={emailNewLink}
+                disabled={linkSending}
+                style={{
+                  width: '100%', minHeight: 52, padding: '14px', background: '#fff', color: '#11151b',
+                  border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 15, marginBottom: 24,
+                  cursor: linkSending ? 'wait' : 'pointer', opacity: linkSending ? 0.7 : 1,
+                }}
+              >
+                {linkSending ? 'Sending…' : 'Email me a new link'}
+              </button>
             )}
+            <p style={{ color: '#bac1cb', fontSize: 13, margin: '0 0 12px' }}>Have a Vanta account? Sign in instead</p>
+            <SocialSignIn />
           </div>
         )}
 
@@ -294,7 +234,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
             {booking.status === 'awaiting_payment' && !booking.deposit_paid_at && !booking.deposit_confirmed_at && booking.selection_token && (
               <p><a href={`/booking/_?token=${encodeURIComponent(booking.selection_token)}`} style={{ color: '#fff' }}>Continue to deposit payment</a></p>
             )}
-            <button onClick={() => loadBooking(session.access_token)} style={{ minHeight: 44, padding: '10px 20px', borderRadius: 12 }}>Check again</button>
+            <button onClick={reload} style={{ minHeight: 44, padding: '10px 20px', borderRadius: 12 }}>Check again</button>
             {['confirmed', 'completed'].includes(booking.status) && <p><a href="https://www.vanta.tattoo" style={{ color: '#fff' }}>Get Vanta to chat with your artist and track your appointment</a></p>}
           </section>
         )}
@@ -303,8 +243,8 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Something went wrong</h1>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 32 }}>{errorMsg}</p>
-            {session && <button onClick={() => loadBooking(session.access_token)} style={{ minHeight: 44, padding: '10px 20px', marginRight: 16, borderRadius: 12 }}>Try again</button>}
-            {session && <button onClick={async () => { await supabase.auth.signOut(); setSession(null); setOtpSent(false); setOtpCode(''); setAuthError(''); setView('auth'); }} style={{ minHeight: 44, padding: '10px 20px', marginRight: 16, borderRadius: 12 }}>Use a different email</button>}
+            {(session || linkToken) && <button onClick={reload} style={{ minHeight: 44, padding: '10px 20px', marginRight: 16, borderRadius: 12 }}>Try again</button>}
+            {session && !linkToken && <button onClick={async () => { await supabase.auth.signOut(); setSession(null); setView('auth'); }} style={{ minHeight: 44, padding: '10px 20px', marginRight: 16, borderRadius: 12 }}>Use a different account</button>}
             <a href="https://www.vanta.tattoo" style={{ color: '#fff', fontSize: 14 }}>Back to home</a>
           </div>
         )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { websiteAuth } from '../../../lib/website-auth';
+import { websiteAuth, createAccountAndSignIn } from '../../../lib/website-auth';
 import SocialSignIn from '../../../components/SocialSignIn';
 import { bookingReceipt, hasPayableDeposit } from '../../../lib/booking-state.mjs';
 import ManualDepositDetails, { hasManualDeposit } from '../../../components/ManualDepositDetails';
@@ -68,7 +68,6 @@ export default function BookingSelectionClient() {
   const [authConsent, setAuthConsent] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [confirmEmail, setConfirmEmail] = useState(false);
 
   // Selection state
   const [step, setStep] = useState(0); // 0=artist 1=time 2=review
@@ -124,6 +123,7 @@ export default function BookingSelectionClient() {
         if (depositPayable && data.booking.chosen_time) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) { setSession(session); setView('pay-deposit'); }
+          else if (data.booking.guest_allowed) setView('pay-deposit');
           else { pendingAuthViewRef.current = 'pay-deposit'; setView('auth'); }
           return;
         }
@@ -143,6 +143,7 @@ export default function BookingSelectionClient() {
         if (data.booking.status === 'awaiting_payment' && data.booking.chosen_time) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) { setSession(session); setView('pay-deposit'); }
+          else if (data.booking.guest_allowed) setView('pay-deposit');
           else { pendingAuthViewRef.current = 'pay-deposit'; setView('auth'); }
           return;
         }
@@ -164,6 +165,8 @@ export default function BookingSelectionClient() {
 
         const { data: { session } } = await supabase.auth.getSession();
         if (session) { setSession(session); setView('select'); }
+        // Guest bookings continue with the emailed link alone; no account needed.
+        else if (data.booking.guest_allowed) setView('select');
         else { setView('auth'); }
       } catch { setView('load-error'); }
     }
@@ -263,18 +266,16 @@ export default function BookingSelectionClient() {
         setSession(data.session);
         setView(pendingAuthViewRef.current);
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: authEmail, password: authPassword,
-          options: { data: { full_name: authName } },
-        });
-        if (error) throw error;
-        if (data.session) {
-          await createProfile(data.session, authName);
-          setSession(data.session);
-          setView(pendingAuthViewRef.current);
-        } else {
-          setConfirmEmail(true);
+        let created;
+        try {
+          created = await createAccountAndSignIn({ email: authEmail, password: authPassword, name: authName });
+        } catch (err) {
+          if (err.code === 'exists') setAuthMode('login');
+          throw err;
         }
+        await createProfile(created, authName);
+        setSession(created);
+        setView(pendingAuthViewRef.current);
       }
     } catch (err) { setAuthError(err.message || 'Something went wrong'); }
     finally { setAuthLoading(false); }
@@ -283,13 +284,13 @@ export default function BookingSelectionClient() {
   // ── Submit selection ──────────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (!session || !selectedArtist || !selectedSlot) return;
+    if ((!session && !ctx?.booking?.guest_allowed) || !selectedArtist || !selectedSlot) return;
     setSubmitting(true);
     setSubmitError('');
     try {
       const res = await fetch(`${BACKEND_URL}/booking/${token}/select`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
         body: JSON.stringify({ artist_id: selectedArtist.id, chosen_time: selectedSlot.toISOString(), offer: availability?.offer || undefined }),
       });
       if (!res.ok) {
@@ -319,13 +320,13 @@ export default function BookingSelectionClient() {
   // ── Pay deposit (for awaiting_payment bookings with a chosen time) ────────────
 
   async function payDeposit() {
-    if (!session) return;
+    if (!session && !ctx?.booking?.guest_allowed) return;
     setPayingDeposit(true);
     setPayDepositError('');
     try {
       const res = await fetch(`${BACKEND_URL}/booking/${token}/checkout`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -467,17 +468,6 @@ export default function BookingSelectionClient() {
   }
 
   if (view === 'auth') {
-    if (confirmEmail) {
-      return (
-        <Shell studio={ctx?.studio}>
-          <h1 style={s.heading}>Check your email</h1>
-          <p style={s.muted}>
-            We sent a confirmation to <strong style={{ color: 'var(--main)' }}>{authEmail}</strong>.
-            Confirm your email then come back to choose your appointment.
-          </p>
-        </Shell>
-      );
-    }
     return (
       <Shell studio={ctx?.studio}>
         <h1 style={s.heading}>Sign in to book</h1>

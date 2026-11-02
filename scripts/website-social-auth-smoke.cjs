@@ -77,7 +77,10 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
         const button = page.getByRole('button', { name: `Continue with ${provider}`, exact: true });
         await button.waitFor();
         if (scenario === 'studio-google') await page.getByRole('button', { name: 'Create account', exact: true }).first().click();
-        if (scenario !== 'confirm-apple') {
+        // Booking links show the terms beside Apple/Google (guest is the main action), so no checkbox first.
+        const bookingLink = scenario.startsWith('booking-') || scenario === 'existing-booking-google';
+        if (bookingLink) await page.getByText('By continuing with Apple or Google, you agree to the', { exact: false }).waitFor();
+        if (scenario !== 'confirm-apple' && !bookingLink) {
           await button.click();
           await page.getByText('Please agree to the Terms of Use and Privacy Policy above.').waitFor();
           assert.equal(starts, 0, 'Terms gating must happen before the OAuth request');
@@ -107,7 +110,7 @@ const auth = { access_token: 'test-access-token', refresh_token: 'test-refresh-t
           }
           if (scenario === 'studio-google') await page.getByRole('heading', { name: 'Choose a date', exact: true }).waitFor();
           if (scenario === 'confirm-apple') await page.getByRole('heading', { name: 'Choose your time' }).waitFor();
-          assert.equal(new URL(page.url()).pathname, new URL(base + path).pathname);
+          assert.equal(new URL(page.url()).pathname.replace(/\/$/, ''), new URL(base + path).pathname.replace(/\/$/, ''));
           assert.equal(new URL(page.url()).search, new URL(base + path).search);
           assert.equal(exchanges, 1);
           assert.equal(creations, scenario === 'existing-booking-google' ? 0 : 1);
