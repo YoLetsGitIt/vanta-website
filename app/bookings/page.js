@@ -82,10 +82,21 @@ function BookingContent() {
   const [referralCode, setReferralCode] = useState(null);
   const [session, setSession] = useState(null);
   // Guests book without an account; a signed-in session takes precedence.
-  const [guest, setGuest] = useState(false);
+  // Guest mode lives in the URL (?guest=1) so the browser Back button returns to the sign-in choice.
+  const guest = searchParams.get('guest') === '1';
+  const setGuest = on => {
+    const url = new URL(window.location.href);
+    if (on) url.searchParams.set('guest', '1'); else url.searchParams.delete('guest');
+    window.history.pushState(null, '', url);
+  };
   const [showEmailAuth, setShowEmailAuth] = useState(false);
   const [contactDob, setContactDob] = useState('');
   const [view, setView] = useState('loading'); // loading|auth|form|success|error
+  useEffect(() => {
+    if (session) return;
+    if (guest && view === 'auth') setView('form');
+    if (!guest && view === 'form') setView('auth');
+  }, [guest, session, view]);
   const [authMode, setAuthMode] = useState('signup');
 
   // Auth fields
@@ -500,7 +511,7 @@ function BookingContent() {
               <h1 style={s.heading}>Book with {artist?.name || 'your artist'}</h1>
               <p style={s.muted}>No account needed. Continue as a guest, or sign in to save your details for next time.</p>
 
-              <button type="button" style={{ ...s.submitBtn, marginTop: 4 }} onClick={() => { setGuest(true); setView('form'); }}>
+              <button type="button" style={{ ...s.submitBtn, marginTop: 4 }} onClick={() => setGuest(true)}>
                 Continue as guest
               </button>
 
@@ -512,9 +523,16 @@ function BookingContent() {
               </p>
 
               {!showEmailAuth && (
-                <button type="button" style={s.emailAuthLink} onClick={() => setShowEmailAuth(true)}>
-                  Sign up or log in with email
-                </button>
+                // One tap each: returning clients go straight to log-in, new ones to sign-up.
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  <button type="button" style={{ ...s.emailAuthLink, margin: 0, padding: '0 4px' }} onClick={() => { setAuthMode('login'); setShowEmailAuth(true); }}>
+                    Log in with email
+                  </button>
+                  <span aria-hidden="true" style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
+                  <button type="button" style={{ ...s.emailAuthLink, margin: 0, padding: '0 4px' }} onClick={() => { setAuthMode('signup'); setShowEmailAuth(true); }}>
+                    Create account
+                  </button>
+                </div>
               )}
 
               {showEmailAuth && <>
@@ -636,7 +654,7 @@ function BookingContent() {
                     email={contactEmail} setEmail={setContactEmail}
                     phone={contactPhone} setPhone={setContactPhone}
                     guest={guest && !session} dob={contactDob} setDob={setContactDob}
-                    onSignIn={() => { setGuest(false); setView('auth'); }}
+                    onSignIn={() => setGuest(false)}
                   />
                 )}
                 {step === 4 && (

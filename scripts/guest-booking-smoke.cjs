@@ -39,8 +39,18 @@ async function context(browser, width) {
       const appleBox = await page.getByRole('button', { name: /Apple/ }).boundingBox();
       assert(guestBox.y < appleBox.y, 'Guest comes before Apple/Google');
       assert.equal(await page.getByPlaceholder('••••••••').count(), 0, 'Email sign-up is behind a link');
+      await page.getByRole('button', { name: 'Log in with email', exact: true }).click();
+      await page.getByRole('button', { name: 'Log in', exact: true }).last().waitFor();
+      assert.equal(await page.getByPlaceholder('Your name').count(), 0, 'One tap opens log-in, not sign-up');
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.getByRole('heading', { name: 'Book with Alex Ink' }).waitFor();
       if (shots) { await page.waitForTimeout(5000); await page.screenshot({ path: `${shots}/artist-gate-${width}.png`, fullPage: true }); }
       await page.getByRole('button', { name: 'Continue as guest' }).click();
+      await page.getByRole('heading', { name: 'What appointment would you like?' }).waitFor();
+      // Browser Back returns to the sign-in choice, and Forward resumes as a guest.
+      await page.goBack();
+      await page.getByRole('heading', { name: 'Book with Alex Ink' }).waitFor();
+      await page.goForward();
       await page.getByRole('heading', { name: 'What appointment would you like?' }).waitFor();
       await page.getByRole('button', { name: /^Piercing/ }).click();
       await page.getByRole('button', { name: 'Continue', exact: true }).click();
@@ -155,7 +165,7 @@ async function context(browser, width) {
       });
       const page = await c.newPage();
       await page.goto(`${base}/bookings?artist=${artistId}`, { waitUntil: 'networkidle' });
-      await page.getByRole('button', { name: 'Sign up or log in with email' }).click();
+      await page.getByRole('button', { name: 'Create account', exact: true }).click();
       await page.getByPlaceholder('Your name').fill('New Client');
       await page.getByPlaceholder('you@example.com').fill('new@example.test');
       await page.getByPlaceholder('••••••••').fill('example-password');
