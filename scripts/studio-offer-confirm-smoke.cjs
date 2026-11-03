@@ -14,7 +14,7 @@ const times = ['2099-01-05T00:00:00Z', '2099-01-07T02:00:00Z'];
     for (const width of [390, 1280]) {
       const c = await browser.newContext({ viewport: { width, height: 900 } });
       await c.route('https://aznxvdnpvbcofaqxgmtu.supabase.co/**', route => route.fulfill({ status: 401, json: {} }));
-      const accepts = [];
+      const accepts = []; let claimed = null;
       await c.route(`${api}/**`, route => {
         const req = route.request(), url = new URL(req.url());
         if (url.pathname === '/bookings/bk2/proposal' && url.searchParams.get('t') === 'tok2') {
@@ -25,7 +25,12 @@ const times = ['2099-01-05T00:00:00Z', '2099-01-07T02:00:00Z'];
           if (body.chosen_time === times[0]) return route.fulfill({ status: 409, json: { error: 'That time has just been taken. Please choose another time, or contact the studio.' } });
           return route.fulfill({ json: { status: 'awaiting_payment', deposit_url: `${base}/booking/_?token=dep-token` } });
         }
-        if (url.pathname === '/booking/dep-token') return route.fulfill({ json: { booking: { id: 'bk2', status: 'awaiting_payment' }, studio: { name: 'Test studio', timezone: 'Australia/Melbourne' }, artists: [] } });
+        if (url.pathname === '/booking/dep-token') return route.fulfill({ json: { booking: {
+          id: 'bk2', status: claimed ? 'confirmed' : 'awaiting_payment', chosen_time: times[1], deposit_required: true, deposit_amount: 80,
+          deposit_payable: !claimed, guest_allowed: true, ...(claimed ? { deposit_claim: { method: 'payid', recorded_at: new Date().toISOString() } } : {}),
+          deposit_options: { card: false, reference: 'VANTA-BK2', manual: { payid: 'bookings@ink.example', payid_name: 'Ink Studio' } },
+        }, studio: { name: 'Test studio', timezone: 'Australia/Melbourne' }, artists: [] } });
+        if (url.pathname === '/booking/dep-token/deposit-sent') { claimed = req.postDataJSON(); return route.fulfill({ json: { status: 'confirmed', method: claimed.method } }); }
         return route.fulfill({ status: 404, json: {} });
       });
       const page = await c.newPage();
@@ -47,6 +52,16 @@ const times = ['2099-01-05T00:00:00Z', '2099-01-07T02:00:00Z'];
       await page.locator('button[aria-pressed]').nth(1).click();
       await page.getByRole('button', { name: 'Confirm & pay $80.00' }).click();
       await page.waitForURL(/\/booking\/_\?token=dep-token/);
+
+      // Deposit page: no sign-in; the client pays by PayID and says so, which confirms it.
+      await page.getByRole('heading', { name: 'Pay deposit' }).waitFor();
+      assert.equal(await page.getByRole('heading', { name: /Sign in/ }).count(), 0, 'No sign-in for the deposit');
+      await page.getByText('bookings@ink.example').waitFor();
+      assert.equal(await page.getByRole('button', { name: 'I’ve paid by bank transfer' }).count(), 0, 'Only the methods the studio offers');
+      await page.getByRole('button', { name: 'I’ve paid by PayID' }).click();
+      await page.getByRole('heading', { name: 'Booking confirmed' }).waitFor();
+      await page.getByText(/you told the studio you paid the \$80\.00 deposit by PayID/).waitFor();
+      assert.deepEqual(claimed, { method: 'payid' });
       assert.deepEqual(accepts.map(a => a.chosen_time), times);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       assert.deepEqual(errors.filter(e => !/Loading chunk|ChunkLoad/.test(e)), []);

@@ -51,7 +51,7 @@ export default function ManualDepositDetails({ options, amount }) {
         {Number(amount) > 0 && <CopyRow label="Amount" value={`$${Number(amount).toFixed(2)}`} />}
         {options.reference && <CopyRow label="Reference" value={options.reference} />}
       </div>
-      <p style={m.note}>Use the reference so the studio can match your payment. Your deposit is recorded once the studio confirms it has arrived.</p>
+      <p style={m.note}>Use the reference so the studio can match your payment.</p>
     </div>
   );
 }

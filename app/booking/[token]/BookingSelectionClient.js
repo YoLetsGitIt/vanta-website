@@ -88,6 +88,44 @@ export default function BookingSelectionClient() {
   const [submitError, setSubmitError] = useState('');
   const [payingDeposit, setPayingDeposit] = useState(false);
   const [payDepositError, setPayDepositError] = useState('');
+  const [sendingDeposit, setSendingDeposit] = useState('');
+
+  // PayID / bank transfer: the client tells the studio they've paid, which confirms the
+  // booking. The studio then checks the money arrived.
+  async function markDepositSent(method) {
+    if (sendingDeposit) return;
+    setSendingDeposit(method);
+    setPayDepositError('');
+    try {
+      const res = await fetch(`${BACKEND_URL}/booking/${token}/deposit-sent`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not save this. Please try again.');
+      setLoadAttempt(value => value + 1);
+    } catch (error) {
+      setPayDepositError(error.message);
+    } finally {
+      setSendingDeposit('');
+    }
+  }
+
+  function DepositSentButtons({ options }) {
+    const manual = options?.manual;
+    if (!manual) return null;
+    const hasBank = manual.bank_account_name && manual.bank_bsb && manual.bank_account_number;
+    const choices = [manual.payid && ['payid', 'I’ve paid by PayID'], hasBank && ['bank_transfer', 'I’ve paid by bank transfer']].filter(Boolean);
+    return (
+      <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
+        {choices.map(([method, label]) => (
+          <button key={method} style={{ ...s.btn, ...(sendingDeposit ? s.btnDisabled : {}) }} disabled={Boolean(sendingDeposit)} onClick={() => markDepositSent(method)}>
+            {sendingDeposit === method ? 'Saving…' : label}
+          </button>
+        ))}
+        <p style={{ ...s.muted, margin: 0, fontSize: 13 }}>Tap this once you’ve sent the money. Your booking is confirmed and the studio checks it’s arrived.</p>
+      </div>
+    );
+  }
   const pendingAuthViewRef = useRef('select');
 
   // ── Load context ─────────────────────────────────────────────────────────────
@@ -375,8 +413,12 @@ export default function BookingSelectionClient() {
 
   if (view === 'verified-result' || view === 'payment-processing') {
     const receipt = view === 'payment-processing' ? { title: 'Checking your payment', message: 'If you just paid, check again in a moment.' } : bookingReceipt(ctx.booking);
-    const owesManualDeposit = view === 'verified-result' && ctx.booking.deposit_required && !ctx.booking.deposit_paid_at && !ctx.booking.deposit_confirmed_at && hasManualDeposit(ctx.booking.deposit_options);
-    return <Shell studio={ctx?.studio}><h1 style={s.heading}>{receipt.title}</h1><p style={s.muted}>{receipt.message}</p>{owesManualDeposit && <><p style={{ ...s.muted, margin: '0 0 0' }}>Pay your ${Number(ctx.booking.deposit_amount ?? 0).toFixed(2)} deposit using the details below.</p><ManualDepositDetails options={ctx.booking.deposit_options} amount={ctx.booking.deposit_amount} /></>}<div style={s.summaryCard}><div style={s.summaryValue}>{ctx.booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}</div>{ctx.booking.chosen_time && <p>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</p>}{ctx.artists?.find(artist => artist.id === ctx.booking.artist_id)?.name && <p>{ctx.artists.find(artist => artist.id === ctx.booking.artist_id).name}</p>}</div><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Check again</button></Shell>;
+    const claim = ctx.booking.deposit_claim;
+    const owesManualDeposit = view === 'verified-result' && !claim && ctx.booking.deposit_required && !ctx.booking.deposit_paid_at && !ctx.booking.deposit_confirmed_at && hasManualDeposit(ctx.booking.deposit_options);
+    const shown = claim && !ctx.booking.deposit_confirmed_at
+      ? { title: 'Booking confirmed', message: `Thanks — you told the studio you paid the $${Number(ctx.booking.deposit_amount ?? 0).toFixed(2)} deposit by ${claim.method === 'payid' ? 'PayID' : 'bank transfer'}. They’ll check it’s arrived.` }
+      : receipt;
+    return <Shell studio={ctx?.studio}><h1 style={s.heading}>{shown.title}</h1><p style={s.muted}>{shown.message}</p>{owesManualDeposit && <><p style={{ ...s.muted, margin: '0 0 0' }}>Pay your ${Number(ctx.booking.deposit_amount ?? 0).toFixed(2)} deposit using the details below.</p><ManualDepositDetails options={ctx.booking.deposit_options} amount={ctx.booking.deposit_amount} /><DepositSentButtons options={ctx.booking.deposit_options} />{payDepositError && <p role="alert" style={{ ...s.error, marginTop: 12 }}>{payDepositError}</p>}</>}<div style={s.summaryCard}><div style={s.summaryValue}>{ctx.booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}</div>{ctx.booking.chosen_time && <p>{fmtDateTime(ctx.booking.chosen_time, studioTimezone)}</p>}{ctx.artists?.find(artist => artist.id === ctx.booking.artist_id)?.name && <p>{ctx.artists.find(artist => artist.id === ctx.booking.artist_id).name}</p>}</div><button style={s.btnPrimary} onClick={() => setLoadAttempt(value => value + 1)}>Check again</button></Shell>;
   }
 
   if (view === 'invalid') {
@@ -463,6 +505,8 @@ export default function BookingSelectionClient() {
         )}
         {card && manual && <p style={{ ...s.muted, margin: '24px 0 0' }}>Or pay by PayID or bank transfer:</p>}
         <ManualDepositDetails options={options} amount={ctx?.booking?.deposit_amount} />
+        {manual && <DepositSentButtons options={options} />}
+        {manual && payDepositError && <p role="alert" style={{ ...s.error, marginTop: 12 }}>{payDepositError}</p>}
       </Shell>
     );
   }
