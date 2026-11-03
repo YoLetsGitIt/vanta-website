@@ -34,10 +34,12 @@ const api = 'https://inkspire-backend-xa2a.onrender.com';
       await page.getByLabel('Full name', { exact: true }).fill('Test client');
       await page.getByLabel('Date of birth').fill('1990-01-01');
       await page.getByRole('checkbox').check();
-      await page.getByRole('button', { name: 'Type signature', exact: true }).click();
-      await page.getByLabel('Full name for your electronic signature').fill('Test client');
-      await page.getByRole('button', { name: 'Use typed signature', exact: true }).click();
-      await page.getByText('Signature added.', { exact: true }).waitFor();
+      // Signatures are always drawn; there is no typed option.
+      assert.equal(await page.getByRole('button', { name: 'Type signature', exact: true }).count(), 0, 'No typed signature');
+      const pad = await page.getByLabel('Draw your signature').boundingBox();
+      await page.mouse.move(pad.x + 20, pad.y + pad.height / 2); await page.mouse.down();
+      for (let i = 1; i <= 12; i++) await page.mouse.move(pad.x + 20 + i * 15, pad.y + pad.height / 2 + (i % 2 ? -18 : 18));
+      await page.mouse.up(); await page.waitForTimeout(200);
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `Consent form overflows at ${width}px`);
       await page.getByRole('button', { name: 'Submit consent', exact: true }).click();
       await page.getByText('Please sign again.', { exact: true }).waitFor();
