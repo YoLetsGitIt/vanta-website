@@ -225,6 +225,8 @@ export default function BookingSelectionClient() {
   const requestKey = `${token}:${selectedArtist?.id}:${monthKey}`;
   const availability = monthAvailability?.key === requestKey ? monthAvailability.data : null;
   const studioTimezone = availability?.timezone || ctx?.studio?.timezone || 'UTC';
+  // Studio deposit still owed: pay on the confirm step; the time is booked once paid.
+  const payFirst = Boolean(ctx?.booking?.deposit_required && ctx.booking.deposit_options && !ctx.booking.deposit_paid_at && !ctx.booking.deposit_confirmed_at && Number(ctx.booking.deposit_amount) > 0);
   const schedulingMode = availability?.mode || 'all';
   const minimizesGaps = ['minimize_gaps', 'combined', 'quieter_months_gaps', 'quieter_days_gaps'].includes(schedulingMode);
   const selectedDay = availability?.days?.find(day => day.date === (selectedDate && dateKey(selectedDate)));
@@ -321,15 +323,17 @@ export default function BookingSelectionClient() {
 
   // ── Submit selection ──────────────────────────────────────────────────────────
 
-  async function handleSubmit() {
+  // payment: how a studio deposit is paid ('card' | 'payid' | 'bank_transfer'). With a
+  // deposit owed, nothing is saved until the client pays on this step.
+  async function handleSubmit(payment = '') {
     if ((!session && !ctx?.booking?.guest_allowed) || !selectedArtist || !selectedSlot) return;
-    setSubmitting(true);
+    setSubmitting(payment || true);
     setSubmitError('');
     try {
       const res = await fetch(`${BACKEND_URL}/booking/${token}/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-        body: JSON.stringify({ artist_id: selectedArtist.id, chosen_time: selectedSlot.toISOString(), offer: availability?.offer || undefined }),
+        body: JSON.stringify({ artist_id: selectedArtist.id, chosen_time: selectedSlot.toISOString(), offer: availability?.offer || undefined, ...(payment ? { payment } : {}) }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -862,6 +866,43 @@ export default function BookingSelectionClient() {
             )}
           </div>
 
+          {payFirst ? (() => {
+            const options = ctx.booking.deposit_options;
+            const manual = hasManualDeposit(options) ? options.manual : null;
+            const hasBank = manual && manual.bank_account_name && manual.bank_bsb && manual.bank_account_number;
+            const amount = Number(ctx.booking.deposit_amount ?? 0);
+            return (
+              <div style={{ marginTop: 24 }}>
+                <h2 style={s.stepHeading}>Pay your deposit</h2>
+                <p style={s.muted}>Your time is booked once the ${amount.toFixed(2)} deposit is paid.</p>
+                {submitError && <p role="alert" style={s.error}>{submitError}</p>}
+                {options.card && (
+                  <button style={{ ...s.btn, ...(submitting ? s.btnDisabled : {}) }} disabled={Boolean(submitting)} onClick={() => handleSubmit('card')}>
+                    {submitting === 'card' ? 'Opening secure payment…' : `Pay $${amount.toFixed(2)} by card`}
+                  </button>
+                )}
+                {manual && <>
+                  {options.card && <p style={{ ...s.muted, margin: '24px 0 0' }}>Or pay by PayID or bank transfer:</p>}
+                  <ManualDepositDetails options={options} amount={amount} />
+                  <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
+                    {manual.payid && (
+                      <button style={{ ...(options.card ? s.btnSecondary : s.btn), ...(submitting ? s.btnDisabled : {}) }} disabled={Boolean(submitting)} onClick={() => handleSubmit('payid')}>
+                        {submitting === 'payid' ? 'Booking…' : 'I’ve paid by PayID'}
+                      </button>
+                    )}
+                    {hasBank && (
+                      <button style={{ ...(options.card || manual.payid ? s.btnSecondary : s.btn), ...(submitting ? s.btnDisabled : {}) }} disabled={Boolean(submitting)} onClick={() => handleSubmit('bank_transfer')}>
+                        {submitting === 'bank_transfer' ? 'Booking…' : 'I’ve paid by bank transfer'}
+                      </button>
+                    )}
+                    <p style={{ ...s.muted, margin: 0, fontSize: 13 }}>Tap this once you’ve sent the money. Your time is booked and the studio checks the payment arrived.</p>
+                  </div>
+                </>}
+                {!options.card && !manual && <p style={s.muted}>The studio hasn’t set up a way to pay online yet. Please contact them to pay your deposit.</p>}
+                <button style={{ ...s.btnSecondary, marginTop: 20 }} disabled={Boolean(submitting)} onClick={() => { setStep(1); setSubmitError(''); }}>Choose a different time</button>
+              </div>
+            );
+          })() : <>
           <p style={{ ...s.muted, marginTop: 20 }}>
             {ctx?.booking?.deposit_required
               ? (ctx.booking.deposit_options?.card === false
@@ -879,13 +920,14 @@ export default function BookingSelectionClient() {
             <button
               style={{ ...s.btn, width: 'auto', flex: 1, ...(submitting ? s.btnDisabled : {}) }}
               disabled={submitting}
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
             >
               {submitting
                 ? (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? 'Redirecting to payment…' : 'Submitting…')
                 : (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? 'Continue to payment' : 'Request appointment')}
             </button>
           </div>
+          </>}
         </div>
       )}
     </Shell>

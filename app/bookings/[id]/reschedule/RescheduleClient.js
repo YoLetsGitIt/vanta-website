@@ -24,7 +24,7 @@ function toHHMM(iso) {
 }
 
 const s = {
-  wrap: { minHeight: '100vh', background: '#11151b', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+  wrap: { background: '#11151b', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
   inner: { maxWidth: 440, margin: '0 auto', padding: '48px 24px' },
   heading: { fontSize: 24, fontWeight: 700, marginBottom: 8 },
   sub: { color: 'rgba(255,255,255,0.5)', fontSize: 15, marginBottom: 32 },
@@ -106,7 +106,7 @@ export default function RescheduleClient({ params }) {
 
   if (view === 'loading') {
     return (
-      <main style={s.wrap}>
+      <main className="page-scroll" style={s.wrap}>
         <div style={{ ...s.inner, textAlign: 'center', paddingTop: 80 }}>
           <p style={{ color: 'rgba(255,255,255,0.4)' }}>Loading…</p>
         </div>
@@ -116,7 +116,7 @@ export default function RescheduleClient({ params }) {
 
   if (view === 'load-error') {
     return (
-      <main style={s.wrap}>
+      <main className="page-scroll" style={s.wrap}>
         <div style={s.inner} role="alert">
           <h1 style={{ fontSize: 24 }}>Unable to load your booking</h1>
           <p>Please check your connection and try again.</p>
@@ -128,7 +128,7 @@ export default function RescheduleClient({ params }) {
 
   if (view === 'invalid') {
     return (
-      <main style={s.wrap}>
+      <main className="page-scroll" style={s.wrap}>
         <div style={{ ...s.inner, textAlign: 'center', paddingTop: 80 }}>
           <p style={{ fontSize: 20, marginBottom: 12 }}>Link not found</p>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>This reschedule link is invalid or has expired.</p>
@@ -139,7 +139,7 @@ export default function RescheduleClient({ params }) {
 
   if (view === 'expired') {
     return (
-      <main style={s.wrap}>
+      <main className="page-scroll" style={s.wrap}>
         <div style={{ ...s.inner, textAlign: 'center', paddingTop: 80 }}>
           <p style={{ fontSize: 20, marginBottom: 12 }}>Rescheduling closed</p>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
@@ -152,7 +152,7 @@ export default function RescheduleClient({ params }) {
 
   if (view === 'done') {
     return (
-      <main style={s.wrap}>
+      <main className="page-scroll" style={s.wrap}>
         <div style={{ ...s.inner, ...s.success }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
           <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Booking rescheduled</h1>
@@ -165,7 +165,7 @@ export default function RescheduleClient({ params }) {
   }
 
   return (
-    <main style={s.wrap}>
+    <main className="page-scroll" style={s.wrap}>
       <div style={s.inner}>
         <h1 style={s.heading}>Reschedule appointment</h1>
         <p style={s.sub}>

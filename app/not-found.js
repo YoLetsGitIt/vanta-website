@@ -33,8 +33,8 @@ export default function NotFound() {
   }, []);
 
   return (
-    <main style={{
-      minHeight: '100vh', background: '#11151b', color: '#fff',
+    <main className="page-scroll page-scroll--center" style={{
+      background: '#11151b', color: '#fff',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }}>

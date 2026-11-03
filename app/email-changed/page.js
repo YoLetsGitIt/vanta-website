@@ -54,7 +54,7 @@ function EmailChangedContent() {
 
 export default function EmailChangedPage() {
   return (
-    <div style={styles.page}>
+    <div className="page-scroll page-scroll--center" style={styles.page}>
       <Suspense fallback={<div style={styles.card} />}>
         <EmailChangedContent />
       </Suspense>
@@ -64,7 +64,6 @@ export default function EmailChangedPage() {
 
 const styles = {
   page: {
-    minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

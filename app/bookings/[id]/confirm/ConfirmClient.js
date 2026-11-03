@@ -4,6 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { websiteAuth } from '../../../../lib/website-auth';
 import SocialSignIn from '../../../../components/SocialSignIn';
+import ManualDepositDetails, { hasManualDeposit } from '../../../../components/ManualDepositDetails';
 import { bookingHeaders, proposalState, proposalTimes, bookingReceipt } from '../../../../lib/booking-state.mjs';
 
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
@@ -31,6 +32,12 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const [chosen, setChosen] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [timeNotice, setTimeNotice] = useState('');
+  // Studio offers with a deposit: picking a time saves nothing; the client pays on the
+  // next screen and only then is the time booked.
+  const [payment, setPayment] = useState(null); // { deposit_amount, deposit_options }
+  const [paying, setPaying] = useState('');
+  const [payError, setPayError] = useState('');
+  const [claimed, setClaimed] = useState('');
 
   const [linkSent, setLinkSent] = useState(false);
   const [linkSending, setLinkSending] = useState(false);
@@ -79,6 +86,10 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
         );
         return;
       }
+      if (linkToken && data.deposit_required) {
+        const p = await fetch(`${BACKEND_URL}/bookings/${id}/proposal/payment?t=${encodeURIComponent(linkToken)}`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).catch(() => null);
+        if (p?.deposit_amount) setPayment(p);
+      }
       setView('selecting');
     } catch (e) {
       setErrorMsg(e.message);
@@ -94,14 +105,17 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
     setLinkSent(true);
   }
 
-  async function confirmBooking() {
+  const needsDeposit = Boolean(linkToken && payment?.deposit_amount);
+
+  // payment: '' (no deposit), 'card', 'payid' or 'bank_transfer'.
+  async function confirmBooking(method = '') {
     if (!chosen) return;
     if (proposalState(booking) !== 'selecting' || !proposalTimes(booking).includes(chosen)) {
       setErrorMsg('These proposed times are no longer available. Contact your artist for new times.');
       setView('error');
       return;
     }
-    setView('submitting');
+    if (method) { setPaying(method); setPayError(''); } else setView('submitting');
     setTimeNotice('');
     try {
       const res = await fetch(linkToken ? `${BACKEND_URL}/bookings/${id}/proposal/accept?t=${encodeURIComponent(linkToken)}` : `${BACKEND_URL}/bookings/${id}/web-accept`, {
@@ -110,9 +124,14 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
           ...bookingHeaders, 'Content-Type': 'application/json',
           ...(linkToken ? {} : { Authorization: `Bearer ${session.access_token}` }),
         },
-        body: JSON.stringify({ chosen_time: chosen }),
+        body: JSON.stringify({ chosen_time: chosen, ...(method ? { payment: method } : {}) }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 402 && data.deposit_options) {
+        setPayment(p => ({ deposit_amount: p?.deposit_amount ?? booking?.deposit_amount, deposit_options: data.deposit_options }));
+        setView('paying');
+        return;
+      }
       if (res.status === 409 && linkToken) {
         // Usually the time was just taken: show the times that are still open.
         setChosen(null);
@@ -123,15 +142,19 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
       if (!res.ok) throw new Error(data.error || data.message || 'Unable to confirm. Please try again.');
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
-      } else if (data.deposit_url) {
-        // Studio offers: the deposit page has card, PayID and bank transfer options.
-        window.location.href = data.deposit_url;
-      } else {
-        await reload();
+        return;
       }
+      if (data.deposit_url) {
+        window.location.href = data.deposit_url;
+        return;
+      }
+      if (method === 'payid' || method === 'bank_transfer') setClaimed(method);
+      await reload();
     } catch (e) {
-      setErrorMsg(e.message);
-      setView('error');
+      if (method) setPayError(e.message);
+      else { setErrorMsg(e.message); setView('error'); }
+    } finally {
+      setPaying('');
     }
   }
 
@@ -142,7 +165,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const depositRequired = booking?.deposit_required;
 
   return (
-    <main style={{ minHeight: '100vh', background: '#11151b', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+    <main className="page-scroll" style={{ background: '#11151b', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '48px 24px' }}>
         <div style={{ marginBottom: 40 }}>
           <a href="https://www.vanta.tattoo" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, textDecoration: 'none' }}>← vanta.tattoo</a>
@@ -217,13 +240,13 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                   ${depositAmount.toFixed(2)} AUD
                 </p>
                 <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
-                  After you confirm, you'll go to the payment page to pay the deposit. It comes off your total on the day.
+                  {needsDeposit ? 'Pay it on the next screen to lock in your time. It comes off your total on the day.' : 'After you confirm, you’ll go to the payment page to pay the deposit. It comes off your total on the day.'}
                 </p>
               </div>
             )}
 
             <button
-              onClick={confirmBooking}
+              onClick={() => (needsDeposit ? setView('paying') : confirmBooking())}
               disabled={!chosen}
               style={{
                 width: '100%', padding: '16px', background: '#fff', color: '#11151b',
@@ -231,10 +254,61 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                 cursor: chosen ? 'pointer' : 'not-allowed', opacity: chosen ? 1 : 0.4,
               }}
             >
-              {depositRequired && depositAmount ? `Confirm & pay $${depositAmount.toFixed(2)}` : 'Confirm booking'}
+              {needsDeposit ? 'Continue to pay deposit' : depositRequired && depositAmount ? `Confirm & pay $${depositAmount.toFixed(2)}` : 'Confirm booking'}
             </button>
           </div>
         )}
+
+        {view === 'paying' && booking && chosen && payment && (() => {
+          const options = payment.deposit_options || {};
+          const manual = hasManualDeposit(options) ? options.manual : null;
+          const amount = Number(payment.deposit_amount);
+          const hasBank = manual && manual.bank_account_name && manual.bank_bsb && manual.bank_account_number;
+          const btn = { width: '100%', minHeight: 52, padding: '14px', borderRadius: 50, fontWeight: 600, fontSize: 15, border: 'none', cursor: paying ? 'wait' : 'pointer', opacity: paying ? 0.7 : 1 };
+          return (
+            <div>
+              <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Pay your deposit</h1>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+                Your time is booked once the ${amount.toFixed(2)} deposit is paid. It comes off your total on the day.
+              </p>
+              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: '16px 20px', marginBottom: 24 }}>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Your time</p>
+                <p style={{ margin: '4px 0 12px', fontSize: 16, fontWeight: 600 }}>{formatTime(chosen)}</p>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Deposit</p>
+                <p style={{ margin: '4px 0 0', fontSize: 22, fontWeight: 700 }}>${amount.toFixed(2)} AUD</p>
+              </div>
+              {payError && <p role="alert" style={{ color: '#ff8a8a', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>{payError}</p>}
+              {options.card && (
+                <button onClick={() => confirmBooking('card')} disabled={Boolean(paying)} style={{ ...btn, background: '#fff', color: '#11151b', marginBottom: manual ? 8 : 0 }}>
+                  {paying === 'card' ? 'Opening secure payment…' : `Pay $${amount.toFixed(2)} by card`}
+                </button>
+              )}
+              {manual && (
+                <>
+                  {options.card && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: '20px 0 0' }}>Or pay by PayID or bank transfer:</p>}
+                  <ManualDepositDetails options={options} amount={amount} />
+                  <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
+                    {manual.payid && (
+                      <button onClick={() => confirmBooking('payid')} disabled={Boolean(paying)} style={{ ...btn, background: options.card ? 'rgba(255,255,255,0.1)' : '#fff', color: options.card ? '#fff' : '#11151b' }}>
+                        {paying === 'payid' ? 'Booking…' : 'I’ve paid by PayID'}
+                      </button>
+                    )}
+                    {hasBank && (
+                      <button onClick={() => confirmBooking('bank_transfer')} disabled={Boolean(paying)} style={{ ...btn, background: options.card || manual.payid ? 'rgba(255,255,255,0.1)' : '#fff', color: options.card || manual.payid ? '#fff' : '#11151b' }}>
+                        {paying === 'bank_transfer' ? 'Booking…' : 'I’ve paid by bank transfer'}
+                      </button>
+                    )}
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.5, margin: 0 }}>Tap this once you’ve sent the money. Your time is booked and the studio checks the payment arrived.</p>
+                  </div>
+                </>
+              )}
+              {!options.card && !manual && <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>The studio hasn’t set up a way to pay online yet. Please contact them to pay your deposit.</p>}
+              <button onClick={() => { setView('selecting'); setPayError(''); }} disabled={Boolean(paying)} style={{ background: 'none', border: 0, color: 'rgba(255,255,255,0.7)', fontSize: 14, padding: '16px 0', cursor: 'pointer', textDecoration: 'underline' }}>
+                Choose a different time
+              </button>
+            </div>
+          );
+        })()}
 
         {view === 'submitting' && (
           <p style={{ color: 'rgba(255,255,255,0.5)' }}>Confirming your booking…</p>
@@ -242,8 +316,10 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
 
         {view === 'receipt' && booking && (
           <section aria-live="polite">
-            <h1 style={{ fontSize: 24, fontWeight: 700 }}>{receipt.title}</h1>
-            <p style={{ color: '#bbc0ca', lineHeight: 1.6 }}>{receipt.message}</p>
+            <h1 style={{ fontSize: 24, fontWeight: 700 }}>{claimed && booking.status === 'confirmed' ? 'Booking confirmed' : receipt.title}</h1>
+            <p style={{ color: '#bbc0ca', lineHeight: 1.6 }}>{claimed && booking.status === 'confirmed'
+              ? `Thanks — you told the studio you paid the deposit by ${claimed === 'payid' ? 'PayID' : 'bank transfer'}. They’ll check it’s arrived.`
+              : receipt.message}</p>
             <p>{booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}{booking.artist_name ? ` with ${booking.artist_name}` : ''}</p>
             {booking.chosen_time && <p>{formatTime(booking.chosen_time)}</p>}
             {booking.status === 'awaiting_payment' && !booking.deposit_paid_at && !booking.deposit_confirmed_at && booking.selection_token && (

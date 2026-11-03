@@ -26,7 +26,7 @@ export default function JoinPage() {
   }, []);
 
   return (
-    <div style={styles.page}>
+    <div className="page-scroll page-scroll--center" style={styles.page}>
       <div style={styles.card}>
         <div style={styles.logoRow}>
           <Image src="/vanta-app-icon.png" alt="Vanta" width={56} height={56} style={styles.icon} />
@@ -52,7 +52,6 @@ export default function JoinPage() {
 
 const styles = {
   page: {
-    minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

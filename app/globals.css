@@ -516,6 +516,20 @@ nav a.nav-active {
   color: var(--main);
 }
 
+/* html/body don't scroll (the home page manages its own). Standalone pages use this
+   as their scroll container so long content (e.g. the time picker) can be reached. */
+.page-scroll {
+  position: fixed;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* Centred pages: centred when short, top-aligned (not cut off) when tall. */
+.page-scroll--center { align-items: flex-start !important; }
+.page-scroll--center > * { margin-block: auto; }
+
 /* Booking page scroll container */
 .booking-page {
   position: fixed;
