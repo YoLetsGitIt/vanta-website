@@ -620,12 +620,30 @@ export default function BookingSelectionClient() {
         <div style={{ marginTop: 28 }}>
           <h2 style={s.stepHeading}>Choose a date</h2>
           <p style={s.muted}>All times are shown in {studioTimezone.replaceAll('_', ' ')}.</p>
-          {slotsLoading && <p role="status" style={s.muted}>Checking availability…</p>}
+          {slotsLoading && (
+            <div role="status" style={s.loadingCard}>
+              <div style={{ ...s.spinner, width: 22, height: 22, flexShrink: 0 }} aria-hidden="true" />
+              <div style={{ minWidth: 0 }}>
+                <p style={s.loadingTitle}>Loading {selectedArtist?.name ? `${selectedArtist.name}’s` : 'available'} times…</p>
+                <p style={s.loadingSub}>Dates you can book will light up in a moment.</p>
+              </div>
+            </div>
+          )}
           {slotsError && <div role="alert">
             <p style={s.muted}>{slotsError}</p>
             <button style={s.btnSecondary} onClick={() => setRetrySlots(value => value + 1)}>Try again</button>
           </div>}
           {availabilityNotice && <p role="status" style={s.muted}>{availabilityNotice}</p>}
+          {filteredPeriods && slotsLoading && (
+            <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, marginTop: 20 }}>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {[0, 1].map(i => <div key={i} className="booking-loading-tile" style={{ ...s.loadingTile, flex: '0 1 160px', minWidth: 0, height: 52 }} />)}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))', gap: 10 }}>
+                {Array.from({ length: 8 }, (_, i) => <div key={i} className="booking-loading-tile" style={{ ...s.loadingTile, aspectRatio: '1' }} />)}
+              </div>
+            </div>
+          )}
           {filteredPeriods && !slotsLoading && !slotsError && (
             <div style={{ display: 'grid', gap: 20, marginTop: 20 }}>
               {availableMonths.length === 0 ? <p style={s.muted}>No available booking dates in the next 90 days. Please contact the studio.</p> : <>
@@ -665,24 +683,28 @@ export default function BookingSelectionClient() {
             <button style={s.calNav} aria-label="Next month" onClick={() => { chooseDate(null); setCalMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() + 1); return n; }); }}>›</button>
           </div>
 
-          <div style={s.calGrid}>
+          <div style={s.calGrid} aria-busy={slotsLoading || undefined}>
             {DAY_NAMES.map(d => <div key={d} style={s.calDowHeader}>{d}</div>)}
             {calendarDays().map((date, i) => {
               if (!date) return <div key={`e-${i}`} />;
               const isPast = date < today;
               const dayAvailability = availability?.days?.find(day => day.date === dateKey(date));
               const isUnavailable = !dayAvailability?.slots?.length;
-              const isDisabled = isPast || isUnavailable;
+              // While loading, future days show a loading state instead of looking booked out.
+              const isPending = slotsLoading && !isPast;
+              const isDisabled = isPast || isUnavailable || isPending;
               const isSel = selectedDate && date.toDateString() === selectedDate.toDateString();
               return (
                 <button
                   key={date.toISOString()}
                   disabled={isDisabled}
                   onClick={() => chooseDate(date)}
+                  className={isPending ? 'booking-loading-tile' : undefined}
                   style={{
                     ...s.calDay,
-                    ...(isDisabled ? s.calDayPast : {}),
-                    ...(isUnavailable && !isPast ? s.calDayUnavailable : {}),
+                    ...(isPending ? s.calDayLoading : {}),
+                    ...(isPast ? s.calDayPast : {}),
+                    ...(isUnavailable && !isPast && !isPending ? s.calDayUnavailable : {}),
                     ...(isSel ? s.calDaySelected : {}),
                   }}
                 >
@@ -1007,6 +1029,14 @@ const s = {
     border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer',
     fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--main)',
   },
+  calDayLoading: { cursor: 'progress', pointerEvents: 'none', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)' },
+  loadingCard: {
+    display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', margin: '0 0 20px',
+    borderRadius: 12, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)',
+  },
+  loadingTitle: { fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 600, color: 'var(--main)', margin: 0, lineHeight: 1.4 },
+  loadingSub: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: '2px 0 0', lineHeight: 1.4 },
+  loadingTile: { borderRadius: 10, background: 'rgba(255,255,255,0.07)' },
   calDayPast: { opacity: 0.25, cursor: 'not-allowed', pointerEvents: 'none' },
   calDayUnavailable: { opacity: 0.2, cursor: 'not-allowed', pointerEvents: 'none', background: 'rgba(255,255,255,0.02)' },
   calDaySelected: { background: 'var(--main)', color: '#000', border: '1px solid var(--main)', fontWeight: 700 },

@@ -30,6 +30,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const [booking, setBooking] = useState(null);
   const [chosen, setChosen] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [timeNotice, setTimeNotice] = useState('');
 
   const [linkSent, setLinkSent] = useState(false);
   const [linkSending, setLinkSending] = useState(false);
@@ -101,6 +102,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
       return;
     }
     setView('submitting');
+    setTimeNotice('');
     try {
       const res = await fetch(linkToken ? `${BACKEND_URL}/bookings/${id}/proposal/accept?t=${encodeURIComponent(linkToken)}` : `${BACKEND_URL}/bookings/${id}/web-accept`, {
         method: 'POST',
@@ -111,9 +113,19 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
         body: JSON.stringify({ chosen_time: chosen }),
       });
       const data = await res.json();
+      if (res.status === 409 && linkToken) {
+        // Usually the time was just taken: show the times that are still open.
+        setChosen(null);
+        await reload();
+        setTimeNotice(data.error || 'That time is no longer available. Please choose another.');
+        return;
+      }
       if (!res.ok) throw new Error(data.error || data.message || 'Unable to confirm. Please try again.');
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
+      } else if (data.deposit_url) {
+        // Studio offers: the deposit page has card, PayID and bank transfer options.
+        window.location.href = data.deposit_url;
       } else {
         await reload();
       }
@@ -174,6 +186,9 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 32 }}>
               Your artist has proposed the following times. Select the one that works best for you.
             </p>
+            {timeNotice && (
+              <p role="alert" style={{ margin: '0 0 20px', padding: '12px 16px', borderRadius: 12, background: 'rgba(224,168,79,0.12)', border: '1px solid rgba(224,168,79,0.4)', color: '#f1d3a1', fontSize: 14, lineHeight: 1.5 }}>{timeNotice}</p>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
               {times.map((t) => (
                 <button
@@ -202,7 +217,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                   ${depositAmount.toFixed(2)} AUD
                 </p>
                 <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
-                  You'll be redirected to a secure payment page. The deposit is deducted from your total on the day.
+                  After you confirm, you'll go to the payment page to pay the deposit. It comes off your total on the day.
                 </p>
               </div>
             )}
