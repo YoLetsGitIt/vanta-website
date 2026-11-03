@@ -1,0 +1,31 @@
+/* Day / Month / Year side by side; month gets a little more room. */
+.dob {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.part {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding-right: 1.6rem !important;
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+  cursor: pointer;
+  /* Chevron, so each box reads as a dropdown. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.65rem center !important;
+}
+
+/* Unpicked parts show their name ("Day") in the placeholder colour. */
+.part[data-empty] { color: var(--text-ghost, rgba(255, 255, 255, 0.4)); }
+.part option { color: CanvasText; }
+
+@media (any-pointer: coarse) {
+  .dob, .part { font-size: 16px !important; }
+}

@@ -3,6 +3,8 @@
 // links (bc_ tokens). Serve out/ with clean URLs first; all services are mocked.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.VANTA_PLAYWRIGHT_PATH || 'playwright');
+// Date of birth is three dropdowns (day, month, year).
+const fillDob = async (page, iso) => { const [y, m, d] = iso.split('-'); const g = page.getByRole('group', { name: 'Date of birth', exact: true }).first(); await g.getByLabel('Day of birth').selectOption(String(+d)); await g.getByLabel('Month of birth').selectOption(String(+m)); await g.getByLabel('Year of birth').selectOption(y); };
 const base = process.env.VANTA_BOOKING_TEST_URL || 'http://127.0.0.1:3072';
 const studioId = '11111111-1111-4111-8111-111111111111';
 const template = { id: 'tmpl-1', name: 'Consent', requires_signature: false, fields: [{ id: 'photo', type: 'photo_id', label: 'Photo ID', required: true }] };
@@ -28,7 +30,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
       await page.getByText('Take or choose a photo of your ID').waitFor();
       if (token.startsWith('bc_')) {
         await page.getByLabel('Full name', { exact: true }).fill('Consent Client');
-        await page.getByLabel('Date of birth').fill('1990-01-01');
+        await fillDob(page, '1990-01-01');
       }
       await page.getByLabel('Photo ID').setInputFiles({ name: 'id.png', mimeType: 'image/png', buffer: png });
       await page.getByRole('img', { name: 'Your photo ID' }).waitFor();

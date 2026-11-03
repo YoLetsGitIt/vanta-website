@@ -3,6 +3,8 @@
 // VANTA_PLAYWRIGHT_PATH=/path/to/playwright VANTA_BOOKING_TEST_URL=http://127.0.0.1:3072 node scripts/guest-booking-smoke.cjs
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.VANTA_PLAYWRIGHT_PATH || 'playwright');
+// Date of birth is three dropdowns (day, month, year).
+const fillDob = async (page, iso) => { const [y, m, d] = iso.split('-'); const g = page.getByRole('group', { name: 'Date of birth', exact: true }).first(); await g.getByLabel('Day of birth').selectOption(String(+d)); await g.getByLabel('Month of birth').selectOption(String(+m)); await g.getByLabel('Year of birth').selectOption(y); };
 const base = process.env.VANTA_BOOKING_TEST_URL || 'http://127.0.0.1:3072';
 const shots = process.env.VANTA_SCREENSHOT_DIR;
 const api = 'https://inkspire-backend-xa2a.onrender.com';
@@ -69,7 +71,7 @@ async function context(browser, width) {
       assert(await next.isDisabled(), 'Phone and date of birth are required for guests');
       await page.getByPlaceholder('+1 555 0100').fill('+61400555666');
       assert(await next.isDisabled(), 'Date of birth is required for guests');
-      await page.locator('input[autocomplete="bday"]').fill('1995-07-08');
+      await fillDob(page, '1995-07-08');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       if (shots) await page.screenshot({ path: `${shots}/artist-contact-${width}.png`, fullPage: true });
       await next.click();

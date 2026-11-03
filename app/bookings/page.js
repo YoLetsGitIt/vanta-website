@@ -1,5 +1,6 @@
 'use client';
 
+import DateOfBirthInput from '@/components/DateOfBirthInput';
 import { resolveBookingArtist } from '../../lib/booking-artist.mjs';
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
 
@@ -1319,18 +1320,17 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone, guest, d
         </div>
         {guest && <>
           <div style={s.contactDivider} />
-          <label style={s.contactRow}>
+          <div style={{ ...s.contactRow, flexWrap: 'wrap', rowGap: 8 }}>
             <span style={s.contactIcon}>🎂</span>
             <span style={{ ...s.contactFieldLabel, width: "auto", whiteSpace: "nowrap" }}>Date of birth</span>
-            <input
-              style={{ ...s.contactInput, colorScheme: 'dark' }}
-              type="date"
-              autoComplete="bday"
-              max={new Date().toISOString().slice(0, 10)}
-              value={dob}
-              onChange={e => setDob(e.target.value)}
-            />
-          </label>
+            <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+              <DateOfBirthInput
+                style={{ ...s.contactInput, textAlign: 'left', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '0 0.6rem' }}
+                value={dob}
+                onChange={setDob}
+              />
+            </div>
+          </div>
         </>}
       </div>
       {guest && <p style={{ ...s.muted, fontSize: 12, marginTop: 12 }}>Name, email, phone and date of birth are all required.</p>}

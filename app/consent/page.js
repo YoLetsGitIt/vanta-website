@@ -1,5 +1,6 @@
 'use client';
 
+import DateOfBirthInput from '@/components/DateOfBirthInput';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import PhotoIdField from '../../components/PhotoIdField';
@@ -210,9 +211,9 @@ function ConsentForm() {
           <label style={s.label}>Full name
             <input style={s.input} autoComplete="name" value={signerName} onChange={e => setSignerName(e.target.value)} required />
           </label>
-          <label style={s.label}>Date of birth
-            <input style={s.input} type="date" autoComplete="bday" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} readOnly={Boolean(info.dob)} max={new Date().toLocaleDateString('en-CA')} required />
-          </label>
+          <div style={s.label}>Date of birth
+            <DateOfBirthInput style={s.input} value={dateOfBirth} onChange={setDateOfBirth} disabled={Boolean(info.dob)} />
+          </div>
         </div>}
         {templates.length === 0 && (
           <p style={s.muted}>

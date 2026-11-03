@@ -1,6 +1,8 @@
 // Run against the local static export. Auth, email, storage and booking APIs are mocked.
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.VANTA_PLAYWRIGHT_PATH || 'playwright');
+// Date of birth is three dropdowns (day, month, year).
+const fillDob = async (page, iso) => { const [y, m, d] = iso.split('-'); const g = page.getByRole('group', { name: 'Date of birth', exact: true }).first(); await g.getByLabel('Day of birth').selectOption(String(+d)); await g.getByLabel('Month of birth').selectOption(String(+m)); await g.getByLabel('Year of birth').selectOption(y); };
 const base = process.env.VANTA_BOOKING_TEST_URL || 'http://127.0.0.1:3019';
 const api = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -32,7 +34,7 @@ const api = 'https://inkspire-backend-xa2a.onrender.com';
       await page.route('https://storage.example.test/**', route => route.fulfill({ status: 200, body: '' }));
       await page.goto(`${base}/consent?token=bc_test`);
       await page.getByLabel('Full name', { exact: true }).fill('Test client');
-      await page.getByLabel('Date of birth').fill('1990-01-01');
+      await fillDob(page, '1990-01-01');
       await page.getByRole('checkbox').check();
       // Signatures are always drawn; there is no typed option.
       assert.equal(await page.getByRole('button', { name: 'Type signature', exact: true }).count(), 0, 'No typed signature');
