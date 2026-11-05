@@ -8,6 +8,8 @@ const BOOKING_CONFIRMED_RE = /^\/bookings\/([^/]+)\/confirmed$/;
 // Studio short links: /b/<slug> opens the booking form, /c/<slug> the consent form,
 // /w/<slug> the walk-in form.
 const STUDIO_LINK_RE = /^\/(b|c|w)\/([a-z0-9-]{3,40})\/?$/i;
+// Studio invites for artists: /j/<code> opens the join page.
+const STUDIO_INVITE_RE = /^\/j\/([a-z0-9]{6,20})\/?$/i;
 const studioApp = (process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.vanta.tattoo').replace(/\/$/, '');
 
 export default function NotFound() {
@@ -15,6 +17,10 @@ export default function NotFound() {
   useEffect(() => {
     const path = window.location.pathname;
     let m;
+    if ((m = STUDIO_INVITE_RE.exec(path))) {
+      window.location.replace(`/artist/join?code=${encodeURIComponent(m[1].toLowerCase())}`);
+      return;
+    }
     if ((m = STUDIO_LINK_RE.exec(path))) {
       const page = { b: 'studio-booking', c: 'consent', w: 'walkin' }[m[1].toLowerCase()];
       fetch(`${BACKEND_URL}/booking-links/${encodeURIComponent(m[2].toLowerCase())}`)
