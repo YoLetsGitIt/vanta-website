@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["7N752L8N36.matthewkwon.inkspire"],
+        "components": [
+          { "/": "/j/*", "comment": "Studio invite links open the app" }
+        ]
+      }
+    ]
+  }
+}

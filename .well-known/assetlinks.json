@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "vanta.tattoo",
+      "sha256_cert_fingerprints": [
+        "25:91:00:71:E5:AE:1B:49:6F:B0:76:39:D9:A0:6E:4E:62:25:03:8E:E3:CA:04:83:77:DA:CF:8C:77:A5:1B:0A"
+      ]
+    }
+  }
+]
