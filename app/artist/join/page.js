@@ -6,6 +6,13 @@ import { BACKEND_URL, websiteAuth } from '../../../lib/website-auth';
 import styles from '../account/page.module.css';
 
 const APP_STORE_URL = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
+const PLAY_URL = 'https://play.google.com/store/apps/details?id=vanta.tattoo';
+
+// Phones get a button that opens the invite in the Vanta app. Android falls back to Play.
+function appLink(code, platform) {
+  if (platform === 'android') return `intent://join/${code}#Intent;scheme=vanta;package=vanta.tattoo;S.browser_fallback_url=${encodeURIComponent(PLAY_URL)};end`;
+  return `vanta://join/${code}`;
+}
 
 // vanta.tattoo/j/<code> lands here: an artist signs in and joins the studio in one tap.
 export default function JoinStudio() {
@@ -18,10 +25,13 @@ export default function JoinStudio() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [joined, setJoined] = useState(null);
+  const [platform, setPlatform] = useState('');
 
   useEffect(() => {
     const value = (new URLSearchParams(location.search).get('code') || '').trim().toLowerCase();
     setCode(value);
+    const ua = navigator.userAgent || '';
+    setPlatform(/android/i.test(ua) ? 'android' : (/iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) ? 'ios' : '');
     if (!/^[a-z0-9]{6,20}$/.test(value)) { setLoadError('This invite link is incomplete. Ask the studio to send it again.'); return; }
     fetch(`${BACKEND_URL}/studio-invites/${encodeURIComponent(value)}`, { cache: 'no-store' })
       .then(async res => {
@@ -79,8 +89,15 @@ export default function JoinStudio() {
       <p>Open the Vanta app to see the studio in your profile. Check your work schedule so bookings land on the right days.</p>
     </section>}
 
+    {studio && !joined && platform && <section className={styles.card}>
+      <h2>Join in the app</h2>
+      <p>Open this invite in the Vanta app and tap Join.</p>
+      <a className={styles.appButton} href={appLink(code, platform)}>Open in the Vanta app</a>
+      <p className={styles.help}>Don’t have it yet? <a href={platform === 'android' ? PLAY_URL : APP_STORE_URL} style={{ color: '#fff' }}>Get Vanta</a>, create your artist account, then open this link again. Or sign in below.</p>
+    </section>}
+
     {studio && !joined && session === null && <section className={styles.card}>
-      <h2>Sign in to your artist account</h2>
+      <h2>{platform ? 'Or join here' : 'Sign in to your artist account'}</h2>
       <form onSubmit={login} className={styles.form}>
         <label>Email<input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required /></label>
         <label>Password<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></label>
