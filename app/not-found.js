@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { BACKEND_URL } from '../lib/website-auth';
+import BrandLoader, { Wordmark } from '../components/BrandLoader';
 
 const BOOKING_CONFIRM_RE = /^\/bookings\/([^/]+)\/confirm$/;
 const BOOKING_CONFIRMED_RE = /^\/bookings\/([^/]+)\/confirmed$/;
@@ -13,7 +14,7 @@ const STUDIO_INVITE_RE = /^\/j\/([a-z0-9]{6,20})\/?$/i;
 const studioApp = (process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.vanta.tattoo').replace(/\/$/, '');
 
 export default function NotFound() {
-  const [message, setMessage] = useState('Loading…');
+  const [message, setMessage] = useState('');
   useEffect(() => {
     const path = window.location.pathname;
     let m;
@@ -35,8 +36,12 @@ export default function NotFound() {
     }
     if ((m = BOOKING_CONFIRMED_RE.exec(path))) {
       window.location.replace(`/bookings/_/confirmed?id=${encodeURIComponent(m[1])}`);
+      return;
     }
+    setMessage('This page doesn’t exist.');
   }, []);
+
+  if (!message) return <BrandLoader />;
 
   return (
     <main className="page-scroll page-scroll--center" style={{
@@ -45,7 +50,9 @@ export default function NotFound() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }}>
       <div style={{ textAlign: 'center' }}>
+        <Wordmark size={28} />
         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, maxWidth: 320, lineHeight: 1.5 }}>{message}</p>
+        <a href="/" style={{ color: '#c2b699', fontSize: 14, textDecoration: 'none' }}>Go to vanta.tattoo</a>
       </div>
     </main>
   );

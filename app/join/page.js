@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Image from 'next/image';
+import { Wordmark } from '../../components/BrandLoader';
 
 const APP_STORE_URL = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
@@ -30,7 +31,7 @@ export default function JoinPage() {
       <div style={styles.card}>
         <div style={styles.logoRow}>
           <Image src="/vanta-app-icon.png" alt="Vanta" width={56} height={56} style={styles.icon} />
-          <span style={styles.logoText}>VANTA</span>
+          <Wordmark size={30} />
         </div>
 
         <h1 style={styles.heading}>You've been invited</h1>
@@ -75,13 +76,6 @@ const styles = {
   },
   icon: {
     borderRadius: '14px',
-  },
-  logoText: {
-    fontFamily: 'var(--font-heading)',
-    fontSize: '22px',
-    fontWeight: '700',
-    letterSpacing: '5px',
-    color: 'var(--main)',
   },
   heading: {
     fontFamily: 'var(--font-heading)',

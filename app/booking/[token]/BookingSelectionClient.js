@@ -5,6 +5,7 @@ import { websiteAuth, createAccountAndSignIn } from '../../../lib/website-auth';
 import SocialSignIn from '../../../components/SocialSignIn';
 import { bookingReceipt, hasPayableDeposit } from '../../../lib/booking-state.mjs';
 import ManualDepositDetails, { hasManualDeposit } from '../../../components/ManualDepositDetails';
+import BrandLoader, { Wordmark } from '../../../components/BrandLoader';
 
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -404,11 +405,7 @@ export default function BookingSelectionClient() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   if (view === 'loading') {
-    return (
-      <div className="booking-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <div style={s.spinner} />
-      </div>
-    );
+    return <BrandLoader />;
   }
 
   if (view === 'load-error') {
@@ -943,14 +940,14 @@ function Shell({ studio, children }) {
         <div style={s.card}>
           {studio && (
             <div style={s.studioHeader}>
-              <p style={s.wordmark}>VANTA</p>
+              <p style={s.wordmark}><Wordmark size={22} /></p>
               <h2 style={s.studioName}>{studio.name}</h2>
               {studio.address && <p style={s.studioAddress}>{studio.address}</p>}
             </div>
           )}
-          {!studio && <p style={s.wordmark}>VANTA</p>}
+          {!studio && <p style={s.wordmark}><Wordmark size={22} /></p>}
           {children}
-          <p style={s.wordmarkFooter}>VANTA</p>
+          <p style={s.wordmarkFooter}><Wordmark size={18} muted /></p>
         </div>
       </div>
     </div>
@@ -989,14 +986,8 @@ const s = {
     borderRadius: '50%',
     animation: 'spin 0.9s linear infinite',
   },
-  wordmark: {
-    fontFamily: 'var(--font-heading)', fontSize: 13, fontWeight: 700,
-    letterSpacing: 5, color: 'rgba(255,255,255,0.3)', margin: '0 0 24px',
-  },
-  wordmarkFooter: {
-    fontFamily: 'var(--font-heading)', fontSize: 12, fontWeight: 700,
-    letterSpacing: 5, color: 'rgba(255,255,255,0.15)', marginTop: 48, textAlign: 'center',
-  },
+  wordmark: { margin: '0 0 24px' },
+  wordmarkFooter: { marginTop: 48, textAlign: 'center' },
   studioHeader: { marginBottom: 28 },
   studioName: { fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 700, color: 'var(--main)', margin: '0 0 4px' },
   studioAddress: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.35)', margin: 0 },

@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { websiteAuth, createAccountAndSignIn } from '../../lib/website-auth';
 import SocialSignIn from '../../components/SocialSignIn';
+import BrandLoader, { Wordmark } from '../../components/BrandLoader';
 
 const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -473,14 +474,7 @@ function BookingContent() {
 
   if (view === 'loading') {
     return (
-      <div className="booking-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28 }}>
-        <p style={{
-          fontFamily: 'var(--font-heading)',
-          fontSize: 17, fontWeight: 700, letterSpacing: 6,
-          color: 'rgba(255,255,255,0.75)', margin: 0,
-        }}>VANTA</p>
-        <div style={{ ...s.spinner, animation: 'spin 0.9s linear infinite' }} />
-      </div>
+      <BrandLoader />
     );
   }
 
@@ -488,7 +482,7 @@ function BookingContent() {
     return (
       <div className="booking-page" style={{ display: 'flex', justifyContent: 'center', padding: '40px 20px' }}>
         <div style={s.card}>
-          <p style={s.wordmark}>VANTA</p>
+          <p style={{ margin: '0 0 20px' }}><Wordmark size={24} /></p>
           <h1 style={s.heading}>Artist not found</h1>
           <p style={s.muted}>This booking link may be invalid or expired.</p>
         </div>
@@ -740,7 +734,7 @@ function BookingContent() {
             </>
           )}
 
-          <p style={s.wordmarkFooter}>VANTA</p>
+          <p style={s.wordmarkFooter}><Wordmark size={18} muted /></p>
         </div>
       </div>
     </div>
@@ -1423,11 +1417,7 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
 
 export default function BookingPage() {
   return (
-    <Suspense fallback={
-      <div className="booking-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 28, height: 28, border: '2px solid rgba(255,255,255,0.12)', borderTopColor: 'rgba(255,255,255,0.6)', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
-      </div>
-    }>
+    <Suspense fallback={<BrandLoader />}>
       <BookingContent />
     </Suspense>
   );
@@ -1444,12 +1434,6 @@ const s = {
   card: {
     width: '100%',
     maxWidth: 520,
-  },
-  spinner: {
-    width: 28, height: 28,
-    border: '2px solid rgba(255,255,255,0.12)',
-    borderTopColor: 'rgba(255,255,255,0.6)',
-    borderRadius: '50%',
   },
   artistHeader: {
     display: 'flex',
@@ -1485,9 +1469,7 @@ const s = {
     margin: '0 0 20px', lineHeight: 1.65,
   },
   wordmarkFooter: {
-    fontFamily: 'var(--font-heading)',
-    fontSize: 12, fontWeight: 700, letterSpacing: 5,
-    color: 'rgba(255,255,255,0.15)', marginTop: 48, textAlign: 'center',
+    marginTop: 48, textAlign: 'center',
   },
 
   // Auth
