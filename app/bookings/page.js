@@ -2,6 +2,7 @@
 
 import DateOfBirthInput from '@/components/DateOfBirthInput';
 import { resolveBookingArtist } from '../../lib/booking-artist.mjs';
+import { flashBookingState, flashNotice, flashPrefill, flashPriceLabel, isFlashReference } from '../../lib/booking-flash.mjs';
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
@@ -78,6 +79,10 @@ function uploadFileXHR(url, file, onProgress) {
 function BookingContent() {
   const searchParams = useSearchParams();
   const artistReference = searchParams.get('artist');
+  const flashReference = searchParams.get('flash');
+  // A flash post shared with ?flash=<id>: attached to the request like "Book this flash" in the app.
+  const [flash, setFlash] = useState(null);
+  const [flashMessage, setFlashMessage] = useState('');
   const [artistId, setArtistId] = useState(null);
 
   const [artist, setArtist] = useState(null);
@@ -175,14 +180,32 @@ function BookingContent() {
 
     async function init() {
       const resolvedArtistId = await resolveBookingArtist(artistReference, BACKEND_URL, fetch, controller.signal);
-      const [artistData, refData, scheduleData, { data: { session } }] = await Promise.all([
+      const [artistData, refData, scheduleData, { data: { session } }, flashPost] = await Promise.all([
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}`, { signal: controller.signal }).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/referral-code`, { signal: controller.signal }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/work-schedule`, { signal: controller.signal }).then(r => r.ok ? r.json() : { schedule: [] }).catch(() => ({ schedule: [] })),
         supabase.auth.getSession(),
+        isFlashReference(flashReference)
+          ? fetch(`${BACKEND_URL}/tattoos/${flashReference.trim()}`, { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
+          : Promise.resolve(null),
       ]);
       if (!active) return;
       if (!artistData || artistData.error) { setView('error'); return; }
+      if (flashReference) {
+        const state = flashBookingState(flashPost, resolvedArtistId);
+        if (state.status === 'ok') {
+          const prefill = flashPrefill(state.post);
+          setFlash(state.post);
+          setFlashMessage('');
+          setDesignDetails(prefill.designDetails);
+          setBodyLocations(prefill.bodyLocations);
+          setColourStyle(prefill.colourStyle);
+          setColourDetails(prefill.colourDetails);
+        } else {
+          setFlash(null);
+          setFlashMessage(flashNotice(state, artistData.name));
+        }
+      }
       setArtistId(resolvedArtistId);
       setArtist(artistData);
       const locations = bookingStudios(artistData);
@@ -207,7 +230,7 @@ function BookingContent() {
       setView(current => current === 'auth' ? 'form' : current);
     });
     return () => { active = false; controller.abort(); subscription.unsubscribe(); };
-  }, [artistReference]);
+  }, [artistReference, flashReference]);
 
   async function prefillContact(session) {
     const meta = session.user?.user_metadata;
@@ -444,6 +467,7 @@ function BookingContent() {
         reference_images: refImages,
         source: 'personal',
         ...(asGuest ? { dob: contactDob } : {}),
+        ...(flash ? { flash_tattoo_id: flash.id } : {}),
       };
       if (notes.trim()) body.additional_notes = notes.trim();
       if (!pushToLater && earliestDate) body.earliest_date = earliestDate;
@@ -509,10 +533,13 @@ function BookingContent() {
             </div>
           )}
 
+          {flash && <FlashCard post={flash} />}
+          {!flash && flashMessage && view !== 'success' && <p style={s.flashNotice}>{flashMessage}</p>}
+
           {/* ── Auth ── */}
           {view === 'auth' && (
             <>
-              <h1 style={s.heading}>Book with {artist?.name || 'your artist'}</h1>
+              <h1 style={s.heading}>{flash ? 'Book this flash' : `Book with ${artist?.name || 'your artist'}`}</h1>
               <p style={s.muted}>No account needed. Continue as a guest, or sign in to save your details for next time.</p>
 
               <button type="button" style={{ ...s.submitBtn, marginTop: 4 }} onClick={() => setGuest(true)}>
@@ -604,7 +631,7 @@ function BookingContent() {
           {/* ── Multi-step booking form ── */}
           {view === 'form' && (
             <>
-              <h1 style={{ ...s.heading, marginBottom: 24 }}>Make a booking</h1>
+              <h1 style={{ ...s.heading, marginBottom: 24 }}>{flash ? 'Book this flash' : 'Make a booking'}</h1>
 
               {/* Progress header */}
               <div style={s.progressHeader}>
@@ -703,7 +730,7 @@ function BookingContent() {
               <div style={s.successIcon}>✓</div>
               <h1 style={s.heading}>Request sent!</h1>
               <p style={s.muted}>
-                {artist?.name} will review your request and propose available times. You'll receive an email when they respond.
+                {artist?.name} will review your request{flash ? ` for "${flash.title}"` : ''} and propose available times. You'll receive an email when they respond.
               </p>
 
               <div style={s.appCard}>
@@ -1425,7 +1452,37 @@ export default function BookingPage() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
+// Summary of the flash being booked, matching the app's flash card.
+function FlashCard({ post }) {
+  const price = flashPriceLabel(post);
+  const details = [price, post.flash_size].filter(Boolean).join(' · ');
+  const image = Array.isArray(post.images) ? post.images[0] : null;
+  return (
+    <div style={s.flashCard} aria-label={`Flash: ${post.title}`}>
+      {image ? <img src={image} alt="" style={s.flashImage} /> : <div style={s.flashImage} />}
+      <div style={{ minWidth: 0 }}>
+        <div style={s.flashEyebrow}>{post.flash_one_off ? 'ONE-OFF FLASH' : 'FLASH'}</div>
+        <div style={s.flashTitle}>{post.title}</div>
+        {details && <div style={s.flashDetails}>{details}</div>}
+      </div>
+    </div>
+  );
+}
+
 const s = {
+  flashCard: {
+    display: 'flex', alignItems: 'center', gap: 14, padding: 12, marginBottom: 24,
+    borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+    animation: 'booking-fade-in 0.35s ease',
+  },
+  flashImage: { width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: 'rgba(255,255,255,0.06)' },
+  flashEyebrow: { fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.45)' },
+  flashTitle: { fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 700, color: '#fff', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' },
+  flashDetails: { fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
+  flashNotice: {
+    fontFamily: 'var(--font-body)', fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.7)',
+    padding: '10px 12px', borderRadius: 12, background: 'rgba(255,200,80,0.08)', border: '1px solid rgba(255,200,80,0.2)', margin: '0 0 20px',
+  },
   pageInner: {
     display: 'flex',
     justifyContent: 'center',
