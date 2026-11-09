@@ -44,7 +44,7 @@ function ResetPasswordContent() {
       {attempted && (
         <p style={styles.hint}>
           App not opening?{' '}
-          <Link href="https://apps.apple.com/app/vanta/id6743543929" style={styles.link}>
+          <Link href="https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738" style={styles.link}>
             Download from the App Store
           </Link>
         </p>
