@@ -148,6 +148,8 @@ function BookingContent() {
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  // "Send me SMS reminders", ticked unless the client unticks it. It becomes their setting.
+  const [smsReminders, setSmsReminders] = useState(true);
 
   // Submit
   const [submitting, setSubmitting] = useState(false);
@@ -454,6 +456,7 @@ function BookingContent() {
         requester_name: contactName.trim(),
         requester_email: contactEmail.trim(),
         requester_phone: contactPhone.trim(),
+        sms_reminder_opt_in: smsReminders && !!contactPhone.trim(),
         session_type: sessionType,
         design_details: designDetails.trim(),
         body_location: bodyLocations.join(', '),
@@ -684,6 +687,7 @@ function BookingContent() {
                     name={contactName} setName={setContactName}
                     email={contactEmail} setEmail={setContactEmail}
                     phone={contactPhone} setPhone={setContactPhone}
+                    smsReminders={smsReminders} setSmsReminders={setSmsReminders}
                     guest={guest && !session} dob={contactDob} setDob={setContactDob}
                     onSignIn={() => setGuest(false)}
                   />
@@ -697,6 +701,7 @@ function BookingContent() {
                     availabilityWindows={availabilityWindows} pushToLater={pushToLater}
                     earliestDate={earliestDate}
                     name={contactName} email={contactEmail} phone={contactPhone}
+                    smsReminders={smsReminders}
                     studio={selectedStudio}
                   />
                 )}
@@ -1287,7 +1292,7 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
 
 // ─── Step 3: Contact info ────────────────────────────────────────────────────
 
-function StepContact({ name, setName, email, setEmail, phone, setPhone, guest, dob, setDob, onSignIn }) {
+function StepContact({ name, setName, email, setEmail, phone, setPhone, smsReminders, setSmsReminders, guest, dob, setDob, onSignIn }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       <h2 style={{ ...s.stepHeading, marginBottom: 8 }}>Your contact details</h2>
@@ -1355,13 +1360,28 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone, guest, d
         </>}
       </div>
       {guest && <p style={{ ...s.muted, fontSize: 12, marginTop: 12 }}>Name, email, phone and date of birth are all required.</p>}
+
+      <label style={s.reminderOption}>
+        <input
+          type="checkbox"
+          checked={smsReminders}
+          onChange={e => setSmsReminders(e.target.checked)}
+          style={s.reminderCheckbox}
+        />
+        <span>
+          <span style={{ display: 'block', color: '#fff', fontWeight: 600, fontSize: 14 }}>Send me SMS reminders</span>
+          <span style={{ display: 'block', ...s.muted, fontSize: 12, margin: '2px 0 0', lineHeight: 1.5 }}>
+            A text before your appointment. Reply STOP to any reminder to turn them off.
+          </span>
+        </span>
+      </label>
     </div>
   );
 }
 
 // ─── Step 4: Review ──────────────────────────────────────────────────────────
 
-function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, studio }) {
+function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
   const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Colour — ${colourDetails}` : colourLabel(colourStyle);
 
@@ -1435,6 +1455,7 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
         { label: 'Name', value: name },
         { label: 'Email', value: email },
         phone && { label: 'Phone', value: phone },
+        phone && { label: 'SMS reminders', value: smsReminders ? 'Yes' : 'No' },
       ].filter(Boolean)} />
     </div>
   );
@@ -1749,6 +1770,12 @@ const s = {
   toggleThumbOn: { transform: 'translateX(18px)' },
 
   // Contact group
+  reminderOption: {
+    display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 20, padding: '14px 16px',
+    borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer',
+  },
+  // Undo the site-wide text-input styles (min-width 260px, padding).
+  reminderCheckbox: { width: 18, height: 18, minWidth: 0, padding: 0, margin: '2px 0 0', accentColor: '#fff', flexShrink: 0, cursor: 'pointer' },
   contactGroup: {
     background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: 14, overflow: 'hidden',

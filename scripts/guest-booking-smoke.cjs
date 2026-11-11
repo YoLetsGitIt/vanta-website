@@ -73,12 +73,16 @@ async function context(browser, width) {
       assert(await next.isDisabled(), 'Date of birth is required for guests');
       await fillDob(page, '1995-07-08');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      // SMS reminders are asked here, ticked by default; the answer becomes the client's setting.
+      assert(await page.getByRole('checkbox', { name: /Send me SMS reminders/ }).isChecked(), 'SMS reminders start ticked');
       if (shots) await page.screenshot({ path: `${shots}/artist-contact-${width}.png`, fullPage: true });
       await next.click();
+      await page.getByText('SMS reminders', { exact: true }).waitFor();
       await page.getByRole('button', { name: 'Send Request', exact: true }).click();
       await page.getByText('Request sent', { exact: false }).first().waitFor();
       assert.equal(booked.auth, undefined);
       assert.deepEqual([booked.body.requester_name, booked.body.requester_email, booked.body.requester_phone, booked.body.dob], ['Guest Client', 'guest@example.test', '+61400555666', '1995-07-08']);
+      assert.equal(booked.body.sms_reminder_opt_in, true);
       assert(!calls.some(call => call.path === '/auth/users/me' || call.path === '/users' || call.path.startsWith('/auth/v1/signup')), 'No account is created');
       assert.deepEqual(errors, []);
       console.log(`PASS artist link guest booking at ${width}px`);
