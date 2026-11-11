@@ -163,6 +163,10 @@ function BookingContent() {
   const [contactPhone, setContactPhone] = useState('');
   // "Send me SMS reminders", ticked unless the client unticks it. It becomes their setting.
   const [smsReminders, setSmsReminders] = useState(true);
+  // The booking's studio has its own booking form: ask the questions it asks.
+  const [studioForm, setStudioForm] = useState(null);
+  const [allergies, setAllergies] = useState('');
+  const [homeAddress, setHomeAddress] = useState('');
 
   // Submit
   const [submitting, setSubmitting] = useState(false);
@@ -377,7 +381,8 @@ function BookingContent() {
         return (!studios.length || !!selectedStudio) &&
         (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
       case 3: return contactName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim()) &&
-        (!guest || (contactPhone.trim() && contactDob));
+        (!guest || (contactPhone.trim() && contactDob)) &&
+        (!needs('allergies') || allergies.trim()) && (!needs('address') || homeAddress.trim());
       default: return true;
     }
   }
@@ -394,6 +399,18 @@ function BookingContent() {
     setInstantStart('');
     setSubmitError('');
   }
+
+  // Which studio the booking goes to: the one picked, or the instant booking's place.
+  const bookingStudioId = (instantMode ? instantInfo?.studio_id : selectedStudio?.id) || '';
+  useEffect(() => {
+    if (!bookingStudioId) { setStudioForm(null); return; }
+    const controller = new AbortController();
+    fetch(`${BACKEND_URL}/studios/${bookingStudioId}/form-config`, { signal: controller.signal, cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null)).then(cfg => setStudioForm(cfg?.fields || null)).catch(() => {});
+    return () => controller.abort();
+  }, [bookingStudioId]);
+  const asks = key => Boolean(studioForm?.[key]?.enabled);
+  const needs = key => asks(key) && Boolean(studioForm?.[key]?.required);
 
   function chooseStudio(id) {
     if (id === selectedStudioId) return;
@@ -490,6 +507,8 @@ function BookingContent() {
         requester_email: contactEmail.trim(),
         requester_phone: contactPhone.trim(),
         sms_reminder_opt_in: smsReminders && !!contactPhone.trim(),
+        ...(asks('allergies') && allergies.trim() ? { allergies: allergies.trim() } : {}),
+        ...(asks('address') && homeAddress.trim() ? { address: homeAddress.trim() } : {}),
         session_type: sessionType,
         design_details: designDetails.trim(),
         body_location: bodyLocations.join(', '),
@@ -786,7 +805,7 @@ function BookingContent() {
 
               {/* Step content */}
               <div style={{ marginTop: 28 }}>
-                {step === 0 && <StepSessionType hideLength={instantMode} sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
+                {step === 0 && <StepSessionType hideLength={instantMode} services={artist?.serviceType} sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
                 {step === 1 && (
                   <StepDesign
                     isPiercing={isPiercing}
@@ -826,6 +845,10 @@ function BookingContent() {
                     email={contactEmail} setEmail={setContactEmail}
                     phone={contactPhone} setPhone={setContactPhone}
                     smsReminders={smsReminders} setSmsReminders={setSmsReminders}
+                    studioQuestions={{
+                      allergies: asks('allergies') ? { value: allergies, set: setAllergies, required: needs('allergies') } : null,
+                      address: asks('address') ? { value: homeAddress, set: setHomeAddress, required: needs('address') } : null,
+                    }}
                     guest={guest && !session} dob={contactDob} setDob={setContactDob}
                     onSignIn={() => setGuest(false)}
                   />
@@ -915,12 +938,19 @@ function BookingContent() {
 // ─── Step 0: Session type ────────────────────────────────────────────────────
 
 // hideLength: with instant booking the appointment type sets the length instead.
-function StepSessionType({ sessionType, setSessionType, hideLength = false }) {
+// Only what the artist offers: tattoo artists don't take piercings, piercers don't tattoo.
+function offeredSessionTypes(services) {
+  if (services === 'piercing') return SESSION_TYPES.filter(t => t.value === 'piercing');
+  if (services === 'both') return SESSION_TYPES;
+  return SESSION_TYPES.filter(t => t.value !== 'piercing');
+}
+
+function StepSessionType({ sessionType, setSessionType, services, hideLength = false }) {
   return (
     <div>
       <h2 style={s.stepHeading}>What appointment would you like?</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
-        {SESSION_TYPES.map(t => {
+        {offeredSessionTypes(services).map(t => {
           const selected = sessionType === t.value;
           return (
             <button
@@ -1432,7 +1462,7 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
 
 // ─── Step 3: Contact info ────────────────────────────────────────────────────
 
-function StepContact({ name, setName, email, setEmail, phone, setPhone, smsReminders, setSmsReminders, guest, dob, setDob, onSignIn }) {
+function StepContact({ name, setName, email, setEmail, phone, setPhone, smsReminders, setSmsReminders, studioQuestions, guest, dob, setDob, onSignIn }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       <h2 style={{ ...s.stepHeading, marginBottom: 8 }}>Your contact details</h2>
@@ -1500,6 +1530,13 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone, smsRemin
         </>}
       </div>
       {guest && <p style={{ ...s.muted, fontSize: 12, marginTop: 12 }}>Name, email, phone and date of birth are all required.</p>}
+
+      {studioQuestions?.allergies && (
+        <StudioQuestion label="Allergies or medical conditions" placeholder={studioQuestions.allergies.required ? 'Write none if there aren\u2019t any' : ''} {...studioQuestions.allergies} />
+      )}
+      {studioQuestions?.address && (
+        <StudioQuestion label="Home address" placeholder="Street, suburb, postcode" {...studioQuestions.address} />
+      )}
 
       <label style={s.reminderOption}>
         <input
@@ -2006,5 +2043,20 @@ function InstantPlacePicker({ places, current, artistName, onChoose }) {
         })}
       </div>
     </div>
+  );
+}
+
+// One of the studio's own booking-form questions.
+function StudioQuestion({ label, placeholder, value, set, required }) {
+  return (
+    <label style={{ display: 'block', marginTop: 20 }}>
+      <span style={{ ...s.label, display: 'block', marginBottom: 8 }}>{required ? label : `${label} (optional)`}</span>
+      <textarea value={value} onChange={e => set(e.target.value)} placeholder={placeholder} rows={2}
+        style={{
+          width: '100%', boxSizing: 'border-box', minWidth: 0, resize: 'vertical', padding: '12px 14px', borderRadius: 12,
+          border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff',
+          fontFamily: 'var(--font-body)', fontSize: 15, lineHeight: 1.5,
+        }} />
+    </label>
   );
 }

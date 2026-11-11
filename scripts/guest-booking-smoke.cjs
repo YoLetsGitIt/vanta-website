@@ -27,7 +27,7 @@ async function context(browser, width) {
       await c.route(`${api}/**`, route => {
         const req = route.request(), path = new URL(req.url()).pathname;
         calls.push({ method: req.method(), path, auth: req.headers().authorization });
-        if (path === `/artists/${artistId}`) return route.fulfill({ json: { id: artistId, name: 'Alex Ink' } });
+        if (path === `/artists/${artistId}`) return route.fulfill({ json: { id: artistId, name: 'Alex Ink', serviceType: 'both' } });
         if (path.endsWith('/work-schedule')) return route.fulfill({ json: { schedule: [] } });
         if (path === '/bookings/guest') { booked = { body: req.postDataJSON(), auth: req.headers().authorization }; return route.fulfill({ status: 201, json: { id: 'b' } }); }
         if (path === '/bookings/guest/uploads/sign') { signed = req.postDataJSON(); return route.fulfill({ json: { uploads: [] } }); }
@@ -165,7 +165,7 @@ async function context(browser, width) {
       await c.route(`${api}/**`, route => {
         const req = route.request(), path = new URL(req.url()).pathname;
         if (path === '/users' && req.method() === 'POST') { created = req.postDataJSON(); return route.fulfill({ status: 201, json: {} }); }
-        if (path === `/artists/${artistId}`) return route.fulfill({ json: { id: artistId, name: 'Alex Ink' } });
+        if (path === `/artists/${artistId}`) return route.fulfill({ json: { id: artistId, name: 'Alex Ink', serviceType: 'both' } });
         if (path.endsWith('/work-schedule')) return route.fulfill({ json: { schedule: [] } });
         return route.fulfill({ json: {} });
       });
