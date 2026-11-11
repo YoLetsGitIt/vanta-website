@@ -381,6 +381,19 @@ function BookingContent() {
     }
   }
 
+  // Instant booking at another of the artist's places: its own types, times and deposit.
+  async function chooseInstantPlace(studioId) {
+    if ((instantInfo?.studio_id || null) === studioId) return;
+    const param = studioId || 'personal';
+    const next = await fetch(`${BACKEND_URL}/artists/${artistId}/instant-booking?studio_id=${encodeURIComponent(param)}`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null)).catch(() => null);
+    if (!next?.available) { setSubmitError('That place isn\u2019t taking instant bookings right now.'); return; }
+    setInstantInfo(next);
+    setInstantType('');
+    setInstantStart('');
+    setSubmitError('');
+  }
+
   function chooseStudio(id) {
     if (id === selectedStudioId) return;
     setSelectedStudioId(id);
@@ -470,6 +483,8 @@ function BookingContent() {
       const body = {
         artist_id: artistId,
         ...(selectedStudio && !instantMode ? { studio_id: selectedStudio.id } : {}),
+        // Instant: the place the time was picked at (none = the artist's own bookings).
+        ...(instantMode && instantInfo.studio_id ? { studio_id: instantInfo.studio_id } : {}),
         requester_name: contactName.trim(),
         requester_email: contactEmail.trim(),
         requester_phone: contactPhone.trim(),
@@ -795,8 +810,12 @@ function BookingContent() {
                     showBodyPicker={showBodyPicker} setShowBodyPicker={setShowBodyPicker}
                   />
                 )}
+                {step === 2 && instantMode && (instantInfo.places?.length || 0) > 1 && (
+                  <InstantPlacePicker places={instantInfo.places} current={instantInfo.studio_id || null}
+                    artistName={artist?.name} onChoose={chooseInstantPlace} />
+                )}
                 {step === 2 && instantMode && (
-                  <InstantTimePicker backend={BACKEND_URL} artistId={artistId} info={instantInfo}
+                  <InstantTimePicker key={instantInfo.studio_id || 'personal'} backend={BACKEND_URL} artistId={artistId} info={instantInfo}
                     typeId={instantType} onType={setInstantType} start={instantStart} onStart={setInstantStart} />
                 )}
                 {step === 2 && !instantMode && (
@@ -1978,3 +1997,28 @@ const s = {
   appCardTitle: { fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--main)', marginBottom: 8 },
   appCardFeature: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.75 },
 };
+
+// Where to book instantly, when the artist takes instant bookings in more than one place.
+function InstantPlacePicker({ places, current, artistName, onChoose }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <p style={{ ...s.label, margin: '0 0 8px' }}>Where</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {places.map(place => {
+          const id = place.studio_id || null;
+          const on = id === current;
+          return (
+            <button key={id || 'personal'} type="button" onClick={() => onChoose(id)} aria-pressed={on}
+              style={{
+                padding: '9px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600,
+                border: on ? '1px solid rgba(255,255,255,0.65)' : '1px solid rgba(255,255,255,0.12)',
+                background: on ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)', color: '#fff',
+              }}>
+              {place.name || `With ${artistName || 'the artist'}`}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

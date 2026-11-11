@@ -17,12 +17,17 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
   const [reload, setReload] = useState(0);
   const viewerZone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : '';
 
+  // Instant booking is set per place: the times are for this one (a studio, or the
+  // artist's own bookings). Older servers don't say, and pick it themselves.
+  const place = info.studio_id || (info.places ? 'personal' : '');
+
   useEffect(() => {
     if (!typeId) return;
     const controller = new AbortController();
     setDays(null);
     setError('');
-    fetch(`${backend}/artists/${artistId}/open-times?type_id=${typeId}&date=${from}&days=${DAYS_PER_PAGE}`, { signal: controller.signal, cache: 'no-store' })
+    const placeParam = place ? `&studio_id=${encodeURIComponent(place)}` : '';
+    fetch(`${backend}/artists/${artistId}/open-times?type_id=${typeId}&date=${from}&days=${DAYS_PER_PAGE}${placeParam}`, { signal: controller.signal, cache: 'no-store' })
       .then(async res => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Times could not be loaded. Please try again.');
@@ -33,7 +38,7 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
       })
       .catch(e => { if (e.name !== 'AbortError') setError(e.message); });
     return () => controller.abort();
-  }, [backend, artistId, typeId, from, reload]);
+  }, [backend, artistId, typeId, from, reload, place]);
 
   const selectedDay = days?.find(d => d.date === day);
   const anyOpen = days?.some(d => d.slots.length);
