@@ -1,7 +1,7 @@
 'use client';
 
 import DateOfBirthInput from '@/components/DateOfBirthInput';
-import { resolveBookingArtist } from '../../lib/booking-artist.mjs';
+import { resolveBookingArtist, subdomainReference } from '../../lib/booking-artist.mjs';
 import { flashBookingState, flashNotice, flashPrefill, flashPriceLabel, isFlashReference } from '../../lib/booking-flash.mjs';
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
 import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL } from '../../lib/booking-instant.mjs';
@@ -80,7 +80,9 @@ function uploadFileXHR(url, file, onProgress) {
 
 function BookingContent() {
   const searchParams = useSearchParams();
-  const artistReference = searchParams.get('artist');
+  // On an artist's own address (matthew.vanta.tattoo) the artist comes from the address.
+  const [hostReference] = useState(() => (typeof window === 'undefined' ? '' : subdomainReference(window.location.hostname)));
+  const artistReference = searchParams.get('artist') || hostReference || null;
   const flashReference = searchParams.get('flash');
   // A flash post shared with ?flash=<id>: attached to the request like "Book this flash" in the app.
   const [flash, setFlash] = useState(null);
