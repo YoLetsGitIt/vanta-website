@@ -9,8 +9,18 @@ const BOOKING_CONFIRMED_RE = /^\/bookings\/([^/]+)\/confirmed$/;
 // Studio short links: /b/<slug> opens the booking form, /c/<slug> the consent form,
 // /w/<slug> the walk-in form.
 const STUDIO_LINK_RE = /^\/(b|c|w)\/([a-z0-9-]{3,40})\/?$/i;
-// Studio invites for artists: /j/<code> opens the join page.
-const STUDIO_INVITE_RE = /^\/j\/([a-z0-9]{6,20})\/?$/i;
+// Old studio invite links (/j/<code>). Artists now join with the studio code in
+// the app, and the app opens these links itself once installed; without the app,
+// phones go to the store and computers to the artists page.
+const STUDIO_INVITE_RE = /^\/j\/[a-z0-9]{6,20}\/?$/i;
+const APP_STORE_URL = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
+const PLAY_URL = 'https://play.google.com/store/apps/details?id=vanta.tattoo';
+
+function storeFor(ua, touchPoints) {
+  if (/android/i.test(ua)) return PLAY_URL;
+  if (/iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && touchPoints > 1)) return APP_STORE_URL;
+  return '/artists';
+}
 const studioApp = (process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.vanta.tattoo').replace(/\/$/, '');
 
 export default function NotFound() {
@@ -18,8 +28,8 @@ export default function NotFound() {
   useEffect(() => {
     const path = window.location.pathname;
     let m;
-    if ((m = STUDIO_INVITE_RE.exec(path))) {
-      window.location.replace(`/artist/join?code=${encodeURIComponent(m[1].toLowerCase())}`);
+    if (STUDIO_INVITE_RE.test(path)) {
+      window.location.replace(storeFor(navigator.userAgent || '', navigator.maxTouchPoints || 0));
       return;
     }
     if ((m = STUDIO_LINK_RE.exec(path))) {
