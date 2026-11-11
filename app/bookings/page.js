@@ -14,7 +14,6 @@ import SocialSignIn from '../../components/SocialSignIn';
 import BrandLoader, { Wordmark } from '../../components/BrandLoader';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BOOKING_API_URL || 'https://inkspire-backend-xa2a.onrender.com';
-const STUDIO_APP_URL = (process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.vanta.tattoo').replace(/\/$/, '');
 
 const supabase = websiteAuth();
 
@@ -109,7 +108,9 @@ function BookingContent() {
   const [instantStart, setInstantStart] = useState('');
   // Back from payment: { result, booking, token, state: checking|booked|waiting|closed|released, ... }
   const [payment, setPayment] = useState(null);
-  const instantMode = Boolean(instantInfo?.available && !instantInfo.studio);
+  // Booked here wherever the artist takes it, including a studio on Vanta Studio: the
+  // booking is passed to that studio and the client stays on this page.
+  const instantMode = Boolean(instantInfo?.available);
   const instantChoice = instantMode ? instantInfo.types.find(t => t.id === instantType) : null;
   useEffect(() => {
     if (session) return;
@@ -625,16 +626,6 @@ function BookingContent() {
           {!flash && flashMessage && view !== 'success' && <p style={s.flashNotice}>{flashMessage}</p>}
 
           {/* Artists at a Vanta Studio studio are booked instantly through the studio's form. */}
-          {instantInfo?.available && instantInfo.studio && (view === 'auth' || view === 'form') && (
-            <a href={`${STUDIO_APP_URL}/studio-booking?s=${instantInfo.studio.id}&a=${artistId}`} style={s.instantCard}>
-              <span style={{ flex: 1 }}>
-                <span style={s.pushTitle}>Book a time now</span>
-                <span style={{ ...s.pushSub, display: 'block' }}>Pick one of {artist?.name || 'the artist'}’s open times at {instantInfo.studio.name} and pay your deposit to lock it in.</span>
-              </span>
-              <span aria-hidden="true" style={{ color: 'var(--main)', fontSize: 20 }}>›</span>
-            </a>
-          )}
-
           {/* ── Back from payment ── */}
           {view === 'payment' && payment && (
             <div aria-live="polite">
@@ -1906,11 +1897,6 @@ const s = {
   },
 
   // Availability
-  instantCard: {
-    display: 'flex', alignItems: 'center', gap: 14, margin: '0 0 24px',
-    padding: '14px 16px', background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.16)', borderRadius: 14, textDecoration: 'none',
-  },
   pushCard: {
     display: 'flex', alignItems: 'center', gap: 16,
     padding: '14px 16px', background: 'rgba(255,255,255,0.05)',
