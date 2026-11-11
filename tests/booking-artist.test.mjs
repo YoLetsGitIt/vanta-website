@@ -49,3 +49,10 @@ test('an artist address resolves to the artist it was given to', async () => {
   await assert.rejects(resolveBookingArtist('sub:nobody', 'https://api.test', async () => ({ ok: false })));
   await assert.rejects(resolveBookingArtist('sub:bad_name', 'https://api.test', () => { assert.fail('invalid name fetched'); }));
 });
+
+test('an address without Vanta Pro sends clients to the artist regular link', async () => {
+  await assert.rejects(
+    resolveBookingArtist('sub:matthew', 'https://api.test', async () => ({ ok: true, json: async () => ({ artist_id: artistId, active: false }) })),
+    err => err.redirectTo === `https://www.vanta.tattoo/bookings?artist=${artistId}`,
+  );
+});

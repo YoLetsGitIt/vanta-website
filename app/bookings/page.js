@@ -244,7 +244,11 @@ function BookingContent() {
       if (session) { setSession(session); prefillContact(session); setView('form'); }
       else { setView('auth'); }
     }
-    init().catch(() => { if (active) setView('error'); });
+    init().catch(err => {
+      if (!active) return;
+      if (err?.redirectTo) { window.location.replace(err.redirectTo); return; }
+      setView('error');
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) return;
