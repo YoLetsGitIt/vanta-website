@@ -4,6 +4,8 @@ import DateOfBirthInput from '@/components/DateOfBirthInput';
 import { resolveBookingArtist } from '../../lib/booking-artist.mjs';
 import { flashBookingState, flashNotice, flashPrefill, flashPriceLabel, isFlashReference } from '../../lib/booking-flash.mjs';
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
+import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL } from '../../lib/booking-instant.mjs';
+import InstantTimePicker from '../../components/InstantTimePicker';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -11,7 +13,8 @@ import { websiteAuth, createAccountAndSignIn } from '../../lib/website-auth';
 import SocialSignIn from '../../components/SocialSignIn';
 import BrandLoader, { Wordmark } from '../../components/BrandLoader';
 
-const BACKEND_URL = 'https://inkspire-backend-xa2a.onrender.com';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BOOKING_API_URL || 'https://inkspire-backend-xa2a.onrender.com';
+const STUDIO_APP_URL = (process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.vanta.tattoo').replace(/\/$/, '');
 
 const supabase = websiteAuth();
 
@@ -98,7 +101,16 @@ function BookingContent() {
   };
   const [showEmailAuth, setShowEmailAuth] = useState(false);
   const [contactDob, setContactDob] = useState('');
-  const [view, setView] = useState('loading'); // loading|auth|form|success|error
+  const [view, setView] = useState('loading'); // loading|auth|form|success|error|payment
+
+  // Instant booking: the artist's open times, booked by paying the deposit.
+  const [instantInfo, setInstantInfo] = useState(null);
+  const [instantType, setInstantType] = useState('');
+  const [instantStart, setInstantStart] = useState('');
+  // Back from payment: { result, booking, token, state: checking|booked|waiting|closed|released, ... }
+  const [payment, setPayment] = useState(null);
+  const instantMode = Boolean(instantInfo?.available && !instantInfo.studio);
+  const instantChoice = instantMode ? instantInfo.types.find(t => t.id === instantType) : null;
   useEffect(() => {
     if (session) return;
     if (guest && view === 'auth') setView('form');
@@ -182,7 +194,7 @@ function BookingContent() {
 
     async function init() {
       const resolvedArtistId = await resolveBookingArtist(artistReference, BACKEND_URL, fetch, controller.signal);
-      const [artistData, refData, scheduleData, { data: { session } }, flashPost] = await Promise.all([
+      const [artistData, refData, scheduleData, { data: { session } }, flashPost, instant] = await Promise.all([
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}`, { signal: controller.signal }).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/referral-code`, { signal: controller.signal }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/work-schedule`, { signal: controller.signal }).then(r => r.ok ? r.json() : { schedule: [] }).catch(() => ({ schedule: [] })),
@@ -190,6 +202,7 @@ function BookingContent() {
         isFlashReference(flashReference)
           ? fetch(`${BACKEND_URL}/tattoos/${flashReference.trim()}`, { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
           : Promise.resolve(null),
+        fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/instant-booking`, { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
       if (!active) return;
       if (!artistData || artistData.error) { setView('error'); return; }
@@ -218,6 +231,9 @@ function BookingContent() {
       setReferralCode(refData?.referral_code || null);
       const sched = scheduleData?.schedule || [];
       setArtistSchedule(sched);
+      setInstantInfo(instant);
+      const back = paymentReturn(new URLSearchParams(window.location.search));
+      if (back) { setPayment({ ...back, state: 'checking' }); setView('payment'); if (session) setSession(session); return; }
       if (session) { setSession(session); prefillContact(session); setView('form'); }
       else { setView('auth'); }
     }
@@ -356,7 +372,8 @@ function BookingContent() {
     switch (step) {
       case 0: return !!sessionType;
       case 1: return designDetails.trim() && bodyLocations.length > 0 && (isPiercing || (colourStyle && photoFiles.length > 0));
-      case 2: return (!studios.length || !!selectedStudio) &&
+      case 2: if (instantMode) return Boolean(instantChoice && instantStart);
+        return (!studios.length || !!selectedStudio) &&
         (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
       case 3: return contactName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim()) &&
         (!guest || (contactPhone.trim() && contactDob));
@@ -389,8 +406,8 @@ function BookingContent() {
   async function handleSubmit() {
     if ((!session && !guest) || !artistId) return;
     const asGuest = !session;
-    if (studios.length && !selectedStudio) { setSubmitError('Choose a studio for your booking.'); return; }
-    if (availabilityWindows.length && !windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule)) {
+    if (!instantMode && studios.length && !selectedStudio) { setSubmitError('Choose a studio for your booking.'); return; }
+    if (!instantMode && availabilityWindows.length && !windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule)) {
       setSubmitError('Choose availability within the working hours at your selected studio.'); return;
     }
     setSubmitting(true);
@@ -452,7 +469,7 @@ function BookingContent() {
 
       const body = {
         artist_id: artistId,
-        ...(selectedStudio ? { studio_id: selectedStudio.id } : {}),
+        ...(selectedStudio && !instantMode ? { studio_id: selectedStudio.id } : {}),
         requester_name: contactName.trim(),
         requester_email: contactEmail.trim(),
         requester_phone: contactPhone.trim(),
@@ -475,6 +492,14 @@ function BookingContent() {
       if (notes.trim()) body.additional_notes = notes.trim();
       if (!pushToLater && earliestDate) body.earliest_date = earliestDate;
       if (pushToLater && earliestDate) body.earliest_date = earliestDate;
+      if (instantMode) {
+        // The picked time instead of availability; the client pays next to lock it in.
+        body.availability_windows = [];
+        body.push_to_later = false;
+        delete body.earliest_date;
+        body.instant = { appointment_type_id: instantType, start_time: instantStart, return_url: returnURL(window.location.href) };
+        setSubmitPhase('Holding your time…');
+      }
 
       const res = await fetch(`${BACKEND_URL}/bookings${asGuest ? '/guest' : ''}`, {
         method: 'POST',
@@ -484,9 +509,23 @@ function BookingContent() {
       if (!res.ok) {
         clearInterval(ticker);
         const err = await res.json().catch(() => ({}));
+        if (instantMode && res.status === 409) {
+          // Someone else got the time first: pick another.
+          setInstantStart('');
+          setStep(2);
+          setStepError(err.error || 'That time was just taken. Pick another time.');
+          return;
+        }
         throw new Error(err.error || `Request failed (${res.status})`);
       }
       clearInterval(ticker);
+      const created = await res.json().catch(() => ({}));
+      if (instantMode && created.instant?.checkout_url) {
+        setSubmitPhase('Opening payment…');
+        setSubmitProgress(1);
+        window.location.assign(created.instant.checkout_url);
+        return;
+      }
       setSubmitProgress(1);
       setView('success');
     } catch (err) {
@@ -495,6 +534,37 @@ function BookingContent() {
       setSubmitting(false);
       setSubmitPhase('');
     }
+  }
+
+  // ── Back from payment ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!payment || payment.state !== 'checking') return;
+    let live = true;
+    const { booking, token, result } = payment;
+    if (result === 'cancelled') {
+      // They left payment: give the time back straight away.
+      fetch(`${BACKEND_URL}/bookings/${booking}/instant-release`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
+        .catch(() => {})
+        .finally(() => { if (live) setPayment(p => ({ ...p, state: 'released' })); });
+      return () => { live = false; };
+    }
+    // Paid: the payment confirms the booking a moment later.
+    let tries = 0;
+    async function check() {
+      const res = await fetch(`${BACKEND_URL}/bookings/${booking}/instant-status?t=${encodeURIComponent(token)}`, { cache: 'no-store' }).catch(() => null);
+      const data = res?.ok ? await res.json().catch(() => null) : null;
+      if (!live) return;
+      if (data?.state === 'booked' || data?.state === 'closed') { setPayment(p => ({ ...p, ...data })); return; }
+      if (++tries >= 15) { setPayment(p => ({ ...p, ...(data || {}), state: 'waiting' })); return; }
+      setTimeout(check, 2000);
+    }
+    check();
+    return () => { live = false; };
+  }, [payment]);
+
+  function bookAgain() {
+    window.location.assign(returnURL(window.location.href));
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -538,6 +608,60 @@ function BookingContent() {
 
           {flash && <FlashCard post={flash} />}
           {!flash && flashMessage && view !== 'success' && <p style={s.flashNotice}>{flashMessage}</p>}
+
+          {/* Artists at a Vanta Studio studio are booked instantly through the studio's form. */}
+          {instantInfo?.available && instantInfo.studio && (view === 'auth' || view === 'form') && (
+            <a href={`${STUDIO_APP_URL}/studio-booking?s=${instantInfo.studio.id}&a=${artistId}`} style={s.instantCard}>
+              <span style={{ flex: 1 }}>
+                <span style={s.pushTitle}>Book a time now</span>
+                <span style={{ ...s.pushSub, display: 'block' }}>Pick one of {artist?.name || 'the artist'}’s open times at {instantInfo.studio.name} and pay your deposit to lock it in.</span>
+              </span>
+              <span aria-hidden="true" style={{ color: 'var(--main)', fontSize: 20 }}>›</span>
+            </a>
+          )}
+
+          {/* ── Back from payment ── */}
+          {view === 'payment' && payment && (
+            <div aria-live="polite">
+              {payment.state === 'checking' && (
+                <>
+                  <h1 style={s.heading}>{payment.result === 'paid' ? 'Confirming your booking…' : 'One moment…'}</h1>
+                  <p style={s.muted}>This only takes a few seconds.</p>
+                </>
+              )}
+              {payment.state === 'booked' && (
+                <>
+                  <div style={s.successIcon}>✓</div>
+                  <h1 style={s.heading}>You’re booked in</h1>
+                  <p style={s.muted}>
+                    {payment.chosen_time && instantInfo?.timezone ? `${formatWhen(payment.chosen_time, instantInfo.timezone)} with ${artist?.name || 'your artist'}. ` : ''}
+                    Your deposit is paid and a confirmation is on its way to your email.
+                  </p>
+                </>
+              )}
+              {payment.state === 'waiting' && (
+                <>
+                  <div style={s.successIcon}>✓</div>
+                  <h1 style={s.heading}>Payment received</h1>
+                  <p style={s.muted}>We’re confirming your booking now. You’ll get an email as soon as it’s done.</p>
+                </>
+              )}
+              {payment.state === 'closed' && (
+                <>
+                  <h1 style={s.heading}>This time is no longer held</h1>
+                  <p style={s.muted}>The hold ran out before payment finished, so you haven’t been charged for it. Pick a time again to book.</p>
+                  <button type="button" style={{ ...s.submitBtn, marginTop: 8 }} onClick={bookAgain}>Pick a time</button>
+                </>
+              )}
+              {payment.state === 'released' && (
+                <>
+                  <h1 style={s.heading}>Payment cancelled</h1>
+                  <p style={s.muted}>You haven’t been charged and the time wasn’t booked. You can pick a time again whenever you’re ready.</p>
+                  <button type="button" style={{ ...s.submitBtn, marginTop: 8 }} onClick={bookAgain}>Book again</button>
+                </>
+              )}
+            </div>
+          )}
 
           {/* ── Auth ── */}
           {view === 'auth' && (
@@ -642,7 +766,7 @@ function BookingContent() {
                   <button style={s.backBtn} onClick={handleBack} disabled={step === 0}>
                     {step > 0 ? '‹' : ''}
                   </button>
-                  <span style={s.stepTitle}>{STEP_TITLES[step]}</span>
+                  <span style={s.stepTitle}>{step === 2 && instantMode ? 'Time' : STEP_TITLES[step]}</span>
                   <div style={s.stepDots}>
                     {Array.from({ length: TOTAL_STEPS }, (_, i) => (
                       <div key={i} style={{ ...s.dot, ...(i === step ? s.dotActive : i < step ? s.dotDone : {}) }} />
@@ -656,7 +780,7 @@ function BookingContent() {
 
               {/* Step content */}
               <div style={{ marginTop: 28 }}>
-                {step === 0 && <StepSessionType sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
+                {step === 0 && <StepSessionType hideLength={instantMode} sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
                 {step === 1 && (
                   <StepDesign
                     isPiercing={isPiercing}
@@ -671,7 +795,11 @@ function BookingContent() {
                     showBodyPicker={showBodyPicker} setShowBodyPicker={setShowBodyPicker}
                   />
                 )}
-                {step === 2 && (
+                {step === 2 && instantMode && (
+                  <InstantTimePicker backend={BACKEND_URL} artistId={artistId} info={instantInfo}
+                    typeId={instantType} onType={setInstantType} start={instantStart} onStart={setInstantStart} />
+                )}
+                {step === 2 && !instantMode && (
                   <StepAvailability
                     availabilityWindows={availabilityWindows} setAvailabilityWindows={setAvailabilityWindows}
                     pushToLater={pushToLater} setPushToLater={setPushToLater}
@@ -702,7 +830,8 @@ function BookingContent() {
                     earliestDate={earliestDate}
                     name={contactName} email={contactEmail} phone={contactPhone}
                     smsReminders={smsReminders}
-                    studio={selectedStudio}
+                    studio={instantMode ? null : selectedStudio}
+                    instant={instantChoice && instantStart ? { type: instantChoice, start: instantStart, zone: instantInfo.timezone } : null}
                   />
                 )}
               </div>
@@ -724,7 +853,7 @@ function BookingContent() {
                   <span>
                     {Math.round(submitProgress * 100)}%{submitPhase ? ` · ${submitPhase}` : ''}
                   </span>
-                ) : step < TOTAL_STEPS - 1 ? 'Continue' : 'Send Request'}
+                ) : step < TOTAL_STEPS - 1 ? 'Continue' : instantMode ? `Pay ${formatMoney(instantChoice?.deposit)} deposit` : 'Send Request'}
               </button>
             </>
           )}
@@ -775,7 +904,8 @@ function BookingContent() {
 
 // ─── Step 0: Session type ────────────────────────────────────────────────────
 
-function StepSessionType({ sessionType, setSessionType }) {
+// hideLength: with instant booking the appointment type sets the length instead.
+function StepSessionType({ sessionType, setSessionType, hideLength = false }) {
   return (
     <div>
       <h2 style={s.stepHeading}>What appointment would you like?</h2>
@@ -794,7 +924,7 @@ function StepSessionType({ sessionType, setSessionType }) {
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 {t.size && <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(0,0,0,0.65)' } : {}) }}>{t.size}</div>}
-                <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(0,0,0,0.4)' } : {}) }}>{t.duration}</div>
+                {!hideLength && <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(0,0,0,0.4)' } : {}) }}>{t.duration}</div>}
               </div>
               <div style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}) }}>
                 {selected && <span style={{ fontSize: 12, color: '#fff' }}>✓</span>}
@@ -1381,7 +1511,7 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone, smsRemin
 
 // ─── Step 4: Review ──────────────────────────────────────────────────────────
 
-function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio }) {
+function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio, instant }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
   const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Colour — ${colourDetails}` : colourLabel(colourStyle);
 
@@ -1406,14 +1536,15 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
 
   return (
     <div>
-      <h2 style={{ ...s.stepHeading, marginBottom: 20 }}>Review your request</h2>
+      <h2 style={{ ...s.stepHeading, marginBottom: instant ? 6 : 20 }}>{instant ? 'Review and pay' : 'Review your request'}</h2>
+      {instant && <p style={{ ...s.muted, fontSize: 13, margin: '0 0 20px' }}>Your time is held for 30 minutes while you pay. It’s booked once the deposit goes through.</p>}
 
       {/* Session type */}
       {st && (
         <div style={{ ...s.reviewGroup, marginBottom: 16 }}>
           <div style={s.reviewRow}>
             <span style={s.reviewLabel}>Session</span>
-            <span style={s.reviewValue}>{st.label} · {st.duration}</span>
+            <span style={s.reviewValue}>{instant ? st.label : `${st.label} · ${st.duration}`}</span>
           </div>
         </div>
       )}
@@ -1442,14 +1573,20 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
         studio.timezone && { label: 'Time zone', value: studio.timezone.replaceAll('_', ' ') },
       ].filter(Boolean)} />}
 
-      <ReviewGroup title="AVAILABILITY" rows={[
+      {instant && <ReviewGroup title="APPOINTMENT" rows={[
+        { label: 'Type', value: `${instant.type.name} · ${formatLength(instant.type.duration_minutes)}` },
+        { label: 'Time', value: formatWhen(instant.start, instant.zone) },
+        { label: 'Deposit', value: `${formatMoney(instant.type.deposit)}, paid now by card` },
+      ]} />}
+
+      {!instant && <ReviewGroup title="AVAILABILITY" rows={[
         ...availabilityWindows.map(w => {
           const dayIdx = DAY_VALUES.indexOf(w.dayOfWeek);
           const day = DAYS[dayIdx] ?? '?';
           return { label: day, value: `${w.startTime}–${w.endTime}` };
         }),
         pushToLater && earliestDate && { label: 'Earliest', value: earliestDate },
-      ].filter(Boolean)} />
+      ].filter(Boolean)} />}
 
       <ReviewGroup title="CONTACT" rows={[
         { label: 'Name', value: name },
@@ -1750,6 +1887,11 @@ const s = {
   },
 
   // Availability
+  instantCard: {
+    display: 'flex', alignItems: 'center', gap: 14, margin: '0 0 24px',
+    padding: '14px 16px', background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.16)', borderRadius: 14, textDecoration: 'none',
+  },
   pushCard: {
     display: 'flex', alignItems: 'center', gap: 16,
     padding: '14px 16px', background: 'rgba(255,255,255,0.05)',
