@@ -8,7 +8,8 @@ const DAYS_PER_PAGE = 14;
 
 // Instant booking: pick an appointment type, then one of the artist's open times.
 // info is GET /artists/{id}/instant-booking.
-export default function InstantTimePicker({ backend, artistId, info, typeId, onType, start, onStart }) {
+// hideTypes: the appointment was already chosen on an earlier step; only the time is picked here.
+export default function InstantTimePicker({ backend, artistId, info, typeId, onType, start, onStart, hideTypes = false }) {
   const zone = info.timezone;
   const today = useMemo(() => todayIn(zone), [zone]);
   const [from, setFrom] = useState(today);
@@ -48,6 +49,10 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
   return (
     <div>
       <h2 style={st.heading}>Pick a time</h2>
+      {hideTypes ? (() => {
+        const chosen = info.types.find(t => t.id === typeId);
+        return <p style={st.sub}>{chosen ? `Times for your ${chosen.name} (${formatLength(chosen.duration_minutes)}). ` : ''}Your time is held while you pay the deposit and the Vanta booking fee.</p>;
+      })() : <>
       <p style={st.sub}>Choose your appointment, then a time. You’ll pay the deposit and the Vanta booking fee to lock it in. Prices below are the total you pay now.</p>
 
       <div style={st.label}>APPOINTMENT</div>
@@ -70,6 +75,7 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
           );
         })}
       </div>
+      </>}
 
       {typeId && (
         <>

@@ -8,6 +8,9 @@ import { formQuestion } from '../../lib/booking-form.mjs';
 import { depositCharge, money, payWays, BOOKING_FEE_NOTE } from '../../lib/booking-fee.mjs';
 import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL } from '../../lib/booking-instant.mjs';
 import InstantTimePicker from '../../components/InstantTimePicker';
+import AppPromo from '../../components/AppPromo';
+import { COUNTRIES, DEFAULT_COUNTRY, fullPhone, joinName, splitName, splitPhone, validEmail, validPhone } from '../../lib/booking-contact.mjs';
+import { offeredTypes, sessionTypeFor } from '../../lib/booking-types.mjs';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -111,6 +114,13 @@ function BookingContent() {
   // Instant booking: the artist's open times, booked by paying the deposit.
   const [instantInfo, setInstantInfo] = useState(null);
   const [instantType, setInstantType] = useState('');
+  // What GET /instant-booking says about the place being booked, whether or not it takes
+  // instant bookings: its appointment types are offered for requests too.
+  const [placeInfo, setPlaceInfo] = useState(null);
+  // The artist's appointment type the client chose (instant booking or a request).
+  const [appointmentTypeId, setAppointmentTypeId] = useState('');
+  // Each studio's details, loaded while the client is still on the first step.
+  const placeCache = useRef({});
   const [instantStart, setInstantStart] = useState('');
   // Back from payment: { result, booking, token, state: checking|booked|waiting|closed|released, ... }
   const [payment, setPayment] = useState(null);
@@ -172,9 +182,31 @@ function BookingContent() {
   const latestStudio = useRef('');
 
   // Step 3 – contact
-  const [contactName, setContactName] = useState('');
+  // First and last name; saved together as one name.
+  const [contactFirst, setContactFirst] = useState('');
+  const [contactLast, setContactLast] = useState('');
+  const contactName = joinName(contactFirst, contactLast);
+  // Accepts a full name (or an updater), as prefills give one.
+  function setContactName(update) {
+    const next = typeof update === 'function' ? update(contactName) : update;
+    if (next === contactName) return;
+    const parts = splitName(next);
+    setContactFirst(parts.first);
+    setContactLast(parts.last);
+  }
   const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
+  // Phone: the country code and the number typed; saved as "+61 412 345 678".
+  const [phoneCountry, setPhoneCountry] = useState(DEFAULT_COUNTRY);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const contactPhone = fullPhone(phoneCountry, phoneNumber);
+  // Accepts a saved phone (or an updater), as prefills give one.
+  function setContactPhone(update) {
+    const next = typeof update === 'function' ? update(contactPhone) : update;
+    if (next === contactPhone) return;
+    const parts = splitPhone(next);
+    setPhoneCountry(parts.code);
+    setPhoneNumber(parts.number);
+  }
   // "Send me SMS reminders", ticked unless the client unticks it. It becomes their setting.
   const [smsReminders, setSmsReminders] = useState(true);
   // "Create a Vanta account with these details", ticked like the reminders box; needs a password.
@@ -257,7 +289,16 @@ function BookingContent() {
       const sched = scheduleData?.schedule || [];
       setArtistSchedule(sched);
       setInstantInfo(instant);
+      setPlaceInfo(instant);
       setArtistForm(formData?.fields || null);
+      // Several studios: load each one now, so choosing one on the first step is instant.
+      if (locations.length > 1) {
+        placeCache.current = {};
+        for (const place of locations) {
+          placeCache.current[place.id] = fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/instant-booking?studio_id=${encodeURIComponent(place.id)}`, { cache: 'no-store' })
+            .then(r => (r.ok ? r.json() : null)).catch(() => null);
+        }
+      }
       const back = paymentReturn(new URLSearchParams(window.location.search));
       if (back) { setPayment({ ...back, state: 'checking' }); setView('payment'); if (session) setSession(session); return; }
       if (session) { setSession(session); prefillContact(session); setView('form'); }
@@ -413,7 +454,7 @@ function BookingContent() {
   function nextEnabled() {
     switch (page) {
       case -1: return Boolean(selectedStudio) && placeReady === selectedStudio.id;
-      case 0: return !!sessionType;
+      case 0: return types.length ? Boolean(chosenType) && !!sessionType : !!sessionType;
       case 1: return designDetails.trim() && bodyLocations.length > 0 &&
         (isPiercing || !needs('color') || colourStyle) &&
         (isPiercing || !needs('image_paths') || photoFiles.length > 0) &&
@@ -421,12 +462,24 @@ function BookingContent() {
       case 2: if (instantMode) return Boolean(instantChoice && instantStart);
         return (!studios.length || !!selectedStudio) &&
         (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
-      case 3: return contactName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim()) &&
-        (!guest || (contactPhone.trim() && contactDob)) &&
+      case 3: return contactFirst.trim() && contactLast.trim() && validEmail(contactEmail) &&
+        (phoneNumber.trim() ? validPhone(phoneCountry, phoneNumber) : !guest) &&
+        (!guest || contactDob) &&
         (session || !createAccount || accountPassword.length >= 6) &&
         (!needs('allergies') || allergies.trim()) && (!needs('address') || homeAddress.trim());
       default: return true;
     }
+  }
+
+  // The artist's appointment types at this place (empty: the standard sizes).
+  const types = offeredTypes(instantMode ? instantInfo : placeInfo, instantMode);
+  const chosenType = types.find(t => t.id === appointmentTypeId) || null;
+  function chooseType(type) {
+    setAppointmentTypeId(type.id);
+    const size = sessionTypeFor(type, artist?.serviceType);
+    if ((sessionType === 'piercing') !== (size === 'piercing')) setBodyLocations([]);
+    setSessionType(size);
+    if (instantMode && type.id !== instantType) { setInstantType(type.id); setInstantStart(''); }
   }
 
   // Instant booking at another of the artist's places: its own types, times and deposit.
@@ -437,7 +490,9 @@ function BookingContent() {
       .then(r => (r.ok ? r.json() : null)).catch(() => null);
     if (!next?.available) { setSubmitError('That place isn\u2019t taking instant bookings right now.'); return; }
     setInstantInfo(next);
+    setPlaceInfo(next);
     setInstantType('');
+    setAppointmentTypeId('');
     setInstantStart('');
     setSubmitError('');
   }
@@ -463,7 +518,8 @@ function BookingContent() {
     setSubmitError('');
   }
 
-  // Studio step: load that studio's instant booking. Not offered there → a request.
+  // Studio step: that studio's instant booking and appointment types, loaded when the
+  // page opened. Not taking instant bookings there → a request.
   async function chooseBookingStudio(id) {
     if (id === selectedStudioId) return;
     chooseStudio(id);
@@ -471,10 +527,14 @@ function BookingContent() {
     setPlaceReady('');
     setInstantType('');
     setInstantStart('');
-    const next = await fetch(`${BACKEND_URL}/artists/${artistId}/instant-booking?studio_id=${encodeURIComponent(id)}`, { cache: 'no-store' })
+    setAppointmentTypeId('');
+    const loading = placeCache.current[id] || fetch(`${BACKEND_URL}/artists/${artistId}/instant-booking?studio_id=${encodeURIComponent(id)}`, { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : null)).catch(() => null);
+    placeCache.current[id] = loading;
+    const next = await loading;
     if (latestStudio.current !== id) return; // the client picked another studio meanwhile
     setInstantInfo(next?.available ? next : null);
+    setPlaceInfo(next);
     setPlaceReady(id);
   }
 
@@ -596,6 +656,8 @@ function BookingContent() {
         source: 'personal',
         ...(asGuest ? { dob: contactDob } : {}),
         ...(flash ? { flash_tattoo_id: flash.id } : {}),
+        // A request for one of the artist's appointment types.
+        ...(!instantMode && chosenType ? { appointment_type_id: chosenType.id } : {}),
       };
       if (asks('notes') && notes.trim()) body.additional_notes = notes.trim();
       if (!pushToLater && earliestDate) body.earliest_date = earliestDate;
@@ -742,6 +804,7 @@ function BookingContent() {
                     {payment.chosen_time && instantInfo?.timezone ? `${formatWhen(payment.chosen_time, instantInfo.timezone)} with ${artist?.name || 'your artist'}. ` : ''}
                     Your deposit is paid and a confirmation is on its way to your email.
                   </p>
+                  <AppPromo />
                 </>
               )}
               {payment.state === 'waiting' && (
@@ -749,6 +812,7 @@ function BookingContent() {
                   <div style={s.successIcon}>✓</div>
                   <h1 style={s.heading}>Payment received</h1>
                   <p style={s.muted}>We’re confirming your booking now. You’ll get an email as soon as it’s done.</p>
+                  <AppPromo />
                 </>
               )}
               {payment.state === 'closed' && (
@@ -863,7 +927,14 @@ function BookingContent() {
           {/* ── Multi-step booking form ── */}
           {view === 'form' && (
             <>
-              <h1 style={{ ...s.heading, marginBottom: 24 }}>{flash ? 'Book this flash' : 'Make a booking'}</h1>
+              <h1 style={{ ...s.heading, marginBottom: guest && !session && step === 0 ? 12 : 24 }}>{flash ? 'Book this flash' : 'Make a booking'}</h1>
+              {guest && !session && step === 0 && (
+                <p style={{ ...s.muted, fontSize: 14, margin: '0 0 24px' }}>
+                  Have a Vanta account?{' '}
+                  <button type="button" onClick={() => setGuest(false)} style={{ ...s.emailAuthLink, display: 'inline', margin: 0, minHeight: 0, fontSize: 14 }}>Sign in</button>
+                  {' '}to fill in your details.
+                </p>
+              )}
 
               {/* Progress header */}
               <div style={s.progressHeader}>
@@ -885,9 +956,9 @@ function BookingContent() {
 
               {/* Step content */}
               <div style={{ marginTop: 28 }}>
-                {page === -1 && <StepStudio studios={studios} selectedStudio={selectedStudio} onChoose={chooseBookingStudio}
-                  loading={Boolean(selectedStudio) && placeReady !== selectedStudio.id} />}
-                {page === 0 && <StepSessionType hideLength={instantMode} services={artist?.serviceType} sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
+                {page === -1 && <StepStudio studios={studios} selectedStudio={selectedStudio} onChoose={chooseBookingStudio} />}
+                {page === 0 && types.length > 0 && <StepAppointmentType types={types} chosen={chosenType} onChoose={chooseType} instant={instantMode} />}
+                {page === 0 && !types.length && <StepSessionType hideLength={instantMode} services={artist?.serviceType} sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
                 {page === 1 && (
                   <StepDesign
                     isPiercing={isPiercing}
@@ -911,14 +982,14 @@ function BookingContent() {
                 )}
                 {page === 2 && instantMode && (
                   <InstantTimePicker key={instantInfo.studio_id || 'personal'} backend={BACKEND_URL} artistId={artistId} info={instantInfo}
-                    typeId={instantType} onType={setInstantType} start={instantStart} onStart={setInstantStart} />
+                    typeId={instantType} onType={setInstantType} start={instantStart} onStart={setInstantStart} hideTypes />
                 )}
                 {page === 2 && !instantMode && (
                   <StepAvailability
                     availabilityWindows={availabilityWindows} setAvailabilityWindows={setAvailabilityWindows}
                     pushToLater={pushToLater} setPushToLater={setPushToLater}
                     earliestDate={earliestDate} setEarliestDate={setEarliestDate}
-                    sessionType={sessionType}
+                    sessionType={sessionType} appointment={chosenType}
                     artistSchedule={studioSchedule}
                     studios={studioStep ? [] : studios} selectedStudio={selectedStudio}
                     onChooseStudio={chooseStudio} restrictSchedule={restrictSchedule}
@@ -926,9 +997,9 @@ function BookingContent() {
                 )}
                 {page === 3 && (
                   <StepContact
-                    name={contactName} setName={setContactName}
+                    first={contactFirst} setFirst={setContactFirst} last={contactLast} setLast={setContactLast}
                     email={contactEmail} setEmail={setContactEmail}
-                    phone={contactPhone} setPhone={setContactPhone}
+                    phoneCountry={phoneCountry} setPhoneCountry={setPhoneCountry} phone={phoneNumber} setPhone={setPhoneNumber}
                     smsReminders={smsReminders} setSmsReminders={setSmsReminders}
                     account={session ? null : { on: createAccount, setOn: setCreateAccount, password: accountPassword, setPassword: setAccountPassword }}
                     studioQuestions={{
@@ -936,12 +1007,11 @@ function BookingContent() {
                       address: asks('address') ? { value: homeAddress, set: setHomeAddress, required: needs('address') } : null,
                     }}
                     guest={guest && !session} dob={contactDob} setDob={setContactDob}
-                    onSignIn={() => setGuest(false)}
                   />
                 )}
                 {page === 4 && (
                   <StepReview
-                    sessionType={sessionType}
+                    sessionType={sessionType} appointment={chosenType}
                     designDetails={designDetails} bodyLocations={bodyLocations}
                     colourStyle={colourStyle} colourDetails={colourDetails}
                     notes={notes} photoPreviews={photoPreviews}
@@ -986,24 +1056,7 @@ function BookingContent() {
                 {artist?.name} will review your request{flash ? ` for "${flash.title}"` : ''} and propose available times. You'll receive an email when they respond.
               </p>
 
-              <div style={s.appCard}>
-                <div style={s.appCardIcon}>V</div>
-                <div>
-                  <div style={s.appCardTitle}>Manage your booking in the app</div>
-                  <div style={s.appCardFeature}>· Accept or decline proposed times</div>
-                  <div style={s.appCardFeature}>· Chat directly with your artist</div>
-                  <div style={s.appCardFeature}>· Get push notifications for updates</div>
-                </div>
-              </div>
-
-              <a
-                href="https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ ...s.submitBtn, textDecoration: 'none', display: 'block', textAlign: 'center', marginTop: 16 }}
-              >
-                Download Vanta on the App Store
-              </a>
+              <AppPromo />
 
               <a
                 href="https://www.vanta.tattoo"
@@ -1023,7 +1076,7 @@ function BookingContent() {
 
 // ─── Studio (artists at more than one studio) ────────────────────────────────
 
-function StepStudio({ studios, selectedStudio, onChoose, loading }) {
+function StepStudio({ studios, selectedStudio, onChoose }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <h2 style={s.stepHeading}>Where would you like to book?</h2>
@@ -1048,7 +1101,43 @@ function StepStudio({ studios, selectedStudio, onChoose, loading }) {
           })}
         </div>
       </fieldset>
-      {loading && <p role="status" style={{ ...s.label, margin: 0 }}>Loading this studio…</p>}
+    </div>
+  );
+}
+
+// ─── Step 0: The artist's appointment types ─────────────────────────────────
+
+// instant: the time is booked straight away, so the total to pay is shown.
+function StepAppointmentType({ types, chosen, onChoose, instant }) {
+  return (
+    <div>
+      <h2 style={s.stepHeading}>What appointment would you like?</h2>
+      <div role="radiogroup" aria-label="Appointment" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
+        {types.map(t => {
+          const selected = chosen?.id === t.id;
+          return (
+            <button key={t.id} type="button" role="radio" aria-checked={selected}
+              style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}) }}
+              onClick={() => onChoose(t)}>
+              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                <div style={{ ...s.sessionCardLabel, ...(selected ? { color: '#000' } : {}) }}>{t.name}</div>
+                {t.description && <div style={{ ...s.sessionCardDesc, whiteSpace: 'normal', lineHeight: 1.45, ...(selected ? { color: 'rgba(0,0,0,0.6)' } : {}) }}>{t.description}</div>}
+                <div style={{ ...s.sessionCardDuration, marginTop: 4, ...(selected ? { color: 'rgba(0,0,0,0.45)' } : {}) }}>{formatLength(t.duration_minutes)}</div>
+              </div>
+              {instant && (
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(0,0,0,0.75)' } : {}) }}>{money(depositCharge(t.deposit).total)} to book</div>
+                  <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(0,0,0,0.45)' } : {}) }}>{formatMoney(t.deposit)} deposit + {money(depositCharge(t.deposit).fee)} fee</div>
+                </div>
+              )}
+              <div style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}) }}>
+                {selected && <span style={{ fontSize: 12, color: '#fff' }}>✓</span>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {instant && <p style={{ ...s.muted, fontSize: 12, marginTop: 14 }}>You’ll pick a time next, then pay the deposit and the Vanta booking fee to lock it in.</p>}
     </div>
   );
 }
@@ -1255,7 +1344,7 @@ function StepDesign({
 
 // ─── Step 2: Availability ────────────────────────────────────────────────────
 
-function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToLater, setPushToLater, earliestDate, setEarliestDate, sessionType, artistSchedule, studios, selectedStudio, onChooseStudio, restrictSchedule }) {
+function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToLater, setPushToLater, earliestDate, setEarliestDate, sessionType, appointment, artistSchedule, studios, selectedStudio, onChooseStudio, restrictSchedule }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
   const ready = !studios.length || !!selectedStudio;
   return (
@@ -1282,7 +1371,11 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
       {selectedStudio?.timezone && <p style={{ ...s.label, margin: 0 }}>Studio local time · {selectedStudio.timezone.replaceAll('_', ' ')}</p>}
 
       <div>
-        {st && (
+        {appointment ? (
+          <p style={{ ...s.muted, marginBottom: 4 }}>
+            Your {appointment.name} takes around {formatLength(appointment.duration_minutes)}. Drag to select windows that fit.
+          </p>
+        ) : st && (
           <p style={{ ...s.muted, marginBottom: 4 }}>
             Your {st.label.toLowerCase()} session takes around {st.duration} — drag to select windows that fit.
           </p>
@@ -1586,29 +1679,32 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
 
 // ─── Step 3: Contact info ────────────────────────────────────────────────────
 
-function StepContact({ name, setName, email, setEmail, phone, setPhone, smsReminders, setSmsReminders, studioQuestions, account, guest, dob, setDob, onSignIn }) {
+function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCountry, setPhoneCountry, phone, setPhone, smsReminders, setSmsReminders, studioQuestions, account, guest, dob, setDob }) {
+  // Checked once the client leaves a field, so it doesn't complain while they type.
+  const [touched, setTouched] = useState({});
+  const touch = key => () => setTouched(t => ({ ...t, [key]: true }));
+  const emailError = touched.email && email.trim() && !validEmail(email) ? 'Enter a valid email address, like jane@example.com.' : '';
+  const phoneError = touched.phone && phone.trim() && !validPhone(phoneCountry, phone)
+    ? `Enter a valid ${COUNTRIES.find(c => c.code === phoneCountry)?.name || ''} phone number.`.replace('  ', ' ')
+    : '';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       <h2 style={{ ...s.stepHeading, marginBottom: 8 }}>Your contact details</h2>
-      <p style={{ ...s.muted, marginBottom: guest ? 8 : 24 }}>We need your details to confirm the booking.</p>
-      {guest && (
-        <p style={{ ...s.muted, fontSize: 13, marginBottom: 24 }}>
-          Have a Vanta account?{' '}
-          <button type="button" onClick={onSignIn} style={{ ...s.emailAuthLink, display: 'inline', margin: 0, minHeight: 0, fontSize: 13 }}>Sign in</button>
-        </p>
-      )}
+      <p style={{ ...s.muted, marginBottom: 24 }}>We need your details to confirm the booking.</p>
 
       <div style={s.contactGroup}>
         <div style={s.contactRow}>
           <span style={s.contactIcon}>👤</span>
-          <span style={s.contactFieldLabel}>Name</span>
-          <input
-            style={s.contactInput}
-            type="text"
-            placeholder="Jane Smith"
-            value={name}
-            onChange={e => setName(e.target.value)}
-          />
+          <span style={s.contactFieldLabel}>First name</span>
+          <input style={s.contactInput} type="text" autoComplete="given-name" placeholder="Jane"
+            value={first} onChange={e => setFirst(e.target.value)} aria-label="First name" />
+        </div>
+        <div style={s.contactDivider} />
+        <div style={s.contactRow}>
+          <span style={s.contactIcon} aria-hidden="true" />
+          <span style={s.contactFieldLabel}>Last name</span>
+          <input style={s.contactInput} type="text" autoComplete="family-name" placeholder="Smith"
+            value={last} onChange={e => setLast(e.target.value)} aria-label="Last name" />
         </div>
         <div style={s.contactDivider} />
         <div style={s.contactRow}>
@@ -1623,19 +1719,30 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone, smsRemin
             placeholder="jane@example.com"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            onBlur={touch('email')}
+            aria-label="Email"
+            aria-invalid={Boolean(emailError)}
           />
         </div>
         <div style={s.contactDivider} />
         <div style={s.contactRow}>
           <span style={s.contactIcon}>📞</span>
           <span style={s.contactFieldLabel}>Phone</span>
+          <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} aria-label="Country code"
+            style={{ flex: '0 0 auto', background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontFamily: 'var(--font-body)', fontSize: 14, padding: '6px 6px', marginRight: 8 }}>
+            {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.code} {c.dial}</option>)}
+          </select>
           <input
-            style={s.contactInput}
+            style={{ ...s.contactInput, minWidth: 0 }}
             type="tel"
-            autoComplete="tel"
-            placeholder="+1 555 0100"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder={phoneCountry === 'AU' ? '0412 345 678' : 'Phone number'}
             value={phone}
             onChange={e => setPhone(e.target.value)}
+            onBlur={touch('phone')}
+            aria-label="Phone number"
+            aria-invalid={Boolean(phoneError)}
           />
         </div>
         {guest && <>
@@ -1653,6 +1760,9 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone, smsRemin
           </div>
         </>}
       </div>
+      {[emailError, phoneError].filter(Boolean).map(message => (
+        <p key={message} role="alert" style={{ ...s.error, marginTop: 12, marginBottom: 0 }}>{message}</p>
+      ))}
       {guest && <p style={{ ...s.muted, fontSize: 12, marginTop: 12 }}>Name, email, phone and date of birth are all required.</p>}
 
       {studioQuestions?.allergies && (
@@ -1708,7 +1818,7 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone, smsRemin
 
 // ─── Step 4: Review ──────────────────────────────────────────────────────────
 
-function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio, instant }) {
+function StepReview({ sessionType, appointment, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio, instant }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
   const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Colour — ${colourDetails}` : colourLabel(colourStyle);
 
@@ -1737,11 +1847,19 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
       {instant && <p style={{ ...s.muted, fontSize: 13, margin: '0 0 20px' }}>Your time is held for 30 minutes while you pay. It’s booked once the deposit goes through.</p>}
 
       {/* Session type */}
-      {st && (
+      {(appointment || st) && !instant && (
+        <div style={{ ...s.reviewGroup, marginBottom: 16 }}>
+          <div style={s.reviewRow}>
+            <span style={s.reviewLabel}>{appointment ? 'Appointment' : 'Session'}</span>
+            <span style={s.reviewValue}>{appointment ? `${appointment.name} · ${formatLength(appointment.duration_minutes)}` : `${st.label} · ${st.duration}`}</span>
+          </div>
+        </div>
+      )}
+      {!appointment && st && instant && (
         <div style={{ ...s.reviewGroup, marginBottom: 16 }}>
           <div style={s.reviewRow}>
             <span style={s.reviewLabel}>Session</span>
-            <span style={s.reviewValue}>{instant ? st.label : `${st.label} · ${st.duration}`}</span>
+            <span style={s.reviewValue}>{st.label}</span>
           </div>
         </div>
       )}
@@ -2124,7 +2242,7 @@ const s = {
   contactIcon: { fontSize: 13, flexShrink: 0, width: 18, textAlign: 'center', opacity: 0.45 },
   contactFieldLabel: {
     fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500,
-    color: 'rgba(255,255,255,0.45)', width: 46, flexShrink: 0,
+    color: 'rgba(255,255,255,0.45)', width: 78, flexShrink: 0,
   },
   contactInput: {
     flex: 1, background: 'none', border: 'none', outline: 'none',
