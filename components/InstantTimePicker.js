@@ -58,6 +58,10 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
               onClick={() => { if (!on) { onType(t.id); onStart(''); setFrom(today); } }}>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ ...st.typeName, ...(on ? { color: '#000' } : {}) }}>{t.name}</span>
+                {t.description && (
+                  // The artist's note on what this appointment is.
+                  <span style={{ ...st.typeMeta, display: 'block', margin: '2px 0', lineHeight: 1.45, whiteSpace: 'normal', ...(on ? { color: 'rgba(0,0,0,0.7)' } : { color: 'rgba(255,255,255,0.75)' }) }}>{t.description}</span>
+                )}
                 <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(0,0,0,0.55)' } : {}) }}>{formatLength(t.duration_minutes)}</span>
               </span>
               <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(0,0,0,0.65)' } : {}), flexShrink: 0 }}>{formatMoney(t.deposit)} deposit</span>
