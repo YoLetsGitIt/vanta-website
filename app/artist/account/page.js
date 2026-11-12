@@ -112,13 +112,13 @@ export default function ArtistAccount() {
       {isArtist !== false && <>
         <section className={styles.card}><div className={styles.row}><h2>Client notifications</h2><button disabled={Boolean(busy)} onClick={() => run('refresh', load)}>Refresh</button></div>
           {billing ? <>
-            <p className={styles.price}>A$4.99 <span>/ month</span></p>
+            <p className={styles.price}>A$9.99 <span>/ month</span></p>
             <p>Includes Gmail or Outlook sending, SMS reminders, and reminder emails 7 days and 24 hours before appointments.</p>
             <p className={styles.status}>{entitled ? 'Paid features active' : 'Free plan — confirmation emails included'}</p>
             {account.free_until && new Date(account.free_until) > new Date() && <p>Free access through {date(account.free_until)}.</p>}
             {billing.has_subscription && <p>{account.cancel_at_period_end ? 'Subscription ends' : account.status === 'trialing' ? 'Next payment due' : 'Current billing period ends'} {date(account.paid_until)}. Status: {account.status}.</p>}
             {billing.has_subscription ? <button disabled={Boolean(busy)} onClick={() => run('portal', () => navigate('/artists/me/notification-subscription/portal'))}>Manage billing or cancel</button> : <>
-              <button disabled={Boolean(busy) || !billing.checkout_available || billing.pending_redemption} onClick={() => run('checkout', () => navigate('/artists/me/notification-subscription/checkout'))}>Subscribe for A$4.99/month</button>
+              <button disabled={Boolean(busy) || !billing.checkout_available || billing.pending_redemption} onClick={() => run('checkout', () => navigate('/artists/me/notification-subscription/checkout'))}>Subscribe for A$9.99/month</button>
               {!billing.checkout_available && <p className={styles.help}>Subscription checkout is not available yet. You can still redeem a free-month code.</p>}
               <p className={styles.help}>Renews monthly until cancelled. Earned referral months and existing free access are used first. Stripe collects a card now, and your first charge follows the free period.</p>
             </>}
