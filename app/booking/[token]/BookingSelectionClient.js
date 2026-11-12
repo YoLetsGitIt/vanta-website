@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { websiteAuth, createAccountAndSignIn } from '../../../lib/website-auth';
 import SocialSignIn from '../../../components/SocialSignIn';
 import { bookingReceipt, hasPayableDeposit } from '../../../lib/booking-state.mjs';
+import DepositBreakdown from '../../../components/DepositBreakdown';
+import { depositCharge, money } from '../../../lib/booking-fee.mjs';
 import ManualDepositDetails, { hasManualDeposit } from '../../../components/ManualDepositDetails';
 import BrandLoader, { Wordmark } from '../../../components/BrandLoader';
 
@@ -467,7 +469,9 @@ export default function BookingSelectionClient() {
   if (view === 'pay-deposit') {
     const options = ctx?.booking?.deposit_options;
     const card = options ? options.card !== false : true;
-    const manual = hasManualDeposit(options);
+    // Paid through Vanta or straight to the studio, never both on one page.
+    const manual = !card && hasManualDeposit(options);
+    const charge = depositCharge(ctx?.booking?.deposit_amount, options);
     return (
       <Shell studio={ctx?.studio}>
         <h1 style={s.heading}>Pay deposit</h1>
@@ -479,12 +483,6 @@ export default function BookingSelectionClient() {
           {ctx?.booking?.chosen_time && (
             <ReviewRow label="Date & Time" value={fmtDateTime(ctx.booking.chosen_time, studioTimezone)} />
           )}
-          {ctx?.booking?.deposit_amount && ctx?.booking?.chosen_time && (
-            <div style={s.reviewDivider} />
-          )}
-          {ctx?.booking?.deposit_amount && (
-            <ReviewRow label="Deposit" value={`$${Math.round(ctx.booking.deposit_amount)}`} />
-          )}
           {ctx?.studio?.name && (
             <>
               <div style={s.reviewDivider} />
@@ -492,6 +490,8 @@ export default function BookingSelectionClient() {
             </>
           )}
         </div>
+
+        <DepositBreakdown charge={charge} style={{ marginTop: 16 }} />
 
         {payDepositError && <p style={{ ...s.error, marginTop: 20 }}>{payDepositError}</p>}
 
@@ -501,11 +501,10 @@ export default function BookingSelectionClient() {
             disabled={payingDeposit}
             onClick={payDeposit}
           >
-            {payingDeposit ? 'Redirecting…' : manual ? 'Pay deposit by card' : 'Pay deposit'}
+            {payingDeposit ? 'Redirecting…' : `Pay ${money(charge.total)}`}
           </button>
         )}
-        {card && manual && <p style={{ ...s.muted, margin: '24px 0 0' }}>Or pay by PayID or bank transfer:</p>}
-        <ManualDepositDetails options={options} amount={ctx?.booking?.deposit_amount} />
+        {manual && <ManualDepositDetails options={options} amount={ctx?.booking?.deposit_amount} />}
         {manual && <DepositSentButtons options={options} />}
         {manual && payDepositError && <p role="alert" style={{ ...s.error, marginTop: 12 }}>{payDepositError}</p>}
       </Shell>
@@ -865,21 +864,23 @@ export default function BookingSelectionClient() {
 
           {payFirst ? (() => {
             const options = ctx.booking.deposit_options;
-            const manual = hasManualDeposit(options) ? options.manual : null;
+            // Paid through Vanta or straight to the studio, never both on one page.
+            const manual = !options.card && hasManualDeposit(options) ? options.manual : null;
             const hasBank = manual && manual.bank_account_name && manual.bank_bsb && manual.bank_account_number;
             const amount = Number(ctx.booking.deposit_amount ?? 0);
+            const charge = depositCharge(amount, options);
             return (
               <div style={{ marginTop: 24 }}>
                 <h2 style={s.stepHeading}>Pay your deposit</h2>
-                <p style={s.muted}>Your time is booked once the ${amount.toFixed(2)} deposit is paid.</p>
+                <p style={s.muted}>Your time is booked once the deposit is paid.</p>
+                <DepositBreakdown charge={charge} style={{ margin: '16px 0 20px' }} />
                 {submitError && <p role="alert" style={s.error}>{submitError}</p>}
                 {options.card && (
                   <button style={{ ...s.btn, ...(submitting ? s.btnDisabled : {}) }} disabled={Boolean(submitting)} onClick={() => handleSubmit('card')}>
-                    {submitting === 'card' ? 'Opening secure payment…' : `Pay $${amount.toFixed(2)} by card`}
+                    {submitting === 'card' ? 'Opening secure payment…' : `Pay ${money(charge.total)}`}
                   </button>
                 )}
                 {manual && <>
-                  {options.card && <p style={{ ...s.muted, margin: '24px 0 0' }}>Or pay by PayID or bank transfer:</p>}
                   <ManualDepositDetails options={options} amount={amount} />
                   <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
                     {manual.payid && (
@@ -904,7 +905,10 @@ export default function BookingSelectionClient() {
             {ctx?.booking?.deposit_required
               ? (ctx.booking.deposit_options?.card === false
                 ? `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. After you request this time you'll see how to pay by ${ctx.booking.deposit_options?.manual?.payid ? 'PayID' : ''}${ctx.booking.deposit_options?.manual?.payid && ctx.booking.deposit_options?.manual?.bank_bsb ? ' or ' : ''}${ctx.booking.deposit_options?.manual?.bank_bsb ? 'bank transfer' : ''}.`
-                : `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. You'll be taken to a secure payment page to confirm your appointment.`)
+                : (() => {
+                  const charge = depositCharge(ctx.booking.deposit_amount, ctx.booking.deposit_options);
+                  return `A ${money(charge.deposit)} deposit is required, plus a ${money(charge.fee)} Vanta booking fee: ${money(charge.total)} in total. You'll be taken to a secure payment page to confirm your appointment.`;
+                })())
               : 'The studio will confirm your appointment. You\'ll receive an email once it\'s locked in.'}
           </p>
 

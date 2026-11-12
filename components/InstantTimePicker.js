@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { addDays, formatDay, formatLength, formatMoney, formatTime, todayIn, zoneNote } from '../lib/booking-instant.mjs';
+import { depositCharge, money } from '../lib/booking-fee.mjs';
 
 const DAYS_PER_PAGE = 14;
 
@@ -47,7 +48,7 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
   return (
     <div>
       <h2 style={st.heading}>Pick a time</h2>
-      <p style={st.sub}>Choose your appointment, then a time. You’ll pay the deposit to lock it in.</p>
+      <p style={st.sub}>Choose your appointment, then a time. You’ll pay the deposit and the Vanta booking fee to lock it in. Prices below are the total you pay now.</p>
 
       <div style={st.label}>APPOINTMENT</div>
       <div role="radiogroup" aria-label="Appointment" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -64,7 +65,7 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
                 )}
                 <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(0,0,0,0.55)' } : {}) }}>{formatLength(t.duration_minutes)}</span>
               </span>
-              <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(0,0,0,0.65)' } : {}), flexShrink: 0 }}>{formatMoney(t.deposit)} deposit</span>
+              <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(0,0,0,0.65)' } : {}), flexShrink: 0 }}>{money(depositCharge(t.deposit).total)} to book<span style={{ display: 'block', fontSize: 11, textAlign: 'right' }}>{formatMoney(t.deposit)} deposit + {money(depositCharge(t.deposit).fee)} fee</span></span>
             </button>
           );
         })}

@@ -13,7 +13,7 @@ export default function PricingPage() {
       <a className={styles.cta} href={`${studioApp}/signup/`}>Start your 14-day free trial</a>
       <p className={styles.note}>Card required. Billing begins when the trial ends unless you cancel.</p>
     </section>
-    <section className={styles.fees}><h2>Online deposits</h2><p>Online deposits add a client-paid fee of 3% + A$0.50 per transaction. An A$100 deposit costs the client A$103.50. This is separate from your studio subscription.</p></section>
+    <section className={styles.fees}><h2>Deposits through Vanta</h2><p>Studios receive every deposit in full. Clients who book a deposit through Vanta pay a Vanta booking fee of 3% + A$0.50, shown with the total before they pay. It’s the same however they pay. On an A$100 deposit the client pays A$103.50 and the studio receives A$100. This is separate from your studio subscription.</p></section>
     <footer><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="mailto:support@vanta.tattoo">Contact</a></footer>
   </main></div>;
 }

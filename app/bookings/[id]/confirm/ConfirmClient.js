@@ -4,6 +4,8 @@ import { useState, useEffect, use, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { websiteAuth } from '../../../../lib/website-auth';
 import SocialSignIn from '../../../../components/SocialSignIn';
+import DepositBreakdown from '../../../../components/DepositBreakdown';
+import { depositCharge, money } from '../../../../lib/booking-fee.mjs';
 import ManualDepositDetails, { hasManualDeposit } from '../../../../components/ManualDepositDetails';
 import { bookingHeaders, proposalState, proposalTimes, bookingReceipt } from '../../../../lib/booking-state.mjs';
 
@@ -231,16 +233,11 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
             </div>
 
             {depositRequired && depositAmount && (
-              <div style={{
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 14, padding: '18px 20px', marginBottom: 32,
-              }}>
-                <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 4 }}>Deposit required</p>
-                <p style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
-                  ${depositAmount.toFixed(2)} AUD
-                </p>
+              <div style={{ marginBottom: 32 }}>
+                <p style={{ margin: '0 0 8px', color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Deposit required</p>
+                <DepositBreakdown charge={depositCharge(depositAmount, payment?.deposit_options)} />
                 <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
-                  {needsDeposit ? 'Pay it on the next screen to lock in your time. It comes off your total on the day.' : 'After you confirm, you’ll go to the payment page to pay the deposit. It comes off your total on the day.'}
+                  {needsDeposit ? 'Pay it on the next screen to lock in your time. The deposit comes off your total on the day.' : 'After you confirm, you’ll go to the payment page. The deposit comes off your total on the day.'}
                 </p>
               </div>
             )}
@@ -254,38 +251,38 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                 cursor: chosen ? 'pointer' : 'not-allowed', opacity: chosen ? 1 : 0.4,
               }}
             >
-              {needsDeposit ? 'Continue to pay deposit' : depositRequired && depositAmount ? `Confirm & pay $${depositAmount.toFixed(2)}` : 'Confirm booking'}
+              {needsDeposit ? 'Continue to pay deposit' : depositRequired && depositAmount ? `Confirm & pay ${money(depositCharge(depositAmount, payment?.deposit_options).total)}` : 'Confirm booking'}
             </button>
           </div>
         )}
 
         {view === 'paying' && booking && chosen && payment && (() => {
           const options = payment.deposit_options || {};
-          const manual = hasManualDeposit(options) ? options.manual : null;
+          // Paid through Vanta or straight to the studio, never both on one page.
+          const manual = !options.card && hasManualDeposit(options) ? options.manual : null;
           const amount = Number(payment.deposit_amount);
+          const charge = depositCharge(amount, options);
           const hasBank = manual && manual.bank_account_name && manual.bank_bsb && manual.bank_account_number;
           const btn = { width: '100%', minHeight: 52, padding: '14px', borderRadius: 50, fontWeight: 600, fontSize: 15, border: 'none', cursor: paying ? 'wait' : 'pointer', opacity: paying ? 0.7 : 1 };
           return (
             <div>
               <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Pay your deposit</h1>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
-                Your time is booked once the ${amount.toFixed(2)} deposit is paid. It comes off your total on the day.
+                Your time is booked once the deposit is paid. The deposit comes off your total on the day.
               </p>
               <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: '16px 20px', marginBottom: 24 }}>
                 <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Your time</p>
-                <p style={{ margin: '4px 0 12px', fontSize: 16, fontWeight: 600 }}>{formatTime(chosen)}</p>
-                <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Deposit</p>
-                <p style={{ margin: '4px 0 0', fontSize: 22, fontWeight: 700 }}>${amount.toFixed(2)} AUD</p>
+                <p style={{ margin: '4px 0 0', fontSize: 16, fontWeight: 600 }}>{formatTime(chosen)}</p>
               </div>
+              <DepositBreakdown charge={charge} style={{ marginBottom: 24 }} />
               {payError && <p role="alert" style={{ color: '#ff8a8a', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>{payError}</p>}
               {options.card && (
                 <button onClick={() => confirmBooking('card')} disabled={Boolean(paying)} style={{ ...btn, background: '#fff', color: '#11151b', marginBottom: manual ? 8 : 0 }}>
-                  {paying === 'card' ? 'Opening secure payment…' : `Pay $${amount.toFixed(2)} by card`}
+                  {paying === 'card' ? 'Opening secure payment…' : `Pay ${money(charge.total)}`}
                 </button>
               )}
               {manual && (
                 <>
-                  {options.card && <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: '20px 0 0' }}>Or pay by PayID or bank transfer:</p>}
                   <ManualDepositDetails options={options} amount={amount} />
                   <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
                     {manual.payid && (

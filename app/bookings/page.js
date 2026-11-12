@@ -5,6 +5,7 @@ import { resolveBookingArtist, subdomainReference } from '../../lib/booking-arti
 import { flashBookingState, flashNotice, flashPrefill, flashPriceLabel, isFlashReference } from '../../lib/booking-flash.mjs';
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
 import { formQuestion } from '../../lib/booking-form.mjs';
+import { depositCharge, money, payWays, BOOKING_FEE_NOTE } from '../../lib/booking-fee.mjs';
 import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL } from '../../lib/booking-instant.mjs';
 import InstantTimePicker from '../../components/InstantTimePicker';
 
@@ -971,7 +972,7 @@ function BookingContent() {
                   <span>
                     {Math.round(submitProgress * 100)}%{submitPhase ? ` · ${submitPhase}` : ''}
                   </span>
-                ) : step < totalSteps - 1 ? 'Continue' : instantMode ? `Pay ${formatMoney(instantChoice?.deposit)} deposit` : 'Send Request'}
+                ) : step < totalSteps - 1 ? 'Continue' : instantMode ? `Pay ${money(depositCharge(instantChoice?.deposit).total)}` : 'Send Request'}
               </button>
             </>
           )}
@@ -1772,8 +1773,11 @@ function StepReview({ sessionType, designDetails, bodyLocations, colourStyle, co
       {instant && <ReviewGroup title="APPOINTMENT" rows={[
         { label: 'Type', value: `${instant.type.name} · ${formatLength(instant.type.duration_minutes)}` },
         { label: 'Time', value: formatWhen(instant.start, instant.zone) },
-        { label: 'Deposit', value: `${formatMoney(instant.type.deposit)}, paid now by card` },
+        { label: 'Deposit', value: money(instant.type.deposit) },
+        { label: 'Vanta booking fee', value: money(depositCharge(instant.type.deposit).fee) },
+        { label: 'Total to pay now', value: `${money(depositCharge(instant.type.deposit).total)} AUD` },
       ]} />}
+      {instant && <p style={{ ...s.muted, fontSize: 12, margin: '-8px 0 20px' }}>{BOOKING_FEE_NOTE} {payWays(false)}</p>}
 
       {!instant && <ReviewGroup title="AVAILABILITY" rows={[
         ...availabilityWindows.map(w => {
