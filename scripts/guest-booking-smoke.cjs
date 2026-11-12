@@ -36,24 +36,10 @@ async function context(browser, width) {
       const page = await c.newPage();
       const errors = []; page.on('pageerror', e => errors.push(e.message));
       await page.goto(`${base}/bookings?artist=${artistId}`, { waitUntil: 'networkidle' });
-      await page.getByRole('heading', { name: 'Book with Alex Ink' }).waitFor();
-      const guestBox = await page.getByRole('button', { name: 'Continue as guest' }).boundingBox();
-      const appleBox = await page.getByRole('button', { name: /Apple/ }).boundingBox();
-      assert(guestBox.y < appleBox.y, 'Guest comes before Apple/Google');
-      assert.equal(await page.getByPlaceholder('••••••••').count(), 0, 'Email sign-up is behind a link');
-      await page.getByRole('button', { name: 'Log in with email', exact: true }).click();
-      await page.getByRole('button', { name: 'Log in', exact: true }).last().waitFor();
-      assert.equal(await page.getByPlaceholder('Your name').count(), 0, 'One tap opens log-in, not sign-up');
-      await page.reload({ waitUntil: 'networkidle' });
-      await page.getByRole('heading', { name: 'Book with Alex Ink' }).waitFor();
-      if (shots) { await page.waitForTimeout(5000); await page.screenshot({ path: `${shots}/artist-gate-${width}.png`, fullPage: true }); }
-      await page.getByRole('button', { name: 'Continue as guest' }).click();
+      // Like Acuity: the form comes first, no sign-in or guest choice.
       await page.getByRole('heading', { name: 'What appointment would you like?' }).waitFor();
-      // Browser Back returns to the sign-in choice, and Forward resumes as a guest.
-      await page.goBack();
-      await page.getByRole('heading', { name: 'Book with Alex Ink' }).waitFor();
-      await page.goForward();
-      await page.getByRole('heading', { name: 'What appointment would you like?' }).waitFor();
+      assert.equal(await page.getByRole('button', { name: 'Continue as guest' }).count(), 0, 'No guest gate');
+      if (shots) { await page.waitForTimeout(3000); await page.screenshot({ path: `${shots}/artist-start-${width}.png`, fullPage: true }); }
       await page.getByRole('button', { name: /^Piercing/ }).click();
       await page.getByRole('button', { name: 'Continue', exact: true }).click();
       await page.locator('textarea').first().fill('Left nostril piercing');
@@ -64,7 +50,22 @@ async function context(browser, width) {
       await page.getByRole('button', { name: 'Toggle push to later' }).click();
       await page.locator('input[type=date]').fill('2099-01-01');
       await page.getByRole('button', { name: 'Continue', exact: true }).click();
-      await page.getByText('Booking as a guest.').waitFor();
+      await page.getByText('Have a Vanta account?').waitFor();
+      // Signing in is optional: it opens from here, and Back to booking returns with the details kept.
+      await page.getByPlaceholder('Jane Smith').fill('Guest Client');
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await page.getByRole('heading', { name: 'Sign in' }).waitFor();
+      await page.getByRole('button', { name: 'Log in with email', exact: true }).click();
+      await page.getByRole('button', { name: 'Log in', exact: true }).last().waitFor();
+      await page.getByRole('button', { name: 'Back to booking' }).click();
+      await page.getByText('Have a Vanta account?').waitFor();
+      assert.equal(await page.getByPlaceholder('Jane Smith').inputValue(), 'Guest Client', 'Details kept after looking at sign-in');
+      // "Create a Vanta account" starts ticked with a password field; this client books as a guest.
+      const accountBox = page.getByRole('checkbox', { name: /Create a Vanta account/ });
+      assert(await accountBox.isChecked(), 'Create account starts ticked');
+      assert.equal(await page.getByLabel('Account password').count(), 1, 'Password asked when ticked');
+      await accountBox.uncheck();
+      assert.equal(await page.getByLabel('Account password').count(), 0, 'No password for a guest booking');
       await page.getByPlaceholder('Jane Smith').fill('Guest Client');
       await page.getByPlaceholder('jane@example.com').fill('guest@example.test');
       const next = page.getByRole('button', { name: 'Continue', exact: true });
@@ -170,7 +171,8 @@ async function context(browser, width) {
         return route.fulfill({ json: {} });
       });
       const page = await c.newPage();
-      await page.goto(`${base}/bookings?artist=${artistId}`, { waitUntil: 'networkidle' });
+      // Signing in is optional; ?signin=1 is where "Sign in" on the contact step leads.
+      await page.goto(`${base}/bookings?artist=${artistId}&signin=1`, { waitUntil: 'networkidle' });
       await page.getByRole('button', { name: 'Create account', exact: true }).click();
       await page.getByPlaceholder('Your name').fill('New Client');
       await page.getByPlaceholder('you@example.com').fill('new@example.test');

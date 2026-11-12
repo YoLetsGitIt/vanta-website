@@ -13,6 +13,7 @@ import { websiteAuth, createAccountAndSignIn } from '../../lib/website-auth';
 import SocialSignIn from '../../components/SocialSignIn';
 import BrandLoader, { Wordmark } from '../../components/BrandLoader';
 
+const REMEMBERED_CONTACT_KEY = 'vanta-booking-contact';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BOOKING_API_URL || 'https://inkspire-backend-xa2a.onrender.com';
 
 const supabase = websiteAuth();
@@ -92,12 +93,13 @@ function BookingContent() {
   const [artist, setArtist] = useState(null);
   const [referralCode, setReferralCode] = useState(null);
   const [session, setSession] = useState(null);
-  // Guests book without an account; a signed-in session takes precedence.
-  // Guest mode lives in the URL (?guest=1) so the browser Back button returns to the sign-in choice.
-  const guest = searchParams.get('guest') === '1';
+  // Like Acuity: clients book straight away, no account needed. Signing in is optional
+  // (?signin=1, so the browser Back button returns to the form); a session takes precedence.
+  const guest = searchParams.get('signin') !== '1';
   const setGuest = on => {
     const url = new URL(window.location.href);
-    if (on) url.searchParams.set('guest', '1'); else url.searchParams.delete('guest');
+    url.searchParams.delete('guest');
+    if (on) url.searchParams.delete('signin'); else url.searchParams.set('signin', '1');
     window.history.pushState(null, '', url);
   };
   const [showEmailAuth, setShowEmailAuth] = useState(false);
@@ -165,6 +167,9 @@ function BookingContent() {
   const [contactPhone, setContactPhone] = useState('');
   // "Send me SMS reminders", ticked unless the client unticks it. It becomes their setting.
   const [smsReminders, setSmsReminders] = useState(true);
+  // "Create a Vanta account with these details", ticked like the reminders box; needs a password.
+  const [createAccount, setCreateAccount] = useState(true);
+  const [accountPassword, setAccountPassword] = useState('');
   // The booking's studio has its own booking form: ask the questions it asks.
   const [studioForm, setStudioForm] = useState(null);
   const [allergies, setAllergies] = useState('');
@@ -242,7 +247,7 @@ function BookingContent() {
       const back = paymentReturn(new URLSearchParams(window.location.search));
       if (back) { setPayment({ ...back, state: 'checking' }); setView('payment'); if (session) setSession(session); return; }
       if (session) { setSession(session); prefillContact(session); setView('form'); }
-      else { setView('auth'); }
+      else { prefillRemembered(); setView(guest ? 'form' : 'auth'); }
     }
     init().catch(err => {
       if (!active) return;
@@ -260,6 +265,18 @@ function BookingContent() {
     });
     return () => { active = false; controller.abort(); subscription.unsubscribe(); };
   }, [artistReference, flashReference]);
+
+  // A returning guest's details, saved on this device after their last booking.
+  function prefillRemembered() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(REMEMBERED_CONTACT_KEY) || 'null');
+      if (!saved) return;
+      setContactName(n => n || saved.name || '');
+      setContactEmail(e => e || saved.email || '');
+      setContactPhone(p => p || saved.phone || '');
+      setContactDob(d => d || saved.dob || '');
+    } catch {}
+  }
 
   async function prefillContact(session) {
     const meta = session.user?.user_metadata;
@@ -388,6 +405,7 @@ function BookingContent() {
         (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
       case 3: return contactName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim()) &&
         (!guest || (contactPhone.trim() && contactDob)) &&
+        (session || !createAccount || accountPassword.length >= 6) &&
         (!needs('allergies') || allergies.trim()) && (!needs('address') || homeAddress.trim());
       default: return true;
     }
@@ -442,7 +460,8 @@ function BookingContent() {
 
   async function handleSubmit() {
     if ((!session && !guest) || !artistId) return;
-    const asGuest = !session;
+    const wantsAccount = !session && createAccount;
+    if (wantsAccount && accountPassword.length < 6) { setSubmitError('Choose a password of at least 6 characters, or untick "Create a Vanta account".'); return; }
     if (!instantMode && studios.length && !selectedStudio) { setSubmitError('Choose a studio for your booking.'); return; }
     if (!instantMode && availabilityWindows.length && !windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule)) {
       setSubmitError('Choose availability within the working hours at your selected studio.'); return;
@@ -452,7 +471,22 @@ function BookingContent() {
     setSubmitProgress(0);
     setSubmitPhase('');
 
+    let activeSession = session;
     try {
+      // Their account first (instant, no email code), then the booking is made under it.
+      if (wantsAccount) {
+        setSubmitPhase('Creating your account…');
+        try {
+          activeSession = await createAccountAndSignIn({ email: contactEmail, password: accountPassword, name: contactName });
+        } catch (err) {
+          if (err.code === 'exists') throw new Error('You already have a Vanta account with this email. Sign in, or untick "Create a Vanta account" to book as a guest.');
+          throw err;
+        }
+        await createProfile(activeSession, contactName.trim(), referralCode || '', true);
+        await patchReferralSource(activeSession, 'artist');
+        setSession(activeSession);
+      }
+      const asGuest = !activeSession;
       let refImages = [];
 
       if (photoFiles.length > 0) {
@@ -461,7 +495,7 @@ function BookingContent() {
 
         const signRes = await fetch(`${BACKEND_URL}/bookings/${asGuest ? 'guest/' : ''}uploads/sign`, {
           method: 'POST',
-          headers: asGuest ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          headers: asGuest ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', Authorization: `Bearer ${activeSession.access_token}` },
           body: JSON.stringify({
             artist_id: artistId,
             files: photoFiles.map(f => ({
@@ -544,7 +578,7 @@ function BookingContent() {
 
       const res = await fetch(`${BACKEND_URL}/bookings${asGuest ? '/guest' : ''}`, {
         method: 'POST',
-        headers: asGuest ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: asGuest ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', Authorization: `Bearer ${activeSession.access_token}` },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -568,6 +602,13 @@ function BookingContent() {
         return;
       }
       setSubmitProgress(1);
+      if (asGuest) {
+        try {
+          localStorage.setItem(REMEMBERED_CONTACT_KEY, JSON.stringify({
+            name: contactName.trim(), email: contactEmail.trim(), phone: contactPhone.trim(), dob: contactDob,
+          }));
+        } catch {}
+      }
       setView('success');
     } catch (err) {
       setSubmitError(err.message || 'Something went wrong. Please try again.');
@@ -697,11 +738,11 @@ function BookingContent() {
           {/* ── Auth ── */}
           {view === 'auth' && (
             <>
-              <h1 style={s.heading}>{flash ? 'Book this flash' : `Book with ${artist?.name || 'your artist'}`}</h1>
-              <p style={s.muted}>No account needed. Continue as a guest, or sign in to save your details for next time.</p>
+              <h1 style={s.heading}>Sign in</h1>
+              <p style={s.muted}>Optional: your details are filled in for you, and your bookings are in the Vanta app.</p>
 
               <button type="button" style={{ ...s.submitBtn, marginTop: 4 }} onClick={() => setGuest(true)}>
-                Continue as guest
+                Back to booking
               </button>
 
               <SocialSignIn consentAccepted disabled={authLoading} />
@@ -851,6 +892,7 @@ function BookingContent() {
                     email={contactEmail} setEmail={setContactEmail}
                     phone={contactPhone} setPhone={setContactPhone}
                     smsReminders={smsReminders} setSmsReminders={setSmsReminders}
+                    account={session ? null : { on: createAccount, setOn: setCreateAccount, password: accountPassword, setPassword: setAccountPassword }}
                     studioQuestions={{
                       allergies: asks('allergies') ? { value: allergies, set: setAllergies, required: needs('allergies') } : null,
                       address: asks('address') ? { value: homeAddress, set: setHomeAddress, required: needs('address') } : null,
@@ -1468,15 +1510,15 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
 
 // ─── Step 3: Contact info ────────────────────────────────────────────────────
 
-function StepContact({ name, setName, email, setEmail, phone, setPhone, smsReminders, setSmsReminders, studioQuestions, guest, dob, setDob, onSignIn }) {
+function StepContact({ name, setName, email, setEmail, phone, setPhone, smsReminders, setSmsReminders, studioQuestions, account, guest, dob, setDob, onSignIn }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       <h2 style={{ ...s.stepHeading, marginBottom: 8 }}>Your contact details</h2>
       <p style={{ ...s.muted, marginBottom: guest ? 8 : 24 }}>We need your details to confirm the booking.</p>
       {guest && (
         <p style={{ ...s.muted, fontSize: 13, marginBottom: 24 }}>
-          Booking as a guest.{' '}
-          <button type="button" onClick={onSignIn} style={{ ...s.emailAuthLink, display: 'inline', margin: 0, minHeight: 0, fontSize: 13 }}>Sign in instead</button>
+          Have a Vanta account?{' '}
+          <button type="button" onClick={onSignIn} style={{ ...s.emailAuthLink, display: 'inline', margin: 0, minHeight: 0, fontSize: 13 }}>Sign in</button>
         </p>
       )}
 
@@ -1558,6 +1600,32 @@ function StepContact({ name, setName, email, setEmail, phone, setPhone, smsRemin
           </span>
         </span>
       </label>
+
+      {account && (
+        <div style={{ ...s.reminderOption, flexDirection: 'column', gap: 12, marginTop: 12, cursor: 'default' }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+            <input type="checkbox" checked={account.on} onChange={e => account.setOn(e.target.checked)} style={s.reminderCheckbox} />
+            <span>
+              <span style={{ display: 'block', color: '#fff', fontWeight: 600, fontSize: 14 }}>Create a Vanta account with these details</span>
+              <span style={{ display: 'block', ...s.muted, fontSize: 12, margin: '2px 0 0', lineHeight: 1.5 }}>
+                Track your bookings and book faster next time.
+              </span>
+            </span>
+          </label>
+          {account.on && (
+            <>
+              <input type="password" autoComplete="new-password" placeholder="Choose a password (6+ characters)" value={account.password}
+                onChange={e => account.setPassword(e.target.value)} minLength={6} aria-label="Account password"
+                style={{ ...s.input, margin: 0 }} />
+              <span style={{ ...s.muted, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                By creating an account you agree to the{' '}
+                <a href="https://www.vanta.tattoo/terms" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Terms of Use</a> and{' '}
+                <a href="https://www.vanta.tattoo/privacy" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Privacy Policy</a>.
+              </span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
