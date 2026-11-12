@@ -1685,7 +1685,7 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }));
   const emailError = touched.email && email.trim() && !validEmail(email) ? 'Enter a valid email address, like jane@example.com.' : '';
   const phoneError = touched.phone && phone.trim() && !validPhone(phoneCountry, phone)
-    ? `Enter a valid ${COUNTRIES.find(c => c.code === phoneCountry)?.name || ''} phone number.`.replace('  ', ' ')
+    ? `Enter a valid phone number for ${COUNTRIES.find(c => c.code === phoneCountry)?.name || 'that country'}.`
     : '';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
