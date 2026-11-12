@@ -1393,13 +1393,15 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
       {/* Push to later */}
       <div style={s.pushCard}>
         <div style={{ flex: 1 }}>
-          <div style={s.pushTitle}>Push to later</div>
-          <div style={s.pushSub}>I'm not available for the next few weeks</div>
+          <div style={s.pushTitle}>I can’t come in soon</div>
+          <div style={s.pushSub}>Choose the first date you can make it instead</div>
         </div>
         <button
           style={{ ...s.toggle, ...(pushToLater ? s.toggleOn : {}) }}
           onClick={() => setPushToLater(p => !p)}
-          aria-label="Toggle push to later"
+          role="switch"
+          aria-checked={pushToLater}
+          aria-label="I can’t come in soon"
         >
           <div style={{ ...s.toggleThumb, ...(pushToLater ? s.toggleThumbOn : {}) }} />
         </button>
@@ -1407,7 +1409,7 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
 
       {pushToLater && (
         <div style={s.field}>
-          <label style={s.label}>Earliest available date</label>
+          <label style={s.label}>First date you can come in</label>
           <input
             style={s.input}
             type="date"
@@ -1904,7 +1906,7 @@ function StepReview({ sessionType, appointment, designDetails, bodyLocations, co
           const day = DAYS[dayIdx] ?? '?';
           return { label: day, value: `${w.startTime}–${w.endTime}` };
         }),
-        pushToLater && earliestDate && { label: 'Earliest', value: earliestDate },
+        pushToLater && earliestDate && { label: 'From', value: earliestDate },
       ].filter(Boolean)} />}
 
       <ReviewGroup title="CONTACT" rows={[
