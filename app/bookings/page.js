@@ -1124,10 +1124,11 @@ function StepAppointmentType({ types, chosen, onChoose, instant }) {
                 {t.description && <div style={{ ...s.sessionCardDesc, whiteSpace: 'normal', lineHeight: 1.45, ...(selected ? { color: 'rgba(0,0,0,0.6)' } : {}) }}>{t.description}</div>}
                 <div style={{ ...s.sessionCardDuration, marginTop: 4, ...(selected ? { color: 'rgba(0,0,0,0.45)' } : {}) }}>{formatLength(t.duration_minutes)}</div>
               </div>
-              {instant && (
+              {Number(t.price) > 0 && (
+                // The artist's quote for this appointment.
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(0,0,0,0.75)' } : {}) }}>{money(depositCharge(t.deposit).total)} to book</div>
-                  <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(0,0,0,0.45)' } : {}) }}>{formatMoney(t.deposit)} deposit + {money(depositCharge(t.deposit).fee)} fee</div>
+                  <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(0,0,0,0.75)' } : {}) }}>{formatMoney(t.price)}</div>
+                  <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(0,0,0,0.45)' } : {}) }}>quote</div>
                 </div>
               )}
               <div style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}) }}>
@@ -1137,7 +1138,7 @@ function StepAppointmentType({ types, chosen, onChoose, instant }) {
           );
         })}
       </div>
-      {instant && <p style={{ ...s.muted, fontSize: 12, marginTop: 14 }}>You’ll pick a time next, then pay the deposit and the Vanta booking fee to lock it in.</p>}
+      {instant && <p style={{ ...s.muted, fontSize: 12, marginTop: 14 }}>You’ll pick a time next.</p>}
     </div>
   );
 }
