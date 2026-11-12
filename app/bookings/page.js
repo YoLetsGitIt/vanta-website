@@ -1393,15 +1393,15 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
       {/* Push to later */}
       <div style={s.pushCard}>
         <div style={{ flex: 1 }}>
-          <div style={s.pushTitle}>I can’t come in soon</div>
-          <div style={s.pushSub}>Choose the first date you can make it instead</div>
+          <div style={s.pushTitle}>Earliest available date</div>
+          <div style={s.pushSub}>Not available in the coming weeks? Set a later start date.</div>
         </div>
         <button
           style={{ ...s.toggle, ...(pushToLater ? s.toggleOn : {}) }}
           onClick={() => setPushToLater(p => !p)}
           role="switch"
           aria-checked={pushToLater}
-          aria-label="I can’t come in soon"
+          aria-label="Earliest available date"
         >
           <div style={{ ...s.toggleThumb, ...(pushToLater ? s.toggleThumbOn : {}) }} />
         </button>
@@ -1409,7 +1409,7 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
 
       {pushToLater && (
         <div style={s.field}>
-          <label style={s.label}>First date you can come in</label>
+          <label style={s.label}>First available day</label>
           <input
             style={s.input}
             type="date"
