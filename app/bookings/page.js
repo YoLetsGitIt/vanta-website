@@ -4,6 +4,7 @@ import DateOfBirthInput from '@/components/DateOfBirthInput';
 import { resolveBookingArtist, subdomainReference } from '../../lib/booking-artist.mjs';
 import { flashBookingState, flashNotice, flashPrefill, flashPriceLabel, isFlashReference } from '../../lib/booking-flash.mjs';
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
+import { formQuestion } from '../../lib/booking-form.mjs';
 import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL } from '../../lib/booking-instant.mjs';
 import InstantTimePicker from '../../components/InstantTimePicker';
 
@@ -180,6 +181,8 @@ function BookingContent() {
   const [accountPassword, setAccountPassword] = useState('');
   // The booking's studio has its own booking form: ask the questions it asks.
   const [studioForm, setStudioForm] = useState(null);
+  // The artist's own booking form: which questions they ask (Settings > Your forms).
+  const [artistForm, setArtistForm] = useState(null);
   const [allergies, setAllergies] = useState('');
   const [homeAddress, setHomeAddress] = useState('');
 
@@ -214,7 +217,7 @@ function BookingContent() {
 
     async function init() {
       const resolvedArtistId = await resolveBookingArtist(artistReference, BACKEND_URL, fetch, controller.signal);
-      const [artistData, refData, scheduleData, { data: { session } }, flashPost, instant] = await Promise.all([
+      const [artistData, refData, scheduleData, { data: { session } }, flashPost, instant, formData] = await Promise.all([
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}`, { signal: controller.signal }).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/referral-code`, { signal: controller.signal }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/work-schedule`, { signal: controller.signal }).then(r => r.ok ? r.json() : { schedule: [] }).catch(() => ({ schedule: [] })),
@@ -223,6 +226,7 @@ function BookingContent() {
           ? fetch(`${BACKEND_URL}/tattoos/${flashReference.trim()}`, { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
           : Promise.resolve(null),
         fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/instant-booking`, { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${BACKEND_URL}/artists/${resolvedArtistId}/booking-form`, { signal: controller.signal, cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
       if (!active) return;
       if (!artistData || artistData.error) { setView('error'); return; }
@@ -252,6 +256,7 @@ function BookingContent() {
       const sched = scheduleData?.schedule || [];
       setArtistSchedule(sched);
       setInstantInfo(instant);
+      setArtistForm(formData?.fields || null);
       const back = paymentReturn(new URLSearchParams(window.location.search));
       if (back) { setPayment({ ...back, state: 'checking' }); setView('payment'); if (session) setSession(session); return; }
       if (session) { setSession(session); prefillContact(session); setView('form'); }
@@ -408,7 +413,10 @@ function BookingContent() {
     switch (page) {
       case -1: return Boolean(selectedStudio) && placeReady === selectedStudio.id;
       case 0: return !!sessionType;
-      case 1: return designDetails.trim() && bodyLocations.length > 0 && (isPiercing || (colourStyle && photoFiles.length > 0));
+      case 1: return designDetails.trim() && bodyLocations.length > 0 &&
+        (isPiercing || !needs('color') || colourStyle) &&
+        (isPiercing || !needs('image_paths') || photoFiles.length > 0) &&
+        (!needs('notes') || notes.trim());
       case 2: if (instantMode) return Boolean(instantChoice && instantStart);
         return (!studios.length || !!selectedStudio) &&
         (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
@@ -442,8 +450,8 @@ function BookingContent() {
       .then(r => (r.ok ? r.json() : null)).then(cfg => setStudioForm(cfg?.fields || null)).catch(() => {});
     return () => controller.abort();
   }, [bookingStudioId]);
-  const asks = key => Boolean(studioForm?.[key]?.enabled);
-  const needs = key => asks(key) && Boolean(studioForm?.[key]?.required);
+  const asks = key => formQuestion(artistForm, studioForm, key).asked;
+  const needs = key => formQuestion(artistForm, studioForm, key).required;
 
   function chooseStudio(id) {
     if (id === selectedStudioId) return;
@@ -576,7 +584,7 @@ function BookingContent() {
         session_type: sessionType,
         design_details: designDetails.trim(),
         body_location: bodyLocations.join(', '),
-        color: isPiercing ? undefined : colourValue,
+        color: isPiercing || !asks('color') ? undefined : colourValue,
         availability_windows: availabilityWindows.map(w => ({
           day_of_week: w.dayOfWeek,
           start_time: w.startTime,
@@ -588,7 +596,7 @@ function BookingContent() {
         ...(asGuest ? { dob: contactDob } : {}),
         ...(flash ? { flash_tattoo_id: flash.id } : {}),
       };
-      if (notes.trim()) body.additional_notes = notes.trim();
+      if (asks('notes') && notes.trim()) body.additional_notes = notes.trim();
       if (!pushToLater && earliestDate) body.earliest_date = earliestDate;
       if (pushToLater && earliestDate) body.earliest_date = earliestDate;
       if (instantMode) {
@@ -891,6 +899,9 @@ function BookingContent() {
                     photoInputRef={photoInputRef}
                     onAddPhoto={handlePhotoChange} onRemovePhoto={removePhoto}
                     showBodyPicker={showBodyPicker} setShowBodyPicker={setShowBodyPicker}
+                    photos={formQuestion(artistForm, studioForm, 'image_paths')}
+                    colour={formQuestion(artistForm, studioForm, 'color')}
+                    notesQuestion={formQuestion(artistForm, studioForm, 'notes')}
                   />
                 )}
                 {page === 2 && instantMode && !studioStep && (instantInfo.places?.length || 0) > 1 && (
@@ -1091,13 +1102,16 @@ function StepDesign({
   colourStyle, setColourStyle, colourDetails, setColourDetails,
   notes, setNotes, photoPreviews, photoFiles, photoInputRef,
   onAddPhoto, onRemovePhoto, showBodyPicker, setShowBodyPicker,
+  photos, colour, notesQuestion,
 }) {
+  // Piercing requests never need photos; a tattoo needs them when the artist asks.
+  const photosRequired = photos.required && !isPiercing;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <h2 style={s.stepHeading}>{isPiercing ? 'Tell us about your piercing' : 'Tell us about your design'}</h2>
 
       {/* Reference photos */}
-      <div>
+      {photos.asked && <div>
         <div style={s.sectionLabel}>REFERENCE PHOTOS</div>
         <input
           ref={photoInputRef}
@@ -1111,7 +1125,7 @@ function StepDesign({
           <button style={s.photoDropzone} onClick={() => photoInputRef.current?.click()}>
             <span style={s.photoDropzoneIcon}>+</span>
             <span style={s.photoDropzoneText}>Add reference photos</span>
-            <span style={s.photoDropzoneSub}>Up to 5 images · Required</span>
+            <span style={s.photoDropzoneSub}>Up to 5 images · {photosRequired ? 'Required' : 'Optional'}</span>
           </button>
         ) : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
@@ -1126,7 +1140,7 @@ function StepDesign({
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Design description */}
       <div style={s.field}>
@@ -1188,8 +1202,11 @@ function StepDesign({
       </div>
 
       {/* Colour */}
-      {!isPiercing && <div>
-        <div style={s.sectionLabel}>COLOUR</div>
+      {!isPiercing && colour.asked && <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ ...s.sectionLabel, marginBottom: 0 }}>COLOUR</div>
+          {!colour.required && <span style={s.optionalBadge}>Optional</span>}
+        </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           {COLOUR_STYLES.map(c => {
             const selected = colourStyle === c;
@@ -1218,10 +1235,10 @@ function StepDesign({
       }
 
       {/* Notes */}
-      <div style={s.field}>
+      {notesQuestion.asked && <div style={s.field}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <label style={{ ...s.sectionLabel, marginBottom: 0 }}>ADDITIONAL NOTES</label>
-          <span style={s.optionalBadge}>Optional</span>
+          {!notesQuestion.required && <span style={s.optionalBadge}>Optional</span>}
         </div>
         <textarea
           style={{ ...s.input, ...s.textarea }}
@@ -1230,7 +1247,7 @@ function StepDesign({
           onChange={e => setNotes(e.target.value)}
           rows={3}
         />
-      </div>
+      </div>}
     </div>
   );
 }
