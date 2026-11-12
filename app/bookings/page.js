@@ -160,6 +160,14 @@ function BookingContent() {
   const selectedStudio = studios.find(studio => studio.id === selectedStudioId);
   const studioSchedule = scheduleForStudio(artistSchedule, studios, selectedStudioId);
   const restrictSchedule = studios.length > 0 || artistSchedule.length > 0;
+  // An artist at more than one studio: the client picks the studio first, since the
+  // studio decides instant booking or request, its hours, deposit and questions.
+  const studioStep = studios.length > 1 ? 1 : 0;
+  const totalSteps = TOTAL_STEPS + studioStep;
+  const page = step - studioStep; // -1 is the studio step
+  // The studio whose instant booking details are loaded (or '' while loading).
+  const [placeReady, setPlaceReady] = useState('');
+  const latestStudio = useRef('');
 
   // Step 3 – contact
   const [contactName, setContactName] = useState('');
@@ -397,7 +405,8 @@ function BookingContent() {
   // ── Navigation ────────────────────────────────────────────────────────────
 
   function nextEnabled() {
-    switch (step) {
+    switch (page) {
+      case -1: return Boolean(selectedStudio) && placeReady === selectedStudio.id;
       case 0: return !!sessionType;
       case 1: return designDetails.trim() && bodyLocations.length > 0 && (isPiercing || (colourStyle && photoFiles.length > 0));
       case 2: if (instantMode) return Boolean(instantChoice && instantStart);
@@ -445,9 +454,24 @@ function BookingContent() {
     setSubmitError('');
   }
 
+  // Studio step: load that studio's instant booking. Not offered there → a request.
+  async function chooseBookingStudio(id) {
+    if (id === selectedStudioId) return;
+    chooseStudio(id);
+    latestStudio.current = id;
+    setPlaceReady('');
+    setInstantType('');
+    setInstantStart('');
+    const next = await fetch(`${BACKEND_URL}/artists/${artistId}/instant-booking?studio_id=${encodeURIComponent(id)}`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null)).catch(() => null);
+    if (latestStudio.current !== id) return; // the client picked another studio meanwhile
+    setInstantInfo(next?.available ? next : null);
+    setPlaceReady(id);
+  }
+
   function handleNext() {
     setStepError('');
-    if (step < TOTAL_STEPS - 1) { setStep(s => s + 1); }
+    if (step < totalSteps - 1) { setStep(s => s + 1); }
     else { handleSubmit(); }
   }
 
@@ -587,7 +611,7 @@ function BookingContent() {
         if (instantMode && res.status === 409) {
           // Someone else got the time first: pick another.
           setInstantStart('');
-          setStep(2);
+          setStep(2 + studioStep);
           setStepError(err.error || 'That time was just taken. Pick another time.');
           return;
         }
@@ -838,22 +862,24 @@ function BookingContent() {
                   <button style={s.backBtn} onClick={handleBack} disabled={step === 0}>
                     {step > 0 ? '‹' : ''}
                   </button>
-                  <span style={s.stepTitle}>{step === 2 && instantMode ? 'Time' : STEP_TITLES[step]}</span>
+                  <span style={s.stepTitle}>{page === -1 ? 'Studio' : page === 2 && instantMode ? 'Time' : STEP_TITLES[page]}</span>
                   <div style={s.stepDots}>
-                    {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+                    {Array.from({ length: totalSteps }, (_, i) => (
                       <div key={i} style={{ ...s.dot, ...(i === step ? s.dotActive : i < step ? s.dotDone : {}) }} />
                     ))}
                   </div>
                 </div>
                 <div style={s.progressTrack}>
-                  <div style={{ ...s.progressFill, width: `${step === TOTAL_STEPS - 1 ? 100 : (step / TOTAL_STEPS) * 100}%` }} />
+                  <div style={{ ...s.progressFill, width: `${step === totalSteps - 1 ? 100 : (step / totalSteps) * 100}%` }} />
                 </div>
               </div>
 
               {/* Step content */}
               <div style={{ marginTop: 28 }}>
-                {step === 0 && <StepSessionType hideLength={instantMode} services={artist?.serviceType} sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
-                {step === 1 && (
+                {page === -1 && <StepStudio studios={studios} selectedStudio={selectedStudio} onChoose={chooseBookingStudio}
+                  loading={Boolean(selectedStudio) && placeReady !== selectedStudio.id} />}
+                {page === 0 && <StepSessionType hideLength={instantMode} services={artist?.serviceType} sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
+                {page === 1 && (
                   <StepDesign
                     isPiercing={isPiercing}
                     designDetails={designDetails} setDesignDetails={setDesignDetails}
@@ -867,26 +893,26 @@ function BookingContent() {
                     showBodyPicker={showBodyPicker} setShowBodyPicker={setShowBodyPicker}
                   />
                 )}
-                {step === 2 && instantMode && (instantInfo.places?.length || 0) > 1 && (
+                {page === 2 && instantMode && !studioStep && (instantInfo.places?.length || 0) > 1 && (
                   <InstantPlacePicker places={instantInfo.places} current={instantInfo.studio_id || null}
                     artistName={artist?.name} onChoose={chooseInstantPlace} />
                 )}
-                {step === 2 && instantMode && (
+                {page === 2 && instantMode && (
                   <InstantTimePicker key={instantInfo.studio_id || 'personal'} backend={BACKEND_URL} artistId={artistId} info={instantInfo}
                     typeId={instantType} onType={setInstantType} start={instantStart} onStart={setInstantStart} />
                 )}
-                {step === 2 && !instantMode && (
+                {page === 2 && !instantMode && (
                   <StepAvailability
                     availabilityWindows={availabilityWindows} setAvailabilityWindows={setAvailabilityWindows}
                     pushToLater={pushToLater} setPushToLater={setPushToLater}
                     earliestDate={earliestDate} setEarliestDate={setEarliestDate}
                     sessionType={sessionType}
                     artistSchedule={studioSchedule}
-                    studios={studios} selectedStudio={selectedStudio}
+                    studios={studioStep ? [] : studios} selectedStudio={selectedStudio}
                     onChooseStudio={chooseStudio} restrictSchedule={restrictSchedule}
                   />
                 )}
-                {step === 3 && (
+                {page === 3 && (
                   <StepContact
                     name={contactName} setName={setContactName}
                     email={contactEmail} setEmail={setContactEmail}
@@ -901,7 +927,7 @@ function BookingContent() {
                     onSignIn={() => setGuest(false)}
                   />
                 )}
-                {step === 4 && (
+                {page === 4 && (
                   <StepReview
                     sessionType={sessionType}
                     designDetails={designDetails} bodyLocations={bodyLocations}
@@ -911,7 +937,7 @@ function BookingContent() {
                     earliestDate={earliestDate}
                     name={contactName} email={contactEmail} phone={contactPhone}
                     smsReminders={smsReminders}
-                    studio={instantMode ? null : selectedStudio}
+                    studio={instantMode && !studioStep ? null : selectedStudio}
                     instant={instantChoice && instantStart ? { type: instantChoice, start: instantStart, zone: instantInfo.timezone } : null}
                   />
                 )}
@@ -934,7 +960,7 @@ function BookingContent() {
                   <span>
                     {Math.round(submitProgress * 100)}%{submitPhase ? ` · ${submitPhase}` : ''}
                   </span>
-                ) : step < TOTAL_STEPS - 1 ? 'Continue' : instantMode ? `Pay ${formatMoney(instantChoice?.deposit)} deposit` : 'Send Request'}
+                ) : step < totalSteps - 1 ? 'Continue' : instantMode ? `Pay ${formatMoney(instantChoice?.deposit)} deposit` : 'Send Request'}
               </button>
             </>
           )}
@@ -979,6 +1005,38 @@ function BookingContent() {
           <p style={s.wordmarkFooter}><Wordmark size={18} muted /></p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Studio (artists at more than one studio) ────────────────────────────────
+
+function StepStudio({ studios, selectedStudio, onChoose, loading }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <h2 style={s.stepHeading}>Where would you like to book?</h2>
+      <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+        <legend style={{ ...s.label, marginBottom: 12 }}>This artist works at more than one studio.</legend>
+        <div style={{ display: 'grid', gap: 10 }}>
+          {studios.map(studio => {
+            const on = selectedStudio?.id === studio.id;
+            return (
+              <label key={studio.id} style={{ display: 'flex', alignItems: 'center', gap: 12,
+                border: on ? '1px solid rgba(255,255,255,0.65)' : '1px solid rgba(255,255,255,0.12)',
+                background: on ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+                borderRadius: 12, padding: 16, cursor: 'pointer' }}>
+                <input type="radio" name="booking-studio-first" value={studio.id} checked={on}
+                  onChange={() => onChoose(studio.id)} style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, padding: 0, margin: 0, flex: '0 0 18px', accentColor: '#fff' }} />
+                <span style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>{studio.name}</span>
+                  {studio.addressString && <span style={{ ...s.label, lineHeight: 1.5 }}>{studio.addressString}</span>}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+      {loading && <p role="status" style={{ ...s.label, margin: 0 }}>Loading this studio…</p>}
     </div>
   );
 }
