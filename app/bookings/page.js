@@ -40,6 +40,8 @@ const BODY_PARTS = [
 ];
 
 const COLOUR_STYLES = ['Black & Grey', 'Color'];
+// The same choices as a studio's booking form on Vanta Studio.
+const SKIN_TONES = ['Very light', 'Light', 'Medium', 'Olive', 'Brown', 'Dark'];
 // Saved values stay as the backend expects; people see these labels.
 const colourLabel = value => ({ 'Black & Grey': 'Black & grey', Color: 'Colour' }[value] || value);
 
@@ -154,6 +156,10 @@ function BookingContent() {
   // Step 1 – design
   const [designDetails, setDesignDetails] = useState('');
   const [bodyLocations, setBodyLocations] = useState([]);
+  // Asked when the artist's form (or the studio's) has them on.
+  const [tattooSize, setTattooSize] = useState('');
+  const [sizeUnit, setSizeUnit] = useState('cm');
+  const [skinTone, setSkinTone] = useState('');
   const [colourStyle, setColourStyle] = useState('');
   const [colourDetails, setColourDetails] = useState('');
   const [notes, setNotes] = useState('');
@@ -455,13 +461,19 @@ function BookingContent() {
     switch (page) {
       case -1: return Boolean(selectedStudio) && placeReady === selectedStudio.id;
       case 0: return types.length ? Boolean(chosenType) && !!sessionType : !!sessionType;
-      case 1: return designDetails.trim() && bodyLocations.length > 0 &&
+      // A piercing always needs its details and placement; a tattoo what the form requires.
+      case 1: return (isPiercing ? designDetails.trim() : (!needs('design_details') || designDetails.trim())) &&
+        (isPiercing ? bodyLocations.length > 0 : (!needs('body_location') || bodyLocations.length > 0)) &&
+        (isPiercing || !needs('size') || tattooSize.trim()) &&
+        (isPiercing || !needs('skin_tone') || skinTone) &&
         (isPiercing || !needs('color') || colourStyle) &&
         (isPiercing || !needs('image_paths') || photoFiles.length > 0) &&
         (!needs('notes') || notes.trim());
       case 2: if (instantMode) return Boolean(instantChoice && instantStart);
-        return (!studios.length || !!selectedStudio) &&
-        (windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate));
+        return (!studios.length || !!selectedStudio) && (
+          !asks('availability_windows') ||
+          windowsFitSchedule(availabilityWindows, studioSchedule, restrictSchedule) || (pushToLater && earliestDate) ||
+          (!needs('availability_windows') && !availabilityWindows.length));
       case 3: return contactFirst.trim() && contactLast.trim() && validEmail(contactEmail) &&
         (phoneNumber.trim() ? validPhone(phoneCountry, phoneNumber) : !guest) &&
         (!guest || contactDob) &&
@@ -643,10 +655,12 @@ function BookingContent() {
         ...(asks('allergies') && allergies.trim() ? { allergies: allergies.trim() } : {}),
         ...(asks('address') && homeAddress.trim() ? { address: homeAddress.trim() } : {}),
         session_type: sessionType,
-        design_details: designDetails.trim(),
-        body_location: bodyLocations.join(', '),
+        design_details: isPiercing || asks('design_details') ? designDetails.trim() : '',
+        body_location: isPiercing || asks('body_location') ? bodyLocations.join(', ') : '',
         color: isPiercing || !asks('color') ? undefined : colourValue,
-        availability_windows: availabilityWindows.map(w => ({
+        ...(!isPiercing && asks('size') && tattooSize.trim() ? { size: `${tattooSize.trim()}${sizeUnit}`, size_unit: sizeUnit } : {}),
+        ...(!isPiercing && asks('skin_tone') && skinTone ? { skin_tone: skinTone } : {}),
+        availability_windows: (asks('availability_windows') ? availabilityWindows : []).map(w => ({
           day_of_week: w.dayOfWeek,
           start_time: w.startTime,
           end_time: w.endTime,
@@ -942,7 +956,7 @@ function BookingContent() {
                   <button style={s.backBtn} onClick={handleBack} disabled={step === 0}>
                     {step > 0 ? '‹' : ''}
                   </button>
-                  <span style={s.stepTitle}>{page === -1 ? 'Studio' : page === 2 && instantMode ? 'Time' : STEP_TITLES[page]}</span>
+                  <span style={s.stepTitle}>{page === -1 ? 'Studio' : page === 2 && (instantMode || !asks('availability_windows')) ? 'Time' : STEP_TITLES[page]}</span>
                   <div style={s.stepDots}>
                     {Array.from({ length: totalSteps }, (_, i) => (
                       <div key={i} style={{ ...s.dot, ...(i === step ? s.dotActive : i < step ? s.dotDone : {}) }} />
@@ -971,6 +985,10 @@ function BookingContent() {
                     photoInputRef={photoInputRef}
                     onAddPhoto={handlePhotoChange} onRemovePhoto={removePhoto}
                     showBodyPicker={showBodyPicker} setShowBodyPicker={setShowBodyPicker}
+                    design={formQuestion(artistForm, studioForm, 'design_details')}
+                    placement={formQuestion(artistForm, studioForm, 'body_location')}
+                    size={{ ...formQuestion(artistForm, studioForm, 'size'), value: tattooSize, set: setTattooSize, unit: sizeUnit, setUnit: setSizeUnit }}
+                    skinTone={{ ...formQuestion(artistForm, studioForm, 'skin_tone'), value: skinTone, set: setSkinTone }}
                     photos={formQuestion(artistForm, studioForm, 'image_paths')}
                     colour={formQuestion(artistForm, studioForm, 'color')}
                     notesQuestion={formQuestion(artistForm, studioForm, 'notes')}
@@ -993,6 +1011,7 @@ function BookingContent() {
                     artistSchedule={studioSchedule}
                     studios={studioStep ? [] : studios} selectedStudio={selectedStudio}
                     onChooseStudio={chooseStudio} restrictSchedule={restrictSchedule}
+                    availability={formQuestion(artistForm, studioForm, 'availability_windows')} artistName={artist?.name}
                   />
                 )}
                 {page === 3 && (
@@ -1013,6 +1032,8 @@ function BookingContent() {
                   <StepReview
                     sessionType={sessionType} appointment={chosenType}
                     designDetails={designDetails} bodyLocations={bodyLocations}
+                    size={!isPiercing && asks('size') && tattooSize.trim() ? `${tattooSize.trim()} ${sizeUnit}` : ''}
+                    skinTone={!isPiercing && asks('skin_tone') ? skinTone : ''}
                     colourStyle={colourStyle} colourDetails={colourDetails}
                     notes={notes} photoPreviews={photoPreviews}
                     availabilityWindows={availabilityWindows} pushToLater={pushToLater}
@@ -1193,8 +1214,13 @@ function StepDesign({
   colourStyle, setColourStyle, colourDetails, setColourDetails,
   notes, setNotes, photoPreviews, photoFiles, photoInputRef,
   onAddPhoto, onRemovePhoto, showBodyPicker, setShowBodyPicker,
-  photos, colour, notesQuestion,
+  design, placement, size, skinTone, photos, colour, notesQuestion,
 }) {
+  // A piercing is always described and placed; a tattoo as the form asks.
+  const designAsked = isPiercing || design.asked;
+  const designOptional = !isPiercing && !design.required;
+  const placementAsked = isPiercing || placement.asked;
+  const placementOptional = !isPiercing && !placement.required;
   // Piercing requests never need photos; a tattoo needs them when the artist asks.
   const photosRequired = photos.required && !isPiercing;
   return (
@@ -1234,8 +1260,11 @@ function StepDesign({
       </div>}
 
       {/* Design description */}
-      <div style={s.field}>
-        <label style={s.sectionLabel}>{isPiercing ? 'PIERCING DETAILS' : 'DESIGN DESCRIPTION'}</label>
+      {designAsked && <div style={s.field}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ ...s.sectionLabel, marginBottom: 0 }}>{isPiercing ? 'PIERCING DETAILS' : 'DESIGN DESCRIPTION'}</label>
+          {designOptional && <span style={s.optionalBadge}>Optional</span>}
+        </div>
         <textarea
           style={{ ...s.input, ...s.textarea }}
           placeholder={isPiercing ? 'e.g. Left nostril, one piercing, jewellery preference…' : 'e.g. Japanese dragon on the upper arm with waves…'}
@@ -1243,11 +1272,14 @@ function StepDesign({
           onChange={e => setDesignDetails(e.target.value)}
           rows={4}
         />
-      </div>
+      </div>}
 
       {/* Body placement */}
-      <div>
-        <div style={s.sectionLabel}>BODY PLACEMENT</div>
+      {placementAsked && <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ ...s.sectionLabel, marginBottom: 0 }}>BODY PLACEMENT</div>
+          {placementOptional && <span style={s.optionalBadge}>Optional</span>}
+        </div>
         <button style={s.placementBtn} onClick={() => setShowBodyPicker(true)}>
           <span style={bodyLocations.length ? { color: 'var(--main)' } : { color: 'rgba(var(--ink-rgb), 0.35)' }}>
             {bodyLocations.length ? bodyLocations.join(', ') : 'Select placement…'}
@@ -1265,7 +1297,7 @@ function StepDesign({
                   <div style={s.modalSub}>Select all that apply</div>
                 </div>
                 <button
-                  style={{ ...s.modalDone, ...(bodyLocations.length === 0 ? { opacity: 0.3, pointerEvents: 'none' } : {}) }}
+                  style={{ ...s.modalDone, ...(bodyLocations.length === 0 && !placementOptional ? { opacity: 0.3, pointerEvents: 'none' } : {}) }}
                   onClick={() => setShowBodyPicker(false)}
                 >
                   Done
@@ -1290,7 +1322,49 @@ function StepDesign({
             </div>
           </div>
         )}
-      </div>
+      </div>}
+
+      {/* Size */}
+      {!isPiercing && size.asked && <div style={s.field}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label htmlFor="booking-size" style={{ ...s.sectionLabel, marginBottom: 0 }}>SIZE</label>
+          {!size.required && <span style={s.optionalBadge}>Optional</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            id="booking-size"
+            style={{ ...s.input, flex: 1, minWidth: 0 }}
+            type="text" inputMode="decimal" placeholder="e.g. 10"
+            value={size.value}
+            onChange={e => { const v = e.target.value; if (v === '' || /^\d*\.?\d*$/.test(v)) size.set(v); }}
+          />
+          <div role="group" aria-label="Size unit" style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            {['cm', 'in'].map(u => (
+              <button key={u} type="button" aria-pressed={size.unit === u}
+                style={{ ...s.colourBtn, flex: '0 0 auto', padding: '0 16px', height: 46, minWidth: 52, ...(size.unit === u ? s.colourBtnActive : {}) }}
+                onClick={() => size.setUnit(u)}>{u}</button>
+            ))}
+          </div>
+        </div>
+      </div>}
+
+      {/* Skin tone */}
+      {!isPiercing && skinTone.asked && <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ ...s.sectionLabel, marginBottom: 0 }}>SKIN TONE</div>
+          {!skinTone.required && <span style={s.optionalBadge}>Optional</span>}
+        </div>
+        <div role="radiogroup" aria-label="Skin tone" style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+          {SKIN_TONES.map(tone => {
+            const selected = skinTone.value === tone;
+            return (
+              <button key={tone} type="button" role="radio" aria-checked={selected}
+                style={{ ...s.bodyPill, ...(selected ? s.bodyPillActive : {}) }}
+                onClick={() => skinTone.set(selected ? '' : tone)}>{tone}</button>
+            );
+          })}
+        </div>
+      </div>}
 
       {/* Colour */}
       {!isPiercing && colour.asked && <div>
@@ -1345,13 +1419,10 @@ function StepDesign({
 
 // ─── Step 2: Availability ────────────────────────────────────────────────────
 
-function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToLater, setPushToLater, earliestDate, setEarliestDate, sessionType, appointment, artistSchedule, studios, selectedStudio, onChooseStudio, restrictSchedule }) {
-  const st = SESSION_TYPES.find(t => t.value === sessionType);
-  const ready = !studios.length || !!selectedStudio;
+// Which of the artist's studios the booking is at.
+function StudioChoice({ studios, selectedStudio, onChooseStudio }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <h2 style={s.stepHeading}>{studios.length ? 'Where would you like to book?' : 'When are you available?'}</h2>
-      {studios.length > 0 && <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+    <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <legend style={{ ...s.label, marginBottom: 12 }}>{studios.length > 1 ? 'Choose a studio to see the artist’s working hours.' : 'Your appointment location'}</legend>
         <div style={{ display: 'grid', gap: 10 }}>
           {studios.map(studio => <label key={studio.id} style={{ display: 'flex', alignItems: 'center', gap: 12,
@@ -1366,7 +1437,27 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
             </span>
           </label>)}
         </div>
-      </fieldset>}
+    </fieldset>
+  );
+}
+
+function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToLater, setPushToLater, earliestDate, setEarliestDate, sessionType, appointment, artistSchedule, studios, selectedStudio, onChooseStudio, restrictSchedule, availability = { asked: true, required: true }, artistName }) {
+  const st = SESSION_TYPES.find(t => t.value === sessionType);
+  const ready = !studios.length || !!selectedStudio;
+  // The artist doesn't ask for weekly availability: they send times to choose from.
+  if (!availability.asked) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <h2 style={s.stepHeading}>{studios.length ? 'Where would you like to book?' : 'Choosing a time'}</h2>
+        {studios.length > 0 && <StudioChoice studios={studios} selectedStudio={selectedStudio} onChooseStudio={onChooseStudio} />}
+        {ready && <p style={{ ...s.muted, margin: 0 }}>Once {artistName || 'the artist'} has looked at your request, they’ll send you times to choose from.</p>}
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <h2 style={s.stepHeading}>{studios.length ? 'Where would you like to book?' : 'When are you available?'}</h2>
+      {studios.length > 0 && <StudioChoice studios={studios} selectedStudio={selectedStudio} onChooseStudio={onChooseStudio} />}
       {ready && <>
       {studios.length > 0 && <h3 style={{ ...s.stepHeading, fontSize: 20 }}>When are you available?</h3>}
       {selectedStudio?.timezone && <p style={{ ...s.label, margin: 0 }}>Studio local time · {selectedStudio.timezone.replaceAll('_', ' ')}</p>}
@@ -1382,7 +1473,7 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
           </p>
         )}
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.35)', margin: 0 }}>
-          Drag to select · tap a block to remove it
+          Drag to select · tap a block to remove it{availability.required ? '' : ' · Optional'}
         </p>
       </div>
 
@@ -1821,7 +1912,7 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
 
 // ─── Step 4: Review ──────────────────────────────────────────────────────────
 
-function StepReview({ sessionType, appointment, designDetails, bodyLocations, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio, instant }) {
+function StepReview({ sessionType, appointment, designDetails, bodyLocations, size, skinTone, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio, instant }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
   const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Colour — ${colourDetails}` : colourLabel(colourStyle);
 
@@ -1868,8 +1959,10 @@ function StepReview({ sessionType, appointment, designDetails, bodyLocations, co
       )}
 
       <ReviewGroup title={sessionType === 'piercing' ? 'PIERCING' : 'DESIGN'} rows={[
-        { label: 'Details', value: designDetails },
-        { label: 'Placement', value: bodyLocations.join(', ') },
+        designDetails.trim() && { label: 'Details', value: designDetails },
+        bodyLocations.length > 0 && { label: 'Placement', value: bodyLocations.join(', ') },
+        size && { label: 'Size', value: size },
+        skinTone && { label: 'Skin tone', value: skinTone },
         colourValue && { label: 'Colour', value: colourValue },
         notes && { label: 'Notes', value: notes },
       ].filter(Boolean)} />
@@ -1900,7 +1993,7 @@ function StepReview({ sessionType, appointment, designDetails, bodyLocations, co
       ]} />}
       {instant && <p style={{ ...s.muted, fontSize: 12, margin: '-8px 0 20px' }}>{BOOKING_FEE_NOTE} {payWays(false)}</p>}
 
-      {!instant && <ReviewGroup title="AVAILABILITY" rows={[
+      {!instant && (availabilityWindows.length > 0 || (pushToLater && earliestDate)) && <ReviewGroup title="AVAILABILITY" rows={[
         ...availabilityWindows.map(w => {
           const dayIdx = DAY_VALUES.indexOf(w.dayOfWeek);
           const day = DAYS[dayIdx] ?? '?';
