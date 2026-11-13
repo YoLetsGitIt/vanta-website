@@ -1153,11 +1153,11 @@ function StepAppointmentType({ types, chosen, onChoose, instant }) {
                 {t.description && <div style={{ ...s.sessionCardDesc, whiteSpace: 'normal', lineHeight: 1.45, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.6)' } : {}) }}>{t.description}</div>}
                 <div style={{ ...s.sessionCardDuration, marginTop: 4, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.45)' } : {}) }}>{formatLength(t.duration_minutes)}</div>
               </div>
-              {Number(t.price) > 0 && (
-                // The artist's quote for this appointment.
+              {t.price != null && Number(t.price) >= 0 && (
+                // The artist's price for this appointment; $0 is free (e.g. a consultation).
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.75)' } : {}) }}>{formatMoney(t.price)}</div>
-                  <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.45)' } : {}) }}>quote</div>
+                  <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.75)' } : {}) }}>{Number(t.price) === 0 ? 'Free' : formatMoney(t.price)}</div>
+                  {Number(t.price) > 0 && <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.45)' } : {}) }}>quote</div>}
                 </div>
               )}
               <div style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}) }}>
