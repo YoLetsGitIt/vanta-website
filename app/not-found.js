@@ -6,6 +6,8 @@ import BrandLoader, { Wordmark } from '../components/BrandLoader';
 
 const BOOKING_CONFIRM_RE = /^\/bookings\/([^/]+)\/confirm$/;
 const BOOKING_CONFIRMED_RE = /^\/bookings\/([^/]+)\/confirmed$/;
+// Client links from booking emails: /bookings/<id>/cancel?t=… and /bookings/<id>/reschedule?t=….
+const BOOKING_MANAGE_RE = /^\/bookings\/([^/]+)\/(cancel|reschedule)\/?$/;
 // Studio short links: /b/<slug> opens the booking form, /c/<slug> the consent form,
 // /w/<slug> the walk-in form.
 const STUDIO_LINK_RE = /^\/(b|c|w)\/([a-z0-9-]{3,40})\/?$/i;
@@ -42,6 +44,12 @@ export default function NotFound() {
     }
     if ((m = BOOKING_CONFIRM_RE.exec(path))) {
       window.location.replace(`/bookings/_/confirm?id=${encodeURIComponent(m[1])}`);
+      return;
+    }
+    if ((m = BOOKING_MANAGE_RE.exec(path))) {
+      const query = new URLSearchParams(window.location.search);
+      query.set('id', m[1]);
+      window.location.replace(`/bookings/_/${m[2]}?${query.toString()}`);
       return;
     }
     if ((m = BOOKING_CONFIRMED_RE.exec(path))) {
