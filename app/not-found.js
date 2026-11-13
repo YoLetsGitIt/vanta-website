@@ -55,14 +55,14 @@ export default function NotFound() {
 
   return (
     <main className="page-scroll page-scroll--center" style={{
-      background: '#11151b', color: '#fff',
+      background: 'var(--page)', color: 'var(--ink)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }}>
       <div style={{ textAlign: 'center' }}>
         <Wordmark size={28} />
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, maxWidth: 320, lineHeight: 1.5 }}>{message}</p>
-        <a href="/" style={{ color: '#c2b699', fontSize: 14, textDecoration: 'none' }}>Go to vanta.tattoo</a>
+        <p style={{ color: 'rgba(var(--ink-rgb), 0.6)', fontSize: 15, maxWidth: 320, lineHeight: 1.5 }}>{message}</p>
+        <a href="/" style={{ color: 'var(--gold)', fontSize: 14, textDecoration: 'none' }}>Go to vanta.tattoo</a>
       </div>
     </main>
   );

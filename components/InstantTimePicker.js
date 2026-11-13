@@ -63,14 +63,14 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
             <button key={t.id} type="button" role="radio" aria-checked={on} style={{ ...st.type, ...(on ? st.typeOn : {}) }}
               onClick={() => { if (!on) { onType(t.id); onStart(''); setFrom(today); } }}>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ ...st.typeName, ...(on ? { color: '#000' } : {}) }}>{t.name}</span>
+                <span style={{ ...st.typeName, ...(on ? { color: 'var(--paper)' } : {}) }}>{t.name}</span>
                 {t.description && (
                   // The artist's note on what this appointment is.
-                  <span style={{ ...st.typeMeta, display: 'block', margin: '2px 0', lineHeight: 1.45, whiteSpace: 'normal', ...(on ? { color: 'rgba(0,0,0,0.7)' } : { color: 'rgba(255,255,255,0.75)' }) }}>{t.description}</span>
+                  <span style={{ ...st.typeMeta, display: 'block', margin: '2px 0', lineHeight: 1.45, whiteSpace: 'normal', ...(on ? { color: 'rgba(var(--paper-rgb), 0.7)' } : { color: 'rgba(var(--ink-rgb), 0.75)' }) }}>{t.description}</span>
                 )}
-                <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(0,0,0,0.55)' } : {}) }}>{formatLength(t.duration_minutes)}</span>
+                <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(var(--paper-rgb), 0.55)' } : {}) }}>{formatLength(t.duration_minutes)}</span>
               </span>
-              <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(0,0,0,0.65)' } : {}), flexShrink: 0 }}>{money(depositCharge(t.deposit).total)} to book<span style={{ display: 'block', fontSize: 11, textAlign: 'right' }}>{formatMoney(t.deposit)} deposit + {money(depositCharge(t.deposit).fee)} fee</span></span>
+              <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(var(--paper-rgb), 0.65)' } : {}), flexShrink: 0 }}>{money(depositCharge(t.deposit).total)} to book<span style={{ display: 'block', fontSize: 11, textAlign: 'right' }}>{formatMoney(t.deposit)} deposit + {money(depositCharge(t.deposit).fee)} fee</span></span>
             </button>
           );
         })}
@@ -144,21 +144,21 @@ function Chevron({ left = false }) {
 
 const st = {
   heading: { fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 700, color: 'var(--main)', margin: 0, lineHeight: 1.3 },
-  sub: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: '6px 0 20px', lineHeight: 1.55 },
-  label: { fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, letterSpacing: 0.8, color: 'rgba(255,255,255,0.4)', marginBottom: 8 },
-  type: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', width: '100%', textAlign: 'left', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', transition: 'background-color 150ms ease, border-color 150ms ease' },
-  typeOn: { background: '#fff', border: '1px solid #fff' },
+  sub: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.45)', margin: '6px 0 20px', lineHeight: 1.55 },
+  label: { fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, letterSpacing: 0.8, color: 'rgba(var(--ink-rgb), 0.4)', marginBottom: 8 },
+  type: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', width: '100%', textAlign: 'left', background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)', borderRadius: 14, cursor: 'pointer', transition: 'background-color 150ms ease, border-color 150ms ease' },
+  typeOn: { background: 'var(--ink)', border: '1px solid var(--ink)' },
   typeName: { display: 'block', fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 600, color: 'var(--main)' },
-  typeMeta: { display: 'block', fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
-  pager: { width: 32, height: 32, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'none', color: 'var(--main)', fontSize: 18, cursor: 'pointer', lineHeight: 1 },
+  typeMeta: { display: 'block', fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(var(--ink-rgb), 0.45)', marginTop: 2 },
+  pager: { width: 32, height: 32, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid rgba(var(--ink-rgb), 0.12)', background: 'none', color: 'var(--main)', fontSize: 18, cursor: 'pointer', lineHeight: 1 },
   pagerOff: { opacity: 0.3, cursor: 'not-allowed' },
   dayRow: { display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, scrollbarWidth: 'thin', overscrollBehaviorX: 'contain' },
-  day: { flex: '0 0 auto', width: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '10px 0', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--main)', fontFamily: 'var(--font-body)', cursor: 'pointer' },
-  dayOn: { background: '#fff', border: '1px solid #fff', color: '#000' },
+  day: { flex: '0 0 auto', width: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '10px 0', borderRadius: 12, background: 'rgba(var(--ink-rgb), 0.06)', border: '1px solid rgba(var(--ink-rgb), 0.08)', color: 'var(--main)', fontFamily: 'var(--font-body)', cursor: 'pointer' },
+  dayOn: { background: 'var(--ink)', border: '1px solid var(--ink)', color: 'var(--paper)' },
   dayOff: { opacity: 0.3, cursor: 'not-allowed' },
   slotGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: 8 },
-  slot: { padding: '12px 0', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontVariantNumeric: 'tabular-nums' },
-  slotOn: { background: '#fff', border: '1px solid #fff', color: '#000', fontWeight: 600 },
-  error: { fontFamily: 'var(--font-body)', fontSize: 14, color: 'rgba(255,100,100,0.85)', margin: 0, padding: '10px 14px', background: 'rgba(255,60,60,0.08)', borderRadius: 8, border: '1px solid rgba(255,60,60,0.15)' },
+  slot: { padding: '12px 0', borderRadius: 10, background: 'rgba(var(--ink-rgb), 0.06)', border: '1px solid rgba(var(--ink-rgb), 0.08)', color: 'rgba(var(--ink-rgb), 0.85)', fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontVariantNumeric: 'tabular-nums' },
+  slotOn: { background: 'var(--ink)', border: '1px solid var(--ink)', color: 'var(--paper)', fontWeight: 600 },
+  error: { fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--danger)', margin: 0, padding: '10px 14px', background: 'rgba(255,60,60,0.08)', borderRadius: 8, border: '1px solid rgba(255,60,60,0.15)' },
   link: { background: 'none', border: 'none', padding: 0, color: 'var(--main)', textDecoration: 'underline', fontFamily: 'inherit', fontSize: 'inherit', cursor: 'pointer' },
 };

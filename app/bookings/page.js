@@ -855,7 +855,7 @@ function BookingContent() {
                   <button type="button" style={{ ...s.emailAuthLink, margin: 0, padding: '0 4px' }} onClick={() => { setAuthMode('login'); setShowEmailAuth(true); }}>
                     Log in with email
                   </button>
-                  <span aria-hidden="true" style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
+                  <span aria-hidden="true" style={{ color: 'rgba(var(--ink-rgb), 0.3)' }}>·</span>
                   <button type="button" style={{ ...s.emailAuthLink, margin: 0, padding: '0 4px' }} onClick={() => { setAuthMode('signup'); setShowEmailAuth(true); }}>
                     Create account
                   </button>
@@ -1060,7 +1060,7 @@ function BookingContent() {
 
               <a
                 href="https://www.vanta.tattoo"
-                style={{ display: 'block', textAlign: 'center', marginTop: 16, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}
+                style={{ display: 'block', textAlign: 'center', marginTop: 16, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, color: 'rgba(var(--ink-rgb), 0.35)', textDecoration: 'none' }}
               >
                 Back to home
               </a>
@@ -1087,11 +1087,11 @@ function StepStudio({ studios, selectedStudio, onChoose }) {
             const on = selectedStudio?.id === studio.id;
             return (
               <label key={studio.id} style={{ display: 'flex', alignItems: 'center', gap: 12,
-                border: on ? '1px solid rgba(255,255,255,0.65)' : '1px solid rgba(255,255,255,0.12)',
-                background: on ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+                border: on ? '1px solid rgba(var(--ink-rgb), 0.65)' : '1px solid rgba(var(--ink-rgb), 0.12)',
+                background: on ? 'rgba(var(--ink-rgb), 0.08)' : 'rgba(var(--ink-rgb), 0.03)',
                 borderRadius: 12, padding: 16, cursor: 'pointer' }}>
                 <input type="radio" name="booking-studio-first" value={studio.id} checked={on}
-                  onChange={() => onChoose(studio.id)} style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, padding: 0, margin: 0, flex: '0 0 18px', accentColor: '#fff' }} />
+                  onChange={() => onChoose(studio.id)} style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, padding: 0, margin: 0, flex: '0 0 18px', accentColor: 'var(--ink)' }} />
                 <span style={{ display: 'grid', gap: 5, minWidth: 0 }}>
                   <span style={{ fontWeight: 600, fontSize: 15 }}>{studio.name}</span>
                   {studio.addressString && <span style={{ ...s.label, lineHeight: 1.5 }}>{studio.addressString}</span>}
@@ -1120,19 +1120,19 @@ function StepAppointmentType({ types, chosen, onChoose, instant }) {
               style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}) }}
               onClick={() => onChoose(t)}>
               <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                <div style={{ ...s.sessionCardLabel, ...(selected ? { color: '#000' } : {}) }}>{t.name}</div>
-                {t.description && <div style={{ ...s.sessionCardDesc, whiteSpace: 'normal', lineHeight: 1.45, ...(selected ? { color: 'rgba(0,0,0,0.6)' } : {}) }}>{t.description}</div>}
-                <div style={{ ...s.sessionCardDuration, marginTop: 4, ...(selected ? { color: 'rgba(0,0,0,0.45)' } : {}) }}>{formatLength(t.duration_minutes)}</div>
+                <div style={{ ...s.sessionCardLabel, ...(selected ? { color: 'var(--paper)' } : {}) }}>{t.name}</div>
+                {t.description && <div style={{ ...s.sessionCardDesc, whiteSpace: 'normal', lineHeight: 1.45, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.6)' } : {}) }}>{t.description}</div>}
+                <div style={{ ...s.sessionCardDuration, marginTop: 4, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.45)' } : {}) }}>{formatLength(t.duration_minutes)}</div>
               </div>
               {Number(t.price) > 0 && (
                 // The artist's quote for this appointment.
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(0,0,0,0.75)' } : {}) }}>{formatMoney(t.price)}</div>
-                  <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(0,0,0,0.45)' } : {}) }}>quote</div>
+                  <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.75)' } : {}) }}>{formatMoney(t.price)}</div>
+                  <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.45)' } : {}) }}>quote</div>
                 </div>
               )}
               <div style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}) }}>
-                {selected && <span style={{ fontSize: 12, color: '#fff' }}>✓</span>}
+                {selected && <span style={{ fontSize: 12, color: 'var(--ink)' }}>✓</span>}
               </div>
             </button>
           );
@@ -1167,15 +1167,15 @@ function StepSessionType({ sessionType, setSessionType, services, hideLength = f
               onClick={() => setSessionType(t.value)}
             >
               <div style={{ flex: 1, textAlign: 'left' }}>
-                <div style={{ ...s.sessionCardLabel, ...(selected ? { color: '#000' } : {}) }}>{t.label}</div>
-                <div style={{ ...s.sessionCardDesc, ...(selected ? { color: 'rgba(0,0,0,0.55)' } : {}) }}>{t.desc}</div>
+                <div style={{ ...s.sessionCardLabel, ...(selected ? { color: 'var(--paper)' } : {}) }}>{t.label}</div>
+                <div style={{ ...s.sessionCardDesc, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.55)' } : {}) }}>{t.desc}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                {t.size && <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(0,0,0,0.65)' } : {}) }}>{t.size}</div>}
-                {!hideLength && <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(0,0,0,0.4)' } : {}) }}>{t.duration}</div>}
+                {t.size && <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.65)' } : {}) }}>{t.size}</div>}
+                {!hideLength && <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.4)' } : {}) }}>{t.duration}</div>}
               </div>
               <div style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}) }}>
-                {selected && <span style={{ fontSize: 12, color: '#fff' }}>✓</span>}
+                {selected && <span style={{ fontSize: 12, color: 'var(--ink)' }}>✓</span>}
               </div>
             </button>
           );
@@ -1249,10 +1249,10 @@ function StepDesign({
       <div>
         <div style={s.sectionLabel}>BODY PLACEMENT</div>
         <button style={s.placementBtn} onClick={() => setShowBodyPicker(true)}>
-          <span style={bodyLocations.length ? { color: 'var(--main)' } : { color: 'rgba(255,255,255,0.35)' }}>
+          <span style={bodyLocations.length ? { color: 'var(--main)' } : { color: 'rgba(var(--ink-rgb), 0.35)' }}>
             {bodyLocations.length ? bodyLocations.join(', ') : 'Select placement…'}
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>›</span>
+          <span style={{ color: 'rgba(var(--ink-rgb), 0.3)', fontSize: 12 }}>›</span>
         </button>
 
         {/* Body picker modal */}
@@ -1355,11 +1355,11 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
         <legend style={{ ...s.label, marginBottom: 12 }}>{studios.length > 1 ? 'Choose a studio to see the artist’s working hours.' : 'Your appointment location'}</legend>
         <div style={{ display: 'grid', gap: 10 }}>
           {studios.map(studio => <label key={studio.id} style={{ display: 'flex', alignItems: 'center', gap: 12,
-            border: selectedStudio?.id === studio.id ? '1px solid rgba(255,255,255,0.65)' : '1px solid rgba(255,255,255,0.12)',
-            background: selectedStudio?.id === studio.id ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+            border: selectedStudio?.id === studio.id ? '1px solid rgba(var(--ink-rgb), 0.65)' : '1px solid rgba(var(--ink-rgb), 0.12)',
+            background: selectedStudio?.id === studio.id ? 'rgba(var(--ink-rgb), 0.08)' : 'rgba(var(--ink-rgb), 0.03)',
             borderRadius: 12, padding: 16, cursor: 'pointer' }}>
             <input type="radio" name="booking-studio" value={studio.id} checked={selectedStudio?.id === studio.id}
-              onChange={() => onChooseStudio(studio.id)} style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, padding: 0, margin: 0, flex: '0 0 18px', accentColor: '#fff' }} />
+              onChange={() => onChooseStudio(studio.id)} style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, padding: 0, margin: 0, flex: '0 0 18px', accentColor: 'var(--ink)' }} />
             <span style={{ display: 'grid', gap: 5, minWidth: 0 }}>
               <span style={{ fontWeight: 600, fontSize: 15 }}>{studio.name}</span>
               {studio.addressString && <span style={{ ...s.label, lineHeight: 1.5 }}>{studio.addressString}</span>}
@@ -1381,7 +1381,7 @@ function StepAvailability({ availabilityWindows, setAvailabilityWindows, pushToL
             Your {st.label.toLowerCase()} session takes around {st.duration} — drag to select windows that fit.
           </p>
         )}
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.35)', margin: 0 }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.35)', margin: 0 }}>
           Drag to select · tap a block to remove it
         </p>
       </div>
@@ -1546,7 +1546,7 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
           return (
             <div key={d} style={{
               flex: 1, textAlign: 'center', fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600,
-              color: isOpen ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.2)',
+              color: isOpen ? 'rgba(var(--ink-rgb), 0.65)' : 'rgba(var(--ink-rgb), 0.2)',
             }}>
               {d}
             </div>
@@ -1561,7 +1561,7 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
           {hourTicks.map(({ slot, label }) => (
             <div key={slot} style={{
               position: 'absolute', top: slot * AV_SLOT_H - 5, right: 4,
-              fontFamily: 'var(--font-body)', fontSize: 8, color: 'rgba(255,255,255,0.4)',
+              fontFamily: 'var(--font-body)', fontSize: 8, color: 'rgba(var(--ink-rgb), 0.4)',
               lineHeight: 1, userSelect: 'none',
             }}>
               {label}
@@ -1603,13 +1603,13 @@ function AvailabilityGrid({ windows, setWindows, schedule }) {
       {/* Legend */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(255,255,255,0.85)' }} />
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Your selection</span>
+          <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(var(--ink-rgb), 0.85)' }} />
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'rgba(var(--ink-rgb), 0.4)' }}>Your selection</span>
         </div>
         {hasSchedule && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(255,255,255,0.12)' }} />
-            <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Artist available</span>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(var(--ink-rgb), 0.12)' }} />
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'rgba(var(--ink-rgb), 0.4)' }}>Artist available</span>
           </div>
         )}
       </div>
@@ -1649,8 +1649,8 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
         return (
           <div key={slot} style={{
             position: 'absolute', top: slot * AV_SLOT_H, left: 1, right: 1, height: AV_SLOT_H,
-            background: inArtistRange ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.02)',
-            borderTop: slot % 2 === 0 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+            background: inArtistRange ? 'rgba(var(--ink-rgb), 0.09)' : 'rgba(var(--ink-rgb), 0.02)',
+            borderTop: slot % 2 === 0 ? '1px solid rgba(var(--ink-rgb), 0.07)' : 'none',
           }} />
         );
       })}
@@ -1662,7 +1662,7 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
         return (
           <div key={i} style={{
             position: 'absolute', top, left: 2, right: 2, height: Math.max(AV_SLOT_H, height),
-            background: 'rgba(255,255,255,0.88)', borderRadius: 4, pointerEvents: 'none',
+            background: 'rgba(var(--ink-rgb), 0.88)', borderRadius: 4, pointerEvents: 'none',
           }} />
         );
       })}
@@ -1673,7 +1673,7 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
           position: 'absolute',
           top: dragLo * AV_SLOT_H, left: 2, right: 2,
           height: (dragHi - dragLo + 1) * AV_SLOT_H,
-          background: 'rgba(255,255,255,0.4)', borderRadius: 4, pointerEvents: 'none',
+          background: 'rgba(var(--ink-rgb), 0.4)', borderRadius: 4, pointerEvents: 'none',
         }} />
       )}
     </div>
@@ -1732,7 +1732,7 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
           <span style={s.contactIcon}>📞</span>
           <span style={s.contactFieldLabel}>Phone</span>
           <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} aria-label="Country code"
-            style={{ flex: '0 0 auto', background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, fontFamily: 'var(--font-body)', fontSize: 14, padding: '6px 6px', marginRight: 8 }}>
+            style={{ flex: '0 0 auto', background: 'rgba(var(--ink-rgb), 0.06)', color: 'var(--ink)', border: '1px solid rgba(var(--ink-rgb), 0.12)', borderRadius: 8, fontFamily: 'var(--font-body)', fontSize: 14, padding: '6px 6px', marginRight: 8 }}>
             {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.code} {c.dial}</option>)}
           </select>
           <input
@@ -1755,7 +1755,7 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
             <span style={{ ...s.contactFieldLabel, width: "auto", whiteSpace: "nowrap" }}>Date of birth</span>
             <div style={{ flex: '1 1 220px', minWidth: 0 }}>
               <DateOfBirthInput
-                style={{ ...s.contactInput, textAlign: 'left', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '0 0.6rem' }}
+                style={{ ...s.contactInput, textAlign: 'left', background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.1)', borderRadius: 8, padding: '0 0.6rem' }}
                 value={dob}
                 onChange={setDob}
               />
@@ -1783,7 +1783,7 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
           style={s.reminderCheckbox}
         />
         <span>
-          <span style={{ display: 'block', color: '#fff', fontWeight: 600, fontSize: 14 }}>Send me SMS reminders</span>
+          <span style={{ display: 'block', color: 'var(--ink)', fontWeight: 600, fontSize: 14 }}>Send me SMS reminders</span>
           <span style={{ display: 'block', ...s.muted, fontSize: 12, margin: '2px 0 0', lineHeight: 1.5 }}>
             A text before your appointment. Reply STOP to any reminder to turn them off.
           </span>
@@ -1795,7 +1795,7 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
             <input type="checkbox" checked={account.on} onChange={e => account.setOn(e.target.checked)} style={s.reminderCheckbox} />
             <span>
-              <span style={{ display: 'block', color: '#fff', fontWeight: 600, fontSize: 14 }}>Create a Vanta account with these details</span>
+              <span style={{ display: 'block', color: 'var(--ink)', fontWeight: 600, fontSize: 14 }}>Create a Vanta account with these details</span>
               <span style={{ display: 'block', ...s.muted, fontSize: 12, margin: '2px 0 0', lineHeight: 1.5 }}>
                 Track your bookings and book faster next time.
               </span>
@@ -1951,15 +1951,15 @@ function FlashCard({ post }) {
 const s = {
   flashCard: {
     display: 'flex', alignItems: 'center', gap: 14, padding: 12, marginBottom: 24,
-    borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 16, background: 'rgba(var(--ink-rgb), 0.04)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
     animation: 'booking-fade-in 0.35s ease',
   },
-  flashImage: { width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: 'rgba(255,255,255,0.06)' },
-  flashEyebrow: { fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.45)' },
-  flashTitle: { fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 700, color: '#fff', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' },
-  flashDetails: { fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
+  flashImage: { width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: 'rgba(var(--ink-rgb), 0.06)' },
+  flashEyebrow: { fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(var(--ink-rgb), 0.45)' },
+  flashTitle: { fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' },
+  flashDetails: { fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500, color: 'rgba(var(--ink-rgb), 0.6)', marginTop: 4 },
   flashNotice: {
-    fontFamily: 'var(--font-body)', fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.7)',
+    fontFamily: 'var(--font-body)', fontSize: 13, lineHeight: 1.5, color: 'rgba(var(--ink-rgb), 0.7)',
     padding: '10px 12px', borderRadius: 12, background: 'rgba(255,200,80,0.08)', border: '1px solid rgba(255,200,80,0.2)', margin: '0 0 20px',
   },
   pageInner: {
@@ -1982,11 +1982,11 @@ const s = {
   },
   avatarPlaceholder: {
     width: 48, height: 48, borderRadius: '50%',
-    background: 'rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.08)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   avatarInitial: {
-    fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.5)',
+    fontSize: 18, fontWeight: 600, color: 'rgba(var(--ink-rgb), 0.5)',
     fontFamily: 'var(--font-heading)',
   },
   artistName: {
@@ -2001,7 +2001,7 @@ const s = {
   },
   muted: {
     fontFamily: 'var(--font-body)',
-    fontSize: 15, color: 'rgba(255,255,255,0.45)',
+    fontSize: 15, color: 'rgba(var(--ink-rgb), 0.45)',
     margin: '0 0 20px', lineHeight: 1.65,
   },
   wordmarkFooter: {
@@ -2011,44 +2011,44 @@ const s = {
   // Auth
   appCta: {
     display: 'flex', alignItems: 'center', gap: 10,
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(var(--ink-rgb), 0.06)',
+    border: '1px solid rgba(var(--ink-rgb), 0.12)',
     borderRadius: 12, padding: '13px 16px',
     textDecoration: 'none', color: 'var(--main)',
     fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500,
   },
   appCtaIcon: { width: 32, height: 32, borderRadius: 8, flexShrink: 0 },
   emailAuthLink: {
-    background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', minHeight: 44,
+    background: 'none', border: 'none', color: 'rgba(var(--ink-rgb), 0.7)', cursor: 'pointer', minHeight: 44,
     fontFamily: 'var(--font-body)', fontSize: 14, textDecoration: 'underline', textUnderlineOffset: 3,
     display: 'block', margin: '12px auto 0', padding: 0, boxShadow: 'none', borderRadius: 0,
   },
   authDivider: { display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0 20px' },
-  authDividerLine: { flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' },
-  authDividerLabel: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(255,255,255,0.25)', whiteSpace: 'nowrap' },
+  authDividerLine: { flex: 1, height: 1, background: 'rgba(var(--ink-rgb), 0.07)' },
+  authDividerLabel: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(var(--ink-rgb), 0.25)', whiteSpace: 'nowrap' },
   tabs: {
-    display: 'flex', background: 'rgba(255,255,255,0.05)',
+    display: 'flex', background: 'rgba(var(--ink-rgb), 0.05)',
     borderRadius: 10, padding: 3, marginBottom: 24,
   },
   tab: {
     flex: 1, padding: '9px 0', background: 'transparent', border: 'none',
-    borderRadius: 8, color: 'rgba(255,255,255,0.4)',
+    borderRadius: 8, color: 'rgba(var(--ink-rgb), 0.4)',
     fontSize: 14, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer',
   },
-  tabActive: { background: 'rgba(255,255,255,0.1)', color: 'var(--main)' },
+  tabActive: { background: 'rgba(var(--ink-rgb), 0.1)', color: 'var(--main)' },
   form: { display: 'flex', flexDirection: 'column', gap: 20 },
   field: { display: 'flex', flexDirection: 'column', gap: 7 },
   label: {
     fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500,
-    color: 'rgba(255,255,255,0.55)', letterSpacing: 0.2,
+    color: 'rgba(var(--ink-rgb), 0.55)', letterSpacing: 0.2,
   },
   sectionLabel: {
     fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600,
-    letterSpacing: 1.4, color: 'rgba(255,255,255,0.3)', marginBottom: 8, display: 'block',
+    letterSpacing: 1.4, color: 'rgba(var(--ink-rgb), 0.3)', marginBottom: 8, display: 'block',
   },
   input: {
-    width: '100%', background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
+    width: '100%', background: 'rgba(var(--ink-rgb), 0.05)',
+    border: '1px solid rgba(var(--ink-rgb), 0.08)', borderRadius: 10,
     // iOS Safari auto-zooms on focus for inputs under 16px; keep at/above it
     // so the zoom doesn't carry over into later client-side-routed steps.
     padding: '12px 14px', color: 'var(--main)', fontSize: 16,
@@ -2058,18 +2058,18 @@ const s = {
   consentLabel: {
     display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
     fontFamily: 'var(--font-body)', fontSize: 13,
-    color: 'rgba(255,255,255,0.45)', lineHeight: 1.5,
+    color: 'rgba(var(--ink-rgb), 0.45)', lineHeight: 1.5,
   },
   checkbox: {
     width: 16, height: 16, minWidth: 16,
-    accentColor: 'white', cursor: 'pointer',
+    accentColor: 'var(--ink)', cursor: 'pointer',
     marginTop: 2, flexShrink: 0,
     padding: 0, border: 'none', background: 'none', borderRadius: 0,
   },
-  consentLink: { color: 'rgba(255,255,255,0.7)', textDecoration: 'underline', textUnderlineOffset: 2 },
+  consentLink: { color: 'rgba(var(--ink-rgb), 0.7)', textDecoration: 'underline', textUnderlineOffset: 2 },
   error: {
     fontFamily: 'var(--font-body)', fontSize: 14,
-    color: 'rgba(255,100,100,0.85)', margin: 0,
+    color: 'var(--danger)', margin: 0,
     padding: '10px 14px', background: 'rgba(255,60,60,0.08)',
     borderRadius: 8, border: '1px solid rgba(255,60,60,0.15)',
   },
@@ -2088,8 +2088,8 @@ const s = {
     marginBottom: 14, position: 'relative',
   },
   backBtn: {
-    width: 32, height: 32, background: 'none', border: 'none',
-    color: 'rgba(255,255,255,0.5)', fontSize: 22, cursor: 'pointer',
+    width: 32, height: 32, background: 'none', border: 'none', boxShadow: 'none',
+    color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 22, cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 0, flexShrink: 0,
   },
@@ -2098,10 +2098,10 @@ const s = {
     color: 'var(--main)', position: 'absolute', left: '50%', transform: 'translateX(-50%)',
   },
   stepDots: { display: 'flex', gap: 5, alignItems: 'center' },
-  dot: { width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.15)' },
-  dotActive: { width: 7, height: 7, background: 'rgba(255,255,255,1)' },
-  dotDone: { background: 'rgba(255,255,255,0.45)' },
-  progressTrack: { height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' },
+  dot: { width: 5, height: 5, borderRadius: '50%', background: 'rgba(var(--ink-rgb), 0.15)' },
+  dotActive: { width: 7, height: 7, background: 'rgba(var(--ink-rgb), 1)' },
+  dotDone: { background: 'rgba(var(--ink-rgb), 0.45)' },
+  progressTrack: { height: 3, background: 'rgba(var(--ink-rgb), 0.1)', borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', background: 'var(--main)', borderRadius: 2, transition: 'width 0.3s ease' },
   stepHeading: {
     fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 700,
@@ -2112,45 +2112,45 @@ const s = {
   sessionCard: {
     display: 'flex', alignItems: 'center', gap: 12,
     padding: '14px 16px', width: '100%', textAlign: 'left',
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
     borderRadius: 14, cursor: 'pointer',
   },
-  sessionCardActive: { background: '#fff', border: '1px solid #fff' },
+  sessionCardActive: { background: 'var(--ink)', border: '1px solid var(--ink)' },
   sessionCardLabel: { fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 600, color: 'var(--main)' },
-  sessionCardDesc: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
-  sessionCardMeta: { fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.55)' },
-  sessionCardDuration: { fontFamily: 'var(--font-body)', fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 },
+  sessionCardDesc: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(var(--ink-rgb), 0.45)', marginTop: 2 },
+  sessionCardMeta: { fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'rgba(var(--ink-rgb), 0.55)' },
+  sessionCardDuration: { fontFamily: 'var(--font-body)', fontSize: 11, color: 'rgba(var(--ink-rgb), 0.3)', marginTop: 2 },
   sessionCheckCircle: {
     width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-    border: '1.5px solid rgba(255,255,255,0.2)',
+    border: '1.5px solid rgba(var(--ink-rgb), 0.2)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  sessionCheckCircleActive: { background: 'rgba(0,0,0,0.7)', border: 'none' },
+  sessionCheckCircleActive: { background: 'rgba(var(--paper-rgb), 0.7)', border: 'none' },
 
   // Photos
   photoDropzone: {
-    width: '100%', border: '1px dashed rgba(255,255,255,0.2)',
+    width: '100%', border: '1px dashed rgba(var(--ink-rgb), 0.2)',
     borderRadius: 12, padding: '28px 20px',
-    background: 'rgba(255,255,255,0.03)',
+    background: 'rgba(var(--ink-rgb), 0.03)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
     cursor: 'pointer',
   },
-  photoDropzoneIcon: { fontSize: 28, color: 'rgba(255,255,255,0.3)' },
-  photoDropzoneText: { fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.45)' },
-  photoDropzoneSub: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(255,255,255,0.25)' },
+  photoDropzoneIcon: { fontSize: 28, color: 'rgba(var(--ink-rgb), 0.3)' },
+  photoDropzoneText: { fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, color: 'rgba(var(--ink-rgb), 0.45)' },
+  photoDropzoneSub: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(var(--ink-rgb), 0.25)' },
   photoThumb: { width: 88, height: 88, borderRadius: 10, objectFit: 'cover', display: 'block' },
   photoRemove: {
     position: 'absolute', top: -6, right: -6,
     width: 22, height: 22, borderRadius: '50%',
-    background: 'rgba(0,0,0,0.75)', border: 'none',
-    color: '#fff', fontSize: 10, cursor: 'pointer',
+    background: 'rgba(var(--paper-rgb), 0.75)', border: 'none',
+    color: 'var(--ink)', fontSize: 10, cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   photoAddMore: {
     width: 88, height: 88, borderRadius: 10,
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px dashed rgba(255,255,255,0.15)',
-    color: 'rgba(255,255,255,0.45)', fontSize: 22, cursor: 'pointer',
+    background: 'rgba(var(--ink-rgb), 0.05)',
+    border: '1px dashed rgba(var(--ink-rgb), 0.15)',
+    color: 'rgba(var(--ink-rgb), 0.45)', fontSize: 22, cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
 
@@ -2163,17 +2163,17 @@ const s = {
   },
   modal: {
     width: '100%', maxWidth: 520,
-    background: '#141820', borderRadius: '20px 20px 0 0',
+    background: 'var(--sheet)', borderRadius: '20px 20px 0 0',
     maxHeight: '70vh', display: 'flex', flexDirection: 'column',
     overflow: 'hidden',
   },
   modalHeader: {
     display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
     padding: '20px 20px 16px',
-    borderBottom: '1px solid rgba(255,255,255,0.07)',
+    borderBottom: '1px solid rgba(var(--ink-rgb), 0.07)',
   },
   modalTitle: { fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700, color: 'var(--main)' },
-  modalSub: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
+  modalSub: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.4)', marginTop: 2 },
   modalDone: { fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--main)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' },
   bodyGrid: {
     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
@@ -2181,48 +2181,48 @@ const s = {
   },
   bodyPill: {
     padding: '11px 8px', borderRadius: 12,
-    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.75)', fontFamily: 'var(--font-body)', fontSize: 14, cursor: 'pointer',
+    background: 'rgba(var(--ink-rgb), 0.06)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
+    color: 'rgba(var(--ink-rgb), 0.75)', fontFamily: 'var(--font-body)', fontSize: 14, cursor: 'pointer',
   },
-  bodyPillActive: { background: '#fff', border: '1px solid #fff', color: '#000', fontWeight: 600 },
+  bodyPillActive: { background: 'var(--ink)', border: '1px solid var(--ink)', color: 'var(--paper)', fontWeight: 600 },
 
   // Colour
   placementBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '13px 14px', width: '100%',
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
     borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 14,
   },
   colourBtn: {
     flex: 1, padding: '11px 0',
-    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 10, color: 'rgba(255,255,255,0.65)',
+    background: 'rgba(var(--ink-rgb), 0.06)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
+    borderRadius: 10, color: 'rgba(var(--ink-rgb), 0.65)',
     fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, cursor: 'pointer',
   },
-  colourBtnActive: { background: '#fff', border: '1px solid #fff', color: '#000', fontWeight: 600 },
+  colourBtnActive: { background: 'var(--ink)', border: '1px solid var(--ink)', color: 'var(--paper)', fontWeight: 600 },
   optionalBadge: {
     fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 600,
-    color: 'rgba(255,255,255,0.25)',
-    padding: '2px 6px', background: 'rgba(255,255,255,0.06)', borderRadius: 50,
+    color: 'rgba(var(--ink-rgb), 0.25)',
+    padding: '2px 6px', background: 'rgba(var(--ink-rgb), 0.06)', borderRadius: 50,
     letterSpacing: 0.3,
   },
 
   // Availability
   pushCard: {
     display: 'flex', alignItems: 'center', gap: 16,
-    padding: '14px 16px', background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14,
+    padding: '14px 16px', background: 'rgba(var(--ink-rgb), 0.05)',
+    border: '1px solid rgba(var(--ink-rgb), 0.08)', borderRadius: 14,
   },
   pushTitle: { fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--main)' },
-  pushSub: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
+  pushSub: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(var(--ink-rgb), 0.4)', marginTop: 2 },
   toggle: {
-    width: 44, height: 26, borderRadius: 13, background: 'rgba(255,255,255,0.15)',
+    width: 44, height: 26, borderRadius: 13, background: 'rgba(var(--ink-rgb), 0.15)',
     border: 'none', cursor: 'pointer', padding: 3, flexShrink: 0,
     display: 'flex', alignItems: 'center', transition: 'background 0.2s',
   },
   toggleOn: { background: 'var(--main)' },
   toggleThumb: {
-    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+    width: 20, height: 20, borderRadius: '50%', background: 'var(--ink)',
     transition: 'transform 0.2s', transform: 'translateX(0)',
   },
   toggleThumbOn: { transform: 'translateX(18px)' },
@@ -2230,12 +2230,12 @@ const s = {
   // Contact group
   reminderOption: {
     display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 20, padding: '14px 16px',
-    borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer',
+    borderRadius: 12, border: '1px solid rgba(var(--ink-rgb), 0.1)', background: 'rgba(var(--ink-rgb), 0.03)', cursor: 'pointer',
   },
   // Undo the site-wide text-input styles (min-width 260px, padding).
-  reminderCheckbox: { width: 18, height: 18, minWidth: 0, padding: 0, margin: '2px 0 0', accentColor: '#fff', flexShrink: 0, cursor: 'pointer' },
+  reminderCheckbox: { width: 18, height: 18, minWidth: 0, padding: 0, margin: '2px 0 0', accentColor: 'var(--ink)', flexShrink: 0, cursor: 'pointer' },
   contactGroup: {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
     borderRadius: 14, overflow: 'hidden',
   },
   contactRow: {
@@ -2245,54 +2245,54 @@ const s = {
   contactIcon: { fontSize: 13, flexShrink: 0, width: 18, textAlign: 'center', opacity: 0.45 },
   contactFieldLabel: {
     fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500,
-    color: 'rgba(255,255,255,0.45)', width: 78, flexShrink: 0,
+    color: 'rgba(var(--ink-rgb), 0.45)', width: 78, flexShrink: 0,
   },
   contactInput: {
     flex: 1, background: 'none', border: 'none', outline: 'none',
     color: 'var(--main)', fontFamily: 'var(--font-body)', fontSize: 14,
     textAlign: 'right', minWidth: 0,
   },
-  contactDivider: { height: 1, background: 'rgba(255,255,255,0.07)', marginLeft: 46 },
+  contactDivider: { height: 1, background: 'rgba(var(--ink-rgb), 0.07)', marginLeft: 46 },
 
   // Review
   reviewGroup: {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
     borderRadius: 14, overflow: 'hidden',
   },
-  reviewDivider: { height: 1, background: 'rgba(255,255,255,0.07)', margin: '0 14px' },
+  reviewDivider: { height: 1, background: 'rgba(var(--ink-rgb), 0.07)', margin: '0 14px' },
   reviewRow: {
     display: 'flex', alignItems: 'flex-start', gap: 12,
     padding: '12px 14px',
   },
   reviewLabel: {
     fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500,
-    color: 'rgba(255,255,255,0.4)', width: 70, flexShrink: 0,
+    color: 'rgba(var(--ink-rgb), 0.4)', width: 70, flexShrink: 0,
   },
   reviewValue: {
     fontFamily: 'var(--font-body)', fontSize: 13,
-    color: 'rgba(255,255,255,0.85)', flex: 1, wordBreak: 'break-word',
+    color: 'rgba(var(--ink-rgb), 0.85)', flex: 1, wordBreak: 'break-word',
   },
 
   // Success
   successIcon: {
     width: 56, height: 56, borderRadius: '50%',
-    background: 'rgba(50,200,100,0.12)', border: '1px solid rgba(50,200,100,0.25)',
+    background: 'rgba(var(--success-rgb), 0.12)', border: '1px solid rgba(var(--success-rgb), 0.25)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 22, color: 'rgba(50,200,100,0.9)', marginBottom: 20,
+    fontSize: 22, color: 'rgba(var(--success-rgb), 0.9)', marginBottom: 20,
   },
   appCard: {
     display: 'flex', alignItems: 'flex-start', gap: 14,
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.1)',
     borderRadius: 14, padding: '18px 18px', marginBottom: 4,
   },
   appCardIcon: {
-    width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.08)',
+    width: 44, height: 44, borderRadius: 12, background: 'rgba(var(--ink-rgb), 0.08)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-heading)',
     color: 'var(--main)', flexShrink: 0, letterSpacing: 2,
   },
   appCardTitle: { fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--main)', marginBottom: 8 },
-  appCardFeature: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.75 },
+  appCardFeature: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.45)', lineHeight: 1.75 },
 };
 
 // Where to book instantly, when the artist takes instant bookings in more than one place.
@@ -2308,8 +2308,8 @@ function InstantPlacePicker({ places, current, artistName, onChoose }) {
             <button key={id || 'personal'} type="button" onClick={() => onChoose(id)} aria-pressed={on}
               style={{
                 padding: '9px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600,
-                border: on ? '1px solid rgba(255,255,255,0.65)' : '1px solid rgba(255,255,255,0.12)',
-                background: on ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)', color: '#fff',
+                border: on ? '1px solid rgba(var(--ink-rgb), 0.65)' : '1px solid rgba(var(--ink-rgb), 0.12)',
+                background: on ? 'rgba(var(--ink-rgb), 0.1)' : 'rgba(var(--ink-rgb), 0.03)', color: 'var(--ink)',
               }}>
               {place.name || `With ${artistName || 'the artist'}`}
             </button>
@@ -2328,7 +2328,7 @@ function StudioQuestion({ label, placeholder, value, set, required }) {
       <textarea value={value} onChange={e => set(e.target.value)} placeholder={placeholder} rows={2}
         style={{
           width: '100%', boxSizing: 'border-box', minWidth: 0, resize: 'vertical', padding: '12px 14px', borderRadius: 12,
-          border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff',
+          border: '1px solid rgba(var(--ink-rgb), 0.12)', background: 'rgba(var(--ink-rgb), 0.05)', color: 'var(--ink)',
           fontFamily: 'var(--font-body)', fontSize: 15, lineHeight: 1.5,
         }} />
     </label>

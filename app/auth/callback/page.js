@@ -30,15 +30,15 @@ export default function WebsiteAuthCallback() {
 
   useEffect(() => { finish(); }, []);
 
-  return <main style={{ height: '100dvh', overflow: 'auto', background: '#11151b', color: '#fff', padding: '64px 24px', boxSizing: 'border-box' }}>
+  return <main style={{ height: '100dvh', overflow: 'auto', background: 'var(--page)', color: 'var(--ink)', padding: '64px 24px', boxSizing: 'border-box' }}>
     <div style={{ maxWidth: 440, margin: '0 auto' }}>
-      <a href="/" style={{ color: '#bac1cb' }}>← Vanta</a>
+      <a href="/" style={{ color: 'var(--text-soft)' }}>← Vanta</a>
       <h1 style={{ marginTop: 32 }}>{needsTerms ? 'Finish creating your account' : 'Signing you in'}</h1>
       {busy && <p role="status">Finishing your Vanta sign-in…</p>}
       {error && <p role="alert" style={{ lineHeight: 1.6 }}>{error}</p>}
-      {needsTerms && <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, lineHeight: 1.6, margin: '24px 0' }}><input type="checkbox" style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, flex: '0 0 18px', marginTop: 4, padding: 0 }} checked={accepted} onChange={e => setAccepted(e.target.checked)} /><span>I agree to the <a href="/terms" style={{ color: '#fff' }}>Terms of Use</a> and <a href="/privacy" style={{ color: '#fff' }}>Privacy Policy</a>.</span></label>}
+      {needsTerms && <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, lineHeight: 1.6, margin: '24px 0' }}><input type="checkbox" style={{ width: 18, minWidth: 18, maxWidth: 18, height: 18, flex: '0 0 18px', marginTop: 4, padding: 0 }} checked={accepted} onChange={e => setAccepted(e.target.checked)} /><span>I agree to the <a href="/terms" style={{ color: 'var(--ink)' }}>Terms of Use</a> and <a href="/privacy" style={{ color: 'var(--ink)' }}>Privacy Policy</a>.</span></label>}
       {!busy && <button disabled={needsTerms && !accepted} onClick={() => finish(accepted)} style={{ minHeight: 48, padding: '12px 24px', borderRadius: 12, fontWeight: 600 }}>{needsTerms ? 'Create account' : 'Try again'}</button>}
-      {!busy && <p><a href="/signup" style={{ color: '#fff' }}>Back to sign-in</a></p>}
+      {!busy && <p><a href="/signup" style={{ color: 'var(--ink)' }}>Back to sign-in</a></p>}
     </div>
   </main>;
 }

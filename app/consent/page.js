@@ -187,10 +187,10 @@ function ConsentForm() {
   if (done) {
     return (
       <div style={s.card}>
-        <div style={{ ...s.statusIcon, color: '#4cc98a' }}>✓</div>
+        <div style={{ ...s.statusIcon, color: 'var(--success)' }}>✓</div>
         <h2 style={s.heading}>Consent recorded</h2>
         <p style={s.muted}>
-          Your consent has been recorded for <strong style={{ color: '#fff' }}>{info.studio_name}</strong>. You can close this page.
+          Your consent has been recorded for <strong style={{ color: 'var(--ink)' }}>{info.studio_name}</strong>. You can close this page.
         </p>
       </div>
     );
@@ -246,7 +246,7 @@ function ConsentForm() {
               {t.requires_signature && (
                 <div style={{ marginTop: '1.25rem' }}>
                   <p style={{ ...s.label, marginBottom: '0.4rem' }}>
-                    {isMinor && t.requires_minor_guardian ? 'Client signature' : 'Signature'} <span style={{ color: '#e86f6f' }}>*</span>
+                    {isMinor && t.requires_minor_guardian ? 'Client signature' : 'Signature'} <span style={{ color: 'var(--danger)' }}>*</span>
                   </p>
                   <p style={{ ...s.hint, margin: '0 0 0.5rem' }}>By signing, I agree that my electronic signature is legally binding and I consent to sign this form electronically.</p>
                   <SignaturePad onCapture={blob => setSigBlob(t.id, blob)} />
@@ -256,13 +256,13 @@ function ConsentForm() {
               {isMinor && t.requires_minor_guardian && (
                 <div style={s.guardianBox}>
                   <p style={s.guardianTitle}>Parent / Guardian Consent Required</p>
-                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', margin: '0 0 0.75rem', lineHeight: 1.55 }}>
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(var(--ink-rgb), 0.55)', margin: '0 0 0.75rem', lineHeight: 1.55 }}>
                     The client is under 18. A parent or legal guardian must provide their details and sign below.
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                       <div>
-                        <p style={{ ...s.label, marginBottom: '0.3rem' }}>Guardian name <span style={{ color: '#e86f6f' }}>*</span></p>
+                        <p style={{ ...s.label, marginBottom: '0.3rem' }}>Guardian name <span style={{ color: 'var(--danger)' }}>*</span></p>
                         <input style={s.input} type="text" value={guardianName} onChange={e => setGuardianName(e.target.value)} placeholder="Full name" />
                       </div>
                       <div>
@@ -283,7 +283,7 @@ function ConsentForm() {
                       <input style={s.input} type="tel" value={guardianPhone} onChange={e => setGuardianPhone(e.target.value)} placeholder="Phone number" />
                     </div>
                     <div>
-                      <p style={{ ...s.label, marginBottom: '0.4rem' }}>Guardian signature <span style={{ color: '#e86f6f' }}>*</span></p>
+                      <p style={{ ...s.label, marginBottom: '0.4rem' }}>Guardian signature <span style={{ color: 'var(--danger)' }}>*</span></p>
                       <SignaturePad onCapture={blob => setGuardianSigBlob(t.id, blob)} />
                     </div>
                   </div>
@@ -306,20 +306,20 @@ function ConsentForm() {
 }
 
 const typeBadgeColor = {
-  health:  { background: 'rgba(99,102,241,0.15)', color: '#818cf8' },
-  waiver:  { background: 'rgba(245,158,58,0.15)', color: '#f59e3a' },
-  consent: { background: 'rgba(76,201,138,0.15)', color: '#4cc98a' },
+  health:  { background: 'rgba(99,102,241,0.15)', color: 'var(--info)' },
+  waiver:  { background: 'rgba(245,158,58,0.15)', color: 'var(--warning)' },
+  consent: { background: 'rgba(76,201,138,0.15)', color: 'var(--success)' },
 };
 
 function ConsentFormField({ field, value, onChange }) {
   switch (field.type) {
     case 'photo_id':
-      return <PhotoIdField label={field.label} required={field.required} value={value} onChange={onChange} labelStyle={s.label} accent="#f5ecd9" />;
+      return <PhotoIdField label={field.label} required={field.required} value={value} onChange={onChange} labelStyle={s.label} accent="var(--highlight)" />;
     case 'heading':
-      return <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f5f5f5', margin: 0 }}>{field.label}</p>;
+      return <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{field.label}</p>;
     case 'paragraph':
       return (
-        <p style={{ fontSize: '0.83rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+        <p style={{ fontSize: '0.83rem', color: 'rgba(var(--ink-rgb), 0.7)', margin: 0, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
           {field.label}
         </p>
       );
@@ -334,11 +334,11 @@ function ConsentFormField({ field, value, onChange }) {
               flexShrink: 0, marginTop: 3,
               width: 18, height: 18, minWidth: 'auto',
               padding: 0, border: 'none', background: 'none', borderRadius: 0,
-              accentColor: '#f5ecd9', cursor: 'pointer',
+              accentColor: 'var(--highlight)', cursor: 'pointer',
             }}
           />
-          <span style={{ fontSize: '0.83rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>
-            {field.label}{field.required && <span style={{ color: '#e86f6f', marginLeft: 2 }}>*</span>}
+          <span style={{ fontSize: '0.83rem', color: 'rgba(var(--ink-rgb), 0.8)', lineHeight: 1.6 }}>
+            {field.label}{field.required && <span style={{ color: 'var(--danger)', marginLeft: 2 }}>*</span>}
           </span>
         </label>
       );
@@ -346,16 +346,16 @@ function ConsentFormField({ field, value, onChange }) {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           <span style={s.label}>
-            {field.label}{field.required && <span style={{ color: '#e86f6f', marginLeft: 2 }}>*</span>}
+            {field.label}{field.required && <span style={{ color: 'var(--danger)', marginLeft: 2 }}>*</span>}
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {['Yes', 'No'].map(opt => (
               <button key={opt} type="button" onClick={() => onChange(opt)}
                 style={{
                   padding: '0.4rem 1.1rem', borderRadius: 8, cursor: 'pointer',
-                  border: `1px solid ${value === opt ? '#f5ecd9' : 'rgba(255,255,255,0.12)'}`,
-                  background: value === opt ? 'rgba(245,236,217,0.1)' : 'rgba(255,255,255,0.04)',
-                  color: value === opt ? '#f5ecd9' : 'rgba(255,255,255,0.45)',
+                  border: `1px solid ${value === opt ? 'var(--highlight)' : 'rgba(var(--ink-rgb), 0.12)'}`,
+                  background: value === opt ? 'rgba(245,236,217,0.1)' : 'rgba(var(--ink-rgb), 0.04)',
+                  color: value === opt ? 'var(--highlight)' : 'rgba(var(--ink-rgb), 0.45)',
                   fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
                 }}>{opt}</button>
             ))}
@@ -366,7 +366,7 @@ function ConsentFormField({ field, value, onChange }) {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           <span style={s.label}>
-            {field.label}{field.required && <span style={{ color: '#e86f6f', marginLeft: 2 }}>*</span>}
+            {field.label}{field.required && <span style={{ color: 'var(--danger)', marginLeft: 2 }}>*</span>}
           </span>
           <textarea
             style={{ ...s.input, minHeight: 72, resize: 'vertical' }}
@@ -380,7 +380,7 @@ function ConsentFormField({ field, value, onChange }) {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           <span style={s.label}>
-            {field.label}{field.required && <span style={{ color: '#e86f6f', marginLeft: 2 }}>*</span>}
+            {field.label}{field.required && <span style={{ color: 'var(--danger)', marginLeft: 2 }}>*</span>}
           </span>
           <input type="text" style={s.input} value={value} onChange={e => onChange(e.target.value)} placeholder="Your answer…" />
         </div>
@@ -418,7 +418,7 @@ function SignaturePad({ onCapture }) {
     const { x, y } = getPos(e);
     const ctx = canvasRef.current.getContext('2d');
     ctx.lineTo(x, y);
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = 'var(--ink)';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -457,7 +457,7 @@ function SignaturePad({ onCapture }) {
         onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
       />
       <div style={s.sigFooter}>
-        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>Draw your signature above</span>
+        <span style={{ fontSize: '0.72rem', color: 'rgba(var(--ink-rgb), 0.3)' }}>Draw your signature above</span>
         <button type="button" onClick={clear} style={s.sigClear}>Clear</button>
       </div>
     </div>
@@ -492,13 +492,13 @@ const s = {
   page: {
     minHeight: '100dvh',
     display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-    background: '#11151b',
+    background: 'var(--page)',
     padding: '2.5rem 1rem 4rem',
     fontFamily: 'var(--font-body), system-ui, -apple-system, sans-serif',
   },
   card: {
-    background: '#1a2026',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'var(--surface)',
+    border: '1px solid rgba(var(--ink-rgb), 0.08)',
     borderRadius: 16,
     padding: '2rem 1.75rem',
     width: '100%', maxWidth: 540,
@@ -509,48 +509,48 @@ const s = {
   },
   spinner: {
     width: 28, height: 28, borderRadius: '50%',
-    border: '3px solid rgba(255,255,255,0.1)',
-    borderTopColor: '#f5ecd9',
+    border: '3px solid rgba(var(--ink-rgb), 0.1)',
+    borderTopColor: 'var(--highlight)',
     animation: 'spin 0.8s linear infinite',
     margin: '2rem auto',
   },
   studioTag: {
     margin: 0,
     fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em',
-    textTransform: 'uppercase', color: '#f5ecd9',
+    textTransform: 'uppercase', color: 'var(--highlight)',
   },
   heading: {
     margin: 0,
-    fontSize: '1.4rem', fontWeight: 700, color: '#fff',
+    fontSize: '1.4rem', fontWeight: 700, color: 'var(--ink)',
     letterSpacing: '-0.01em',
   },
   muted: {
     margin: 0,
-    fontSize: '0.855rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6,
+    fontSize: '0.855rem', color: 'rgba(var(--ink-rgb), 0.5)', lineHeight: 1.6,
   },
   hint: {
     margin: 0,
-    fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)',
+    fontSize: '0.78rem', color: 'rgba(var(--ink-rgb), 0.3)',
   },
   form: {
     display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '0.5rem',
   },
   label: {
-    fontSize: '0.77rem', fontWeight: 600, color: 'rgba(255,255,255,0.45)',
+    fontSize: '0.77rem', fontWeight: 600, color: 'rgba(var(--ink-rgb), 0.45)',
     margin: 0,
   },
   input: {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(var(--ink-rgb), 0.06)',
+    border: '1px solid rgba(var(--ink-rgb), 0.12)',
     borderRadius: 8, padding: '0.65rem 0.85rem',
-    fontSize: '0.9rem', color: '#fff', outline: 'none',
+    fontSize: '0.9rem', color: 'var(--ink)', outline: 'none',
     width: '100%', minWidth: 0, boxSizing: 'border-box',
     fontFamily: 'inherit',
   },
   // Sections of the one consent card: the client's details, then each studio form,
   // split by a divider rather than boxed separately.
   templateBox: {
-    borderTop: '1px solid rgba(255,255,255,0.08)',
+    borderTop: '1px solid rgba(var(--ink-rgb), 0.08)',
     paddingTop: '1.5rem',
     display: 'flex', flexDirection: 'column',
   },
@@ -561,7 +561,7 @@ const s = {
     display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem',
   },
   templateTitle: {
-    fontSize: '0.92rem', fontWeight: 700, color: '#fff',
+    fontSize: '0.92rem', fontWeight: 700, color: 'var(--ink)',
   },
   typeBadge: {
     fontSize: '0.67rem', fontWeight: 700, letterSpacing: '0.07em',
@@ -572,8 +572,8 @@ const s = {
     display: 'flex', flexDirection: 'column', gap: '1rem',
   },
   sigWrap: {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(var(--ink-rgb), 0.04)',
+    border: '1px solid rgba(var(--ink-rgb), 0.1)',
     borderRadius: 10,
     overflow: 'hidden',
   },
@@ -587,11 +587,11 @@ const s = {
   sigFooter: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '0.4rem 0.75rem',
-    borderTop: '1px solid rgba(255,255,255,0.06)',
+    borderTop: '1px solid rgba(var(--ink-rgb), 0.06)',
   },
   sigClear: {
     background: 'none', border: 'none', padding: '0.2rem 0.4rem',
-    fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)',
+    fontSize: '0.72rem', color: 'rgba(var(--ink-rgb), 0.35)',
     cursor: 'pointer', fontFamily: 'inherit',
   },
   guardianBox: {
@@ -604,17 +604,17 @@ const s = {
   guardianTitle: {
     margin: '0 0 0.4rem',
     fontSize: '0.88rem', fontWeight: 700,
-    color: '#f59e3a',
+    color: 'var(--warning)',
   },
   btn: {
-    background: '#f5ecd9', border: 'none', borderRadius: 10,
+    background: 'var(--highlight)', border: 'none', borderRadius: 10,
     padding: '0.8rem', fontSize: '0.92rem', fontWeight: 700,
-    color: '#11151b', cursor: 'pointer', transition: 'opacity 0.15s',
+    color: 'var(--on-ink)', cursor: 'pointer', transition: 'opacity 0.15s',
   },
   error: {
-    margin: 0, fontSize: '0.8rem', color: '#e86f6f',
+    margin: 0, fontSize: '0.8rem', color: 'var(--danger)',
   },
   expiry: {
-    margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.2)', textAlign: 'center',
+    margin: 0, fontSize: '0.7rem', color: 'rgba(var(--ink-rgb), 0.2)', textAlign: 'center',
   },
 };

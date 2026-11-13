@@ -638,9 +638,9 @@ export default function BookingSelectionClient() {
                       <span style={s.avatarInitial}>{(artist.name || 'A')[0].toUpperCase()}</span>
                     </div>
                   )}
-                  <span style={{ ...s.artistName, ...(sel ? { color: '#000' } : {}) }}>{artist.name}</span>
+                  <span style={{ ...s.artistName, ...(sel ? { color: 'var(--paper)' } : {}) }}>{artist.name}</span>
                   <div style={{ ...s.checkCircle, ...(sel ? s.checkCircleActive : {}) }}>
-                    {sel && <span style={{ fontSize: 11, color: '#fff' }}>✓</span>}
+                    {sel && <span style={{ fontSize: 11, color: 'var(--ink)' }}>✓</span>}
                   </div>
                 </button>
               );
@@ -838,7 +838,7 @@ export default function BookingSelectionClient() {
                 <div style={s.reviewDivider} />
                 <ReviewRow label="Quote" value={<>
                   <span style={{ fontWeight: 600 }}>${Math.round(ctx.booking.estimated_quote)}</span> <EstimateTag />
-                  <span style={{ display: 'block', marginTop: 6, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.65)' }}>{QUOTE_ESTIMATE_NOTE}</span>
+                  <span style={{ display: 'block', marginTop: 6, fontSize: 13, lineHeight: 1.5, color: 'rgba(var(--ink-rgb), 0.65)' }}>{QUOTE_ESTIMATE_NOTE}</span>
                 </>} />
               </>
             )}
@@ -963,7 +963,7 @@ const QUOTE_ESTIMATE_NOTE = 'This is an estimate, not a final price. The final p
 
 function EstimateTag() {
   return (
-    <span style={{ display: 'inline-block', verticalAlign: 'middle', padding: '2px 8px', borderRadius: 999, background: 'rgba(251,191,36,0.14)', color: '#fbbf24', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', padding: '2px 8px', borderRadius: 999, background: 'rgba(251,191,36,0.14)', color: 'var(--warning)', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
       Estimate only
     </span>
   );
@@ -972,8 +972,8 @@ function EstimateTag() {
 function ReviewRow({ label, value }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px' }}>
-      <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.4)', width: 70, flexShrink: 0, fontWeight: 500 }}>{label}</span>
-      <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.85)', flex: 1 }}>{value}</span>
+      <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.4)', width: 70, flexShrink: 0, fontWeight: 500 }}>{label}</span>
+      <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.85)', flex: 1 }}>{value}</span>
     </div>
   );
 }
@@ -985,8 +985,8 @@ const s = {
   card: { width: '100%', maxWidth: 480, minWidth: 0 },
   spinner: {
     width: 28, height: 28,
-    border: '2px solid rgba(255,255,255,0.12)',
-    borderTopColor: 'rgba(255,255,255,0.6)',
+    border: '2px solid rgba(var(--ink-rgb), 0.12)',
+    borderTopColor: 'rgba(var(--ink-rgb), 0.6)',
     borderRadius: '50%',
     animation: 'spin 0.9s linear infinite',
   },
@@ -994,23 +994,23 @@ const s = {
   wordmarkFooter: { marginTop: 48, textAlign: 'center' },
   studioHeader: { marginBottom: 28 },
   studioName: { fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 700, color: 'var(--main)', margin: '0 0 4px' },
-  studioAddress: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.35)', margin: 0 },
+  studioAddress: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.35)', margin: 0 },
   heading: { fontFamily: 'var(--font-heading)', fontSize: 24, fontWeight: 700, color: 'var(--main)', margin: '0 0 12px' },
-  muted: { fontFamily: 'var(--font-body)', fontSize: 15, color: 'rgba(255,255,255,0.45)', margin: '0 0 20px', lineHeight: 1.65 },
+  muted: { fontFamily: 'var(--font-body)', fontSize: 15, color: 'rgba(var(--ink-rgb), 0.45)', margin: '0 0 20px', lineHeight: 1.65 },
   stepHeading: { fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700, color: 'var(--main)', margin: '0 0 4px' },
   backLink: {
-    background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
+    background: 'none', border: 'none', color: 'rgba(var(--ink-rgb), 0.4)',
     fontSize: 14, fontFamily: 'var(--font-body)', cursor: 'pointer',
     padding: '0 0 16px', display: 'block',
   },
   bookingSummary: { marginBottom: 24 },
   sessionBadge: {
     display: 'inline-block', fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600,
-    letterSpacing: 1.2, color: 'rgba(255,255,255,0.5)',
-    background: 'rgba(255,255,255,0.07)', borderRadius: 20, padding: '3px 10px', marginBottom: 8,
+    letterSpacing: 1.2, color: 'rgba(var(--ink-rgb), 0.5)',
+    background: 'rgba(var(--ink-rgb), 0.07)', borderRadius: 20, padding: '3px 10px', marginBottom: 8,
   },
   designSnippet: {
-    fontFamily: 'var(--font-body)', fontSize: 14, color: 'rgba(255,255,255,0.55)',
+    fontFamily: 'var(--font-body)', fontSize: 14, color: 'rgba(var(--ink-rgb), 0.55)',
     margin: 0, lineHeight: 1.5,
     overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
   },
@@ -1021,26 +1021,26 @@ const s = {
     width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 11, fontFamily: 'var(--font-body)', fontWeight: 600,
-    background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)',
+    background: 'rgba(var(--ink-rgb), 0.07)', color: 'rgba(var(--ink-rgb), 0.3)',
   },
-  stepNumActive: { background: 'var(--main)', color: '#000' },
-  stepNumDone: { background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' },
-  stepLabel: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(255,255,255,0.3)' },
+  stepNumActive: { background: 'var(--main)', color: 'var(--paper)' },
+  stepNumDone: { background: 'rgba(var(--ink-rgb), 0.15)', color: 'rgba(var(--ink-rgb), 0.5)' },
+  stepLabel: { fontFamily: 'var(--font-body)', fontSize: 12, color: 'rgba(var(--ink-rgb), 0.3)' },
   tabs: {
-    display: 'flex', background: 'rgba(255,255,255,0.05)',
+    display: 'flex', background: 'rgba(var(--ink-rgb), 0.05)',
     borderRadius: 10, padding: 3, marginBottom: 24,
   },
   tab: {
     flex: 1, padding: '9px 0', background: 'transparent', border: 'none',
-    borderRadius: 8, color: 'rgba(255,255,255,0.4)',
+    borderRadius: 8, color: 'rgba(var(--ink-rgb), 0.4)',
     fontSize: 14, fontFamily: 'var(--font-body)', cursor: 'pointer',
   },
-  tabActive: { background: 'rgba(255,255,255,0.1)', color: 'var(--main)' },
+  tabActive: { background: 'rgba(var(--ink-rgb), 0.1)', color: 'var(--main)' },
   field: { display: 'flex', flexDirection: 'column', gap: 6 },
-  label: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.5)' },
+  label: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.5)' },
   input: {
-    width: '100%', background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10,
+    width: '100%', background: 'rgba(var(--ink-rgb), 0.05)',
+    border: '1px solid rgba(var(--ink-rgb), 0.08)', borderRadius: 10,
     // iOS Safari auto-zooms the whole page on focus for any input with
     // font-size below 16px, and that zoom persists across client-side route
     // changes (no full reload) -- so the later calendar step reads as
@@ -1050,12 +1050,12 @@ const s = {
   },
   consentLabel: {
     display: 'flex', alignItems: 'flex-start', gap: 10,
-    fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.45)',
   },
-  checkbox: { width: 16, minWidth: 16, height: 16, accentColor: 'white', marginTop: 2, flexShrink: 0 },
-  consentLink: { color: 'rgba(255,255,255,0.65)', textDecoration: 'underline' },
+  checkbox: { width: 16, minWidth: 16, height: 16, accentColor: 'var(--ink)', marginTop: 2, flexShrink: 0 },
+  consentLink: { color: 'rgba(var(--ink-rgb), 0.65)', textDecoration: 'underline' },
   error: {
-    fontFamily: 'var(--font-body)', fontSize: 14, color: 'rgba(255,100,100,0.85)',
+    fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--danger)',
     padding: '10px 14px', background: 'rgba(255,60,60,0.08)',
     borderRadius: 8, border: '1px solid rgba(255,60,60,0.15)', margin: 0,
   },
@@ -1068,84 +1068,84 @@ const s = {
   },
   btnSecondary: {
     flex: '0 0 auto', padding: '15px 24px',
-    background: 'transparent', color: 'rgba(255,255,255,0.45)',
-    border: '1px solid rgba(255,255,255,0.12)', borderRadius: 50,
+    background: 'transparent', color: 'rgba(var(--ink-rgb), 0.45)',
+    border: '1px solid rgba(var(--ink-rgb), 0.12)', borderRadius: 50,
     fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-body)', cursor: 'pointer',
   },
   btnDisabled: { opacity: 0.4, cursor: 'not-allowed' },
   artistCard: {
     display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-    width: '100%', background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer',
+    width: '100%', background: 'rgba(var(--ink-rgb), 0.05)',
+    border: '1px solid rgba(var(--ink-rgb), 0.08)', borderRadius: 14, cursor: 'pointer',
   },
-  artistCardActive: { background: '#fff', border: '1px solid #fff' },
+  artistCardActive: { background: 'var(--ink)', border: '1px solid var(--ink)' },
   artistAvatar: { width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
   artistAvatarPlaceholder: {
     width: 40, height: 40, borderRadius: '50%',
-    background: 'rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.08)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  avatarInitial: { fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.45)', fontFamily: 'var(--font-heading)' },
+  avatarInitial: { fontSize: 16, fontWeight: 600, color: 'rgba(var(--ink-rgb), 0.45)', fontFamily: 'var(--font-heading)' },
   artistName: { flex: 1, textAlign: 'left', fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 600, color: 'var(--main)' },
   checkCircle: {
     width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-    border: '1.5px solid rgba(255,255,255,0.2)',
+    border: '1.5px solid rgba(var(--ink-rgb), 0.2)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  checkCircleActive: { background: 'rgba(0,0,0,0.7)', border: 'none' },
+  checkCircleActive: { background: 'rgba(var(--paper-rgb), 0.7)', border: 'none' },
   calHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 20 },
   calNav: {
-    background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
+    background: 'none', border: 'none', color: 'rgba(var(--ink-rgb), 0.5)',
     fontSize: 20, cursor: 'pointer', padding: '4px 10px',
   },
   calTitle: { fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 700, color: 'var(--main)' },
   calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 4 },
   calDowHeader: {
     textAlign: 'center', fontFamily: 'var(--font-body)', fontSize: 11,
-    color: 'rgba(255,255,255,0.3)', paddingBottom: 4, fontWeight: 500,
+    color: 'rgba(var(--ink-rgb), 0.3)', paddingBottom: 4, fontWeight: 500,
   },
   calDay: {
     aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    borderRadius: 8, background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer',
+    borderRadius: 8, background: 'rgba(var(--ink-rgb), 0.05)',
+    border: '1px solid rgba(var(--ink-rgb), 0.06)', cursor: 'pointer',
     fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--main)',
   },
-  calDayLoading: { cursor: 'progress', pointerEvents: 'none', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)' },
+  calDayLoading: { cursor: 'progress', pointerEvents: 'none', color: 'rgba(var(--ink-rgb), 0.35)', background: 'rgba(var(--ink-rgb), 0.07)' },
   loadingCard: {
     display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', margin: '0 0 20px',
-    borderRadius: 12, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)',
+    borderRadius: 12, border: '1px solid rgba(var(--ink-rgb), 0.14)', background: 'rgba(var(--ink-rgb), 0.06)',
   },
   loadingTitle: { fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 600, color: 'var(--main)', margin: 0, lineHeight: 1.4 },
-  loadingSub: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: '2px 0 0', lineHeight: 1.4 },
-  loadingTile: { borderRadius: 10, background: 'rgba(255,255,255,0.07)' },
+  loadingSub: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.55)', margin: '2px 0 0', lineHeight: 1.4 },
+  loadingTile: { borderRadius: 10, background: 'rgba(var(--ink-rgb), 0.07)' },
   calDayPast: { opacity: 0.25, cursor: 'not-allowed', pointerEvents: 'none' },
-  calDayUnavailable: { opacity: 0.2, cursor: 'not-allowed', pointerEvents: 'none', background: 'rgba(255,255,255,0.02)' },
-  calDaySelected: { background: 'var(--main)', color: '#000', border: '1px solid var(--main)', fontWeight: 700 },
+  calDayUnavailable: { opacity: 0.2, cursor: 'not-allowed', pointerEvents: 'none', background: 'rgba(var(--ink-rgb), 0.02)' },
+  calDaySelected: { background: 'var(--main)', color: 'var(--paper)', border: '1px solid var(--main)', fontWeight: 700 },
   slotGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 12 },
   slotBtn: {
     padding: '12px 0', borderRadius: 10,
-    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.06)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
     color: 'var(--main)', fontFamily: 'var(--font-body)', fontSize: 14, cursor: 'pointer',
   },
-  slotBtnActive: { background: 'var(--main)', color: '#000', border: '1px solid var(--main)', fontWeight: 600 },
+  slotBtnActive: { background: 'var(--main)', color: 'var(--paper)', border: '1px solid var(--main)', fontWeight: 600 },
   reviewCard: {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
     borderRadius: 14, overflow: 'hidden', marginTop: 20,
   },
-  reviewDivider: { height: 1, background: 'rgba(255,255,255,0.07)', margin: '0 14px' },
+  reviewDivider: { height: 1, background: 'rgba(var(--ink-rgb), 0.07)', margin: '0 14px' },
   successIcon: {
     width: 56, height: 56, borderRadius: '50%',
-    background: 'rgba(50,200,100,0.12)', border: '1px solid rgba(50,200,100,0.25)',
+    background: 'rgba(var(--success-rgb), 0.12)', border: '1px solid rgba(var(--success-rgb), 0.25)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 22, color: 'rgba(50,200,100,0.9)', marginBottom: 20,
+    fontSize: 22, color: 'rgba(var(--success-rgb), 0.9)', marginBottom: 20,
   },
   summaryCard: {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
     borderRadius: 12, padding: '16px 18px', marginTop: 20,
   },
   summaryLabel: {
     fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 600,
-    letterSpacing: 1.4, color: 'rgba(255,255,255,0.3)', marginBottom: 4,
+    letterSpacing: 1.4, color: 'rgba(var(--ink-rgb), 0.3)', marginBottom: 4,
   },
   summaryValue: { fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 500, color: 'var(--main)' },
 };

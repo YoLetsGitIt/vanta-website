@@ -28,10 +28,10 @@ export default function AppPromo() {
 }
 
 const p = {
-  card: { marginTop: 24, padding: 18, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)' },
+  card: { marginTop: 24, padding: 18, borderRadius: 16, border: '1px solid rgba(var(--ink-rgb), 0.1)', background: 'rgba(var(--ink-rgb), 0.04)' },
   head: { display: 'flex', gap: 14, alignItems: 'flex-start' },
   icon: { borderRadius: 11, flexShrink: 0 },
-  title: { fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 700, color: '#fff', lineHeight: 1.3 },
-  sub: { marginTop: 6, fontFamily: 'var(--font-body)', fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.55)' },
-  button: { display: 'block', marginTop: 16, padding: '14px 18px', borderRadius: 999, background: '#fff', color: '#11151b', textAlign: 'center', textDecoration: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 15 },
+  title: { fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 },
+  sub: { marginTop: 6, fontFamily: 'var(--font-body)', fontSize: 13, lineHeight: 1.5, color: 'rgba(var(--ink-rgb), 0.55)' },
+  button: { display: 'block', marginTop: 16, padding: '14px 18px', borderRadius: 999, background: 'var(--ink)', color: 'var(--on-ink)', textAlign: 'center', textDecoration: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 15 },
 };

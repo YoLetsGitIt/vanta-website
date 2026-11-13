@@ -3,6 +3,8 @@ import './typewriter.css';
 import { Space_Grotesk } from 'next/font/google';
 import ContactEmailSignupGate from '../components/ContactEmailSignupGate';
 import SiteIntro from '../components/SiteIntro';
+import LinkTheme from '../components/LinkTheme';
+import { LINK_THEME_SCRIPT } from '../lib/link-theme.mjs';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -22,8 +24,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: LINK_THEME_SCRIPT }} />
+      </head>
       <body className={`${spaceGrotesk.variable} ${spaceGroteskBody.variable}`}>
+        <LinkTheme />
         <SiteIntro>{children}<ContactEmailSignupGate /></SiteIntro>
       </body>
     </html>

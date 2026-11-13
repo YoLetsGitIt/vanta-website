@@ -23,7 +23,7 @@
 }
 
 /* Unpicked parts show their name ("Day") in the placeholder colour. */
-.part[data-empty] { color: var(--text-ghost, rgba(255, 255, 255, 0.4)); }
+.part[data-empty] { color: var(--text-ghost, rgba(var(--ink-rgb), 0.4)); }
 .part option { color: CanvasText; }
 
 @media (any-pointer: coarse) {

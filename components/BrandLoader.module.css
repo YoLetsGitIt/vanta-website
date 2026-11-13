@@ -11,19 +11,19 @@
   font-weight: 800;
   line-height: 0.9;
   white-space: nowrap;
-  color: #f5eddd;
+  color: var(--gold-soft);
 }
 
 .muted {
-  color: rgba(245, 237, 221, 0.2);
+  color: rgba(var(--gold-soft-rgb), 0.2);
 }
 
 .dot {
-  color: #c2b699;
+  color: var(--gold);
 }
 
 .muted .dot {
-  color: rgba(194, 182, 153, 0.3);
+  color: rgba(var(--gold-rgb), 0.3);
 }
 
 .pulse {
@@ -37,7 +37,7 @@
   height: 2px;
   border-radius: 2px;
   overflow: hidden;
-  background: rgba(245, 237, 221, 0.1);
+  background: rgba(var(--gold-soft-rgb), 0.1);
 }
 
 .bar {
@@ -45,7 +45,7 @@
   inset: 0;
   width: 40%;
   border-radius: 2px;
-  background: #c2b699;
+  background: var(--gold);
   animation: brand-bar 1.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 

@@ -57,11 +57,11 @@ export default function ManualDepositDetails({ options, amount }) {
 }
 
 const m = {
-  card: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px' },
-  title: { fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 600, letterSpacing: 1.4, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
+  card: { background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)', borderRadius: 12, padding: '12px 14px' },
+  title: { fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 600, letterSpacing: 1.4, color: 'rgba(var(--ink-rgb), 0.4)', marginBottom: 4 },
   row: { display: 'flex', alignItems: 'center', gap: 10, minHeight: 40 },
-  label: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.45)', width: 96, flexShrink: 0 },
+  label: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.45)', width: 96, flexShrink: 0 },
   value: { fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 600, color: 'var(--main)', flex: 1, minWidth: 0, overflowWrap: 'anywhere', userSelect: 'all' },
-  copy: { fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 999, padding: '0 12px', minHeight: 32, cursor: 'pointer', flexShrink: 0, touchAction: 'manipulation' },
-  note: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: 0, lineHeight: 1.6 },
+  copy: { fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'rgba(var(--ink-rgb), 0.7)', background: 'rgba(var(--ink-rgb), 0.06)', border: '1px solid rgba(var(--ink-rgb), 0.12)', borderRadius: 999, padding: '0 12px', minHeight: 32, cursor: 'pointer', flexShrink: 0, touchAction: 'manipulation' },
+  note: { fontFamily: 'var(--font-body)', fontSize: 13, color: 'rgba(var(--ink-rgb), 0.45)', margin: 0, lineHeight: 1.6 },
 };

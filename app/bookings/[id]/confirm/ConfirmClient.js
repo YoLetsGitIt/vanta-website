@@ -167,24 +167,24 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const depositRequired = booking?.deposit_required;
 
   return (
-    <main className="page-scroll" style={{ background: '#11151b', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+    <main className="page-scroll" style={{ background: 'var(--page)', color: 'var(--ink)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '48px 24px' }}>
         <div style={{ marginBottom: 40 }}>
-          <a href="https://www.vanta.tattoo" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, textDecoration: 'none' }}>← vanta.tattoo</a>
+          <a href="https://www.vanta.tattoo" style={{ color: 'rgba(var(--ink-rgb), 0.4)', fontSize: 14, textDecoration: 'none' }}>← vanta.tattoo</a>
         </div>
 
         {view === 'loading' && (
-          <p style={{ color: 'rgba(255,255,255,0.5)' }}>Loading…</p>
+          <p style={{ color: 'rgba(var(--ink-rgb), 0.5)' }}>Loading…</p>
         )}
 
         {view === 'auth' && (
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>{receiptOnly ? 'View your booking' : 'Confirm your booking'}</h1>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+            <p style={{ color: 'rgba(var(--ink-rgb), 0.6)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
               Open the link in the latest email from your artist, or we can email you a new one. No account needed.
             </p>
             {linkSent ? (
-              <p role="status" style={{ color: '#fff', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+              <p role="status" style={{ color: 'var(--ink)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
                 If this booking is waiting on you, we’ve emailed a new link to the address on the booking.
               </p>
             ) : (
@@ -192,7 +192,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                 onClick={emailNewLink}
                 disabled={linkSending}
                 style={{
-                  width: '100%', minHeight: 52, padding: '14px', background: '#fff', color: '#11151b',
+                  width: '100%', minHeight: 52, padding: '14px', background: 'var(--ink)', color: 'var(--on-ink)',
                   border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 15, marginBottom: 24,
                   cursor: linkSending ? 'wait' : 'pointer', opacity: linkSending ? 0.7 : 1,
                 }}
@@ -200,7 +200,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                 {linkSending ? 'Sending…' : 'Email me a new link'}
               </button>
             )}
-            <p style={{ color: '#bac1cb', fontSize: 13, margin: '0 0 12px' }}>Have a Vanta account? Sign in instead</p>
+            <p style={{ color: 'var(--text-soft)', fontSize: 13, margin: '0 0 12px' }}>Have a Vanta account? Sign in instead</p>
             <SocialSignIn />
           </div>
         )}
@@ -208,11 +208,11 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
         {view === 'selecting' && booking && (
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Choose your time</h1>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 32 }}>
+            <p style={{ color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 14, marginBottom: 32 }}>
               Your artist has proposed the following times. Select the one that works best for you.
             </p>
             {timeNotice && (
-              <p role="alert" style={{ margin: '0 0 20px', padding: '12px 16px', borderRadius: 12, background: 'rgba(224,168,79,0.12)', border: '1px solid rgba(224,168,79,0.4)', color: '#f1d3a1', fontSize: 14, lineHeight: 1.5 }}>{timeNotice}</p>
+              <p role="alert" style={{ margin: '0 0 20px', padding: '12px 16px', borderRadius: 12, background: 'rgba(224,168,79,0.12)', border: '1px solid rgba(224,168,79,0.4)', color: 'var(--ink)', fontSize: 14, lineHeight: 1.5 }}>{timeNotice}</p>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
               {times.map((t) => (
@@ -222,9 +222,9 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                   aria-pressed={chosen === t}
                   style={{
                     padding: '18px 20px', borderRadius: 14, textAlign: 'left',
-                    background: chosen === t ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
-                    border: chosen === t ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                    color: '#fff', cursor: 'pointer', transition: 'all 0.15s',
+                    background: chosen === t ? 'rgba(var(--ink-rgb), 0.12)' : 'rgba(var(--ink-rgb), 0.05)',
+                    border: chosen === t ? '1px solid rgba(var(--ink-rgb), 0.4)' : '1px solid rgba(var(--ink-rgb), 0.1)',
+                    color: 'var(--ink)', cursor: 'pointer', transition: 'all 0.15s',
                   }}
                 >
                   <span style={{ fontSize: 15, fontWeight: chosen === t ? 600 : 400 }}>{formatTime(t)}</span>
@@ -234,9 +234,9 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
 
             {depositRequired && depositAmount && (
               <div style={{ marginBottom: 32 }}>
-                <p style={{ margin: '0 0 8px', color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Deposit required</p>
+                <p style={{ margin: '0 0 8px', color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 13 }}>Deposit required</p>
                 <DepositBreakdown charge={depositCharge(depositAmount, payment?.deposit_options)} />
-                <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+                <p style={{ margin: '8px 0 0', color: 'rgba(var(--ink-rgb), 0.4)', fontSize: 12 }}>
                   {needsDeposit ? 'Pay it on the next screen to lock in your time. The deposit comes off your total on the day.' : 'After you confirm, you’ll go to the payment page. The deposit comes off your total on the day.'}
                 </p>
               </div>
@@ -246,7 +246,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
               onClick={() => (needsDeposit ? setView('paying') : confirmBooking())}
               disabled={!chosen}
               style={{
-                width: '100%', padding: '16px', background: '#fff', color: '#11151b',
+                width: '100%', padding: '16px', background: 'var(--ink)', color: 'var(--on-ink)',
                 border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 15,
                 cursor: chosen ? 'pointer' : 'not-allowed', opacity: chosen ? 1 : 0.4,
               }}
@@ -267,17 +267,17 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
           return (
             <div>
               <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Pay your deposit</h1>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+              <p style={{ color: 'rgba(var(--ink-rgb), 0.6)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
                 Your time is booked once the deposit is paid. The deposit comes off your total on the day.
               </p>
-              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: '16px 20px', marginBottom: 24 }}>
-                <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Your time</p>
+              <div style={{ background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.1)', borderRadius: 14, padding: '16px 20px', marginBottom: 24 }}>
+                <p style={{ margin: 0, color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 13 }}>Your time</p>
                 <p style={{ margin: '4px 0 0', fontSize: 16, fontWeight: 600 }}>{formatTime(chosen)}</p>
               </div>
               <DepositBreakdown charge={charge} style={{ marginBottom: 24 }} />
-              {payError && <p role="alert" style={{ color: '#ff8a8a', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>{payError}</p>}
+              {payError && <p role="alert" style={{ color: 'var(--danger)', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>{payError}</p>}
               {options.card && (
-                <button onClick={() => confirmBooking('card')} disabled={Boolean(paying)} style={{ ...btn, background: '#fff', color: '#11151b', marginBottom: manual ? 8 : 0 }}>
+                <button onClick={() => confirmBooking('card')} disabled={Boolean(paying)} style={{ ...btn, background: 'var(--ink)', color: 'var(--on-ink)', marginBottom: manual ? 8 : 0 }}>
                   {paying === 'card' ? 'Opening secure payment…' : `Pay ${money(charge.total)}`}
                 </button>
               )}
@@ -286,21 +286,21 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                   <ManualDepositDetails options={options} amount={amount} />
                   <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
                     {manual.payid && (
-                      <button onClick={() => confirmBooking('payid')} disabled={Boolean(paying)} style={{ ...btn, background: options.card ? 'rgba(255,255,255,0.1)' : '#fff', color: options.card ? '#fff' : '#11151b' }}>
+                      <button onClick={() => confirmBooking('payid')} disabled={Boolean(paying)} style={{ ...btn, background: options.card ? 'rgba(var(--ink-rgb), 0.1)' : 'var(--ink)', color: options.card ? 'var(--ink)' : 'var(--page)' }}>
                         {paying === 'payid' ? 'Booking…' : 'I’ve paid by PayID'}
                       </button>
                     )}
                     {hasBank && (
-                      <button onClick={() => confirmBooking('bank_transfer')} disabled={Boolean(paying)} style={{ ...btn, background: options.card || manual.payid ? 'rgba(255,255,255,0.1)' : '#fff', color: options.card || manual.payid ? '#fff' : '#11151b' }}>
+                      <button onClick={() => confirmBooking('bank_transfer')} disabled={Boolean(paying)} style={{ ...btn, background: options.card || manual.payid ? 'rgba(var(--ink-rgb), 0.1)' : 'var(--ink)', color: options.card || manual.payid ? 'var(--ink)' : 'var(--page)' }}>
                         {paying === 'bank_transfer' ? 'Booking…' : 'I’ve paid by bank transfer'}
                       </button>
                     )}
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.5, margin: 0 }}>Tap this once you’ve sent the money. Your time is booked and the studio checks the payment arrived.</p>
+                    <p style={{ color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 13, lineHeight: 1.5, margin: 0 }}>Tap this once you’ve sent the money. Your time is booked and the studio checks the payment arrived.</p>
                   </div>
                 </>
               )}
-              {!options.card && !manual && <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>The studio hasn’t set up a way to pay online yet. Please contact them to pay your deposit.</p>}
-              <button onClick={() => { setView('selecting'); setPayError(''); }} disabled={Boolean(paying)} style={{ background: 'none', border: 0, color: 'rgba(255,255,255,0.7)', fontSize: 14, padding: '16px 0', cursor: 'pointer', textDecoration: 'underline' }}>
+              {!options.card && !manual && <p style={{ color: 'rgba(var(--ink-rgb), 0.6)', fontSize: 14 }}>The studio hasn’t set up a way to pay online yet. Please contact them to pay your deposit.</p>}
+              <button onClick={() => { setView('selecting'); setPayError(''); }} disabled={Boolean(paying)} style={{ background: 'none', border: 0, color: 'rgba(var(--ink-rgb), 0.7)', fontSize: 14, padding: '16px 0', cursor: 'pointer', textDecoration: 'underline' }}>
                 Choose a different time
               </button>
             </div>
@@ -308,32 +308,32 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
         })()}
 
         {view === 'submitting' && (
-          <p style={{ color: 'rgba(255,255,255,0.5)' }}>Confirming your booking…</p>
+          <p style={{ color: 'rgba(var(--ink-rgb), 0.5)' }}>Confirming your booking…</p>
         )}
 
         {view === 'receipt' && booking && (
           <section aria-live="polite">
             <h1 style={{ fontSize: 24, fontWeight: 700 }}>{claimed && booking.status === 'confirmed' ? 'Booking confirmed' : receipt.title}</h1>
-            <p style={{ color: '#bbc0ca', lineHeight: 1.6 }}>{claimed && booking.status === 'confirmed'
+            <p style={{ color: 'var(--text-soft)', lineHeight: 1.6 }}>{claimed && booking.status === 'confirmed'
               ? `Thanks — you told the studio you paid the deposit by ${claimed === 'payid' ? 'PayID' : 'bank transfer'}. They’ll check it’s arrived.`
               : receipt.message}</p>
             <p>{booking.session_type === 'piercing' ? 'Piercing' : 'Tattoo appointment'}{booking.artist_name ? ` with ${booking.artist_name}` : ''}</p>
             {booking.chosen_time && <p>{formatTime(booking.chosen_time)}</p>}
             {booking.status === 'awaiting_payment' && !booking.deposit_paid_at && !booking.deposit_confirmed_at && booking.selection_token && (
-              <p><a href={`/booking/_?token=${encodeURIComponent(booking.selection_token)}`} style={{ color: '#fff' }}>Continue to deposit payment</a></p>
+              <p><a href={`/booking/_?token=${encodeURIComponent(booking.selection_token)}`} style={{ color: 'var(--ink)' }}>Continue to deposit payment</a></p>
             )}
             <button onClick={reload} style={{ minHeight: 44, padding: '10px 20px', borderRadius: 12 }}>Check again</button>
-            {['confirmed', 'completed'].includes(booking.status) && <p><a href="https://www.vanta.tattoo" style={{ color: '#fff' }}>Get Vanta to chat with your artist and track your appointment</a></p>}
+            {['confirmed', 'completed'].includes(booking.status) && <p><a href="https://www.vanta.tattoo" style={{ color: 'var(--ink)' }}>Get Vanta to chat with your artist and track your appointment</a></p>}
           </section>
         )}
 
         {view === 'error' && (
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Something went wrong</h1>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 32 }}>{errorMsg}</p>
+            <p style={{ color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 14, marginBottom: 32 }}>{errorMsg}</p>
             {(session || linkToken) && <button onClick={reload} style={{ minHeight: 44, padding: '10px 20px', marginRight: 16, borderRadius: 12 }}>Try again</button>}
             {session && !linkToken && <button onClick={async () => { await supabase.auth.signOut(); setSession(null); setView('auth'); }} style={{ minHeight: 44, padding: '10px 20px', marginRight: 16, borderRadius: 12 }}>Use a different account</button>}
-            <a href="https://www.vanta.tattoo" style={{ color: '#fff', fontSize: 14 }}>Back to home</a>
+            <a href="https://www.vanta.tattoo" style={{ color: 'var(--ink)', fontSize: 14 }}>Back to home</a>
           </div>
         )}
       </div>

@@ -8,7 +8,76 @@
   --line: rgba(255, 255, 255, 0.08);
   --glass: rgba(255, 255, 255, 0.04);
   --glass-strong: rgba(255, 255, 255, 0.08);
+
+  /* Colour roles for pages opened from links. Dark values are the original look;
+     html[data-link-theme='light'] swaps them. Ink is text and filled buttons,
+     paper is what sits on ink. */
+  --ink-rgb: 255, 255, 255;
+  --paper-rgb: 0, 0, 0;
+  --ink: #ffffff;
+  --paper: #000000;
+  --page: #11151b;
+  --surface: #1a2026;
+  --surface-raised: #252c34;
+  --sheet: #141820;
+  --on-ink: #11151b;
+  --text-soft: #bac1cb;
+  --text-faint: #626b79;
+  --border-strong: #4d5562;
+  --highlight: #f5ecd9;
+  --on-highlight: #11151b;
+  --gold: #c2b699;
+  --gold-soft: #f5eddd;
+  --gold-rgb: 194, 182, 153;
+  --gold-soft-rgb: 245, 237, 221;
+  --danger: #e86f6f;
+  --success: #4cc98a;
+  --success-rgb: 50, 200, 100;
+  --warning: #f59e3a;
+  --info: #818cf8;
 }
+
+html[data-link-theme='light'] {
+  color-scheme: light;
+  --background: #fafaf8;
+  --background-secondary: #f0efeb;
+  --accent: #11151b;
+  --main: #11151b;
+  --text-muted: rgba(17, 21, 27, 0.62);
+  --text-secondary: rgba(17, 21, 27, 0.5);
+  --line: rgba(17, 21, 27, 0.1);
+  --glass: rgba(17, 21, 27, 0.03);
+  --glass-strong: rgba(17, 21, 27, 0.06);
+
+  --ink-rgb: 17, 21, 27;
+  --paper-rgb: 255, 255, 255;
+  --ink: #11151b;
+  --paper: #ffffff;
+  --page: #fafaf8;
+  --surface: #ffffff;
+  --surface-raised: #f2f1ed;
+  --sheet: #ffffff;
+  --on-ink: #ffffff;
+  --text-soft: #4d5562;
+  --text-faint: #8a919c;
+  --border-strong: #c3c7ce;
+  --highlight: #11151b;
+  --on-highlight: #ffffff;
+  --gold: #7d6c43;
+  --gold-soft: #3a3326;
+  --gold-rgb: 125, 108, 67;
+  --gold-soft-rgb: 58, 51, 38;
+  --danger: #c0392b;
+  --success: #1f8a52;
+  --success-rgb: 31, 138, 82;
+  --warning: #a95a06;
+  --info: #4f46e5;
+}
+
+html[data-link-theme='light'] body { background: var(--page); }
+html[data-link-theme='light'] button { box-shadow: 0 1px 2px rgba(17, 21, 27, 0.06); }
+html[data-link-theme='light'] input { background: #ffffff; }
+html[data-link-theme='light'] input::placeholder { color: rgba(17, 21, 27, 0.4); }
 
 * {
   box-sizing: border-box;
