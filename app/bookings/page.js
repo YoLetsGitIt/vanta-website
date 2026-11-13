@@ -1781,91 +1781,76 @@ function AvDayColumn({ label, onToggleDay, dayIndex, dayOfWeek, windows, drag, o
 
 // ─── Step 3: Contact info ────────────────────────────────────────────────────
 
+// "AU" → 🇦🇺 (regional indicator letters).
+function flagOf(code) {
+  return String(code || '').toUpperCase().replace(/[A-Z]/g, ch => String.fromCodePoint(0x1f1e6 + ch.charCodeAt(0) - 65));
+}
+
 function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCountry, setPhoneCountry, phone, setPhone, smsReminders, setSmsReminders, studioQuestions, account, guest, dob, setDob }) {
   // Checked once the client leaves a field, so it doesn't complain while they type.
   const [touched, setTouched] = useState({});
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }));
+  const country = COUNTRIES.find(c => c.code === phoneCountry) || COUNTRIES[0];
   const emailError = touched.email && email.trim() && !validEmail(email) ? 'Enter a valid email address, like jane@example.com.' : '';
   const phoneError = touched.phone && phone.trim() && !validPhone(phoneCountry, phone)
-    ? `Enter a valid phone number for ${COUNTRIES.find(c => c.code === phoneCountry)?.name || 'that country'}.`
+    ? `Enter a valid phone number for ${country.name}.`
     : '';
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      <h2 style={{ ...s.stepHeading, marginBottom: 8 }}>Your contact details</h2>
-      <p style={{ ...s.muted, marginBottom: 24 }}>We need your details to confirm the booking.</p>
+    <div className="bk-contact">
+      <h2 style={{ ...s.stepHeading, marginBottom: 6 }}>Your contact details</h2>
+      <p style={{ ...s.muted, fontSize: 14, marginBottom: 24 }}>
+        {guest ? 'So the studio can confirm your booking. All fields are required.' : 'So the studio can confirm your booking.'}
+      </p>
 
-      <div style={s.contactGroup}>
-        <div style={s.contactRow}>
-          <span style={s.contactIcon}>👤</span>
-          <span style={s.contactFieldLabel}>First name</span>
-          <input style={s.contactInput} type="text" autoComplete="given-name" placeholder="Jane"
-            value={first} onChange={e => setFirst(e.target.value)} aria-label="First name" />
-        </div>
-        <div style={s.contactDivider} />
-        <div style={s.contactRow}>
-          <span style={s.contactIcon} aria-hidden="true" />
-          <span style={s.contactFieldLabel}>Last name</span>
-          <input style={s.contactInput} type="text" autoComplete="family-name" placeholder="Smith"
-            value={last} onChange={e => setLast(e.target.value)} aria-label="Last name" />
-        </div>
-        <div style={s.contactDivider} />
-        <div style={s.contactRow}>
-          <span style={s.contactIcon}>✉</span>
-          <span style={s.contactFieldLabel}>Email</span>
-          <input
-            style={s.contactInput}
-            type="email"
-            inputMode="email"
-            autoCapitalize="none"
-            autoComplete="email"
-            placeholder="jane@example.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            onBlur={touch('email')}
-            aria-label="Email"
-            aria-invalid={Boolean(emailError)}
-          />
-        </div>
-        <div style={s.contactDivider} />
-        <div style={s.contactRow}>
-          <span style={s.contactIcon}>📞</span>
-          <span style={s.contactFieldLabel}>Phone</span>
-          <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} aria-label="Country code"
-            style={{ flex: '0 0 auto', background: 'rgba(var(--ink-rgb), 0.06)', color: 'var(--ink)', border: '1px solid rgba(var(--ink-rgb), 0.12)', borderRadius: 8, fontFamily: 'var(--font-body)', fontSize: 14, padding: '6px 6px', marginRight: 8 }}>
-            {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.code} {c.dial}</option>)}
-          </select>
-          <input
-            style={{ ...s.contactInput, minWidth: 0 }}
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel-national"
-            placeholder={phoneCountry === 'AU' ? '0412 345 678' : 'Phone number'}
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
-            onBlur={touch('phone')}
-            aria-label="Phone number"
-            aria-invalid={Boolean(phoneError)}
-          />
-        </div>
-        {guest && <>
-          <div style={s.contactDivider} />
-          <div style={{ ...s.contactRow, flexWrap: 'wrap', rowGap: 8 }}>
-            <span style={s.contactIcon}>🎂</span>
-            <span style={{ ...s.contactFieldLabel, width: "auto", whiteSpace: "nowrap" }}>Date of birth</span>
-            <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-              <DateOfBirthInput
-                style={{ ...s.contactInput, textAlign: 'left', background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.1)', borderRadius: 8, padding: '0 0.6rem' }}
-                value={dob}
-                onChange={setDob}
-              />
-            </div>
+      <div className="bk-fields">
+        <div className="bk-row">
+          <div className="bk-field">
+            <label className="bk-label" htmlFor="contact-first">First name</label>
+            <input id="contact-first" className="bk-input" type="text" autoComplete="given-name" autoCapitalize="words" enterKeyHint="next"
+              value={first} onChange={e => setFirst(e.target.value)} />
           </div>
-        </>}
+          <div className="bk-field">
+            <label className="bk-label" htmlFor="contact-last">Last name</label>
+            <input id="contact-last" className="bk-input" type="text" autoComplete="family-name" autoCapitalize="words" enterKeyHint="next"
+              value={last} onChange={e => setLast(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="bk-field">
+          <label className="bk-label" htmlFor="contact-email">Email</label>
+          <input id="contact-email" className="bk-input" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+            autoComplete="email" enterKeyHint="next" placeholder="jane@example.com"
+            value={email} onChange={e => setEmail(e.target.value)} onBlur={touch('email')}
+            aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'contact-email-error' : undefined} />
+          {emailError && <p id="contact-email-error" role="alert" className="bk-error">{emailError}</p>}
+        </div>
+
+        <div className="bk-field">
+          <label className="bk-label" htmlFor="contact-phone">Mobile number</label>
+          <div className="bk-phone" data-invalid={Boolean(phoneError) || undefined}>
+            {/* The closed picker shows just the flag and code; the list names each country. */}
+            <span className="bk-country">
+              <span aria-hidden="true">{flagOf(country.code)} {country.dial}</span>
+              <svg aria-hidden="true" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} aria-label="Country code">
+                {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name} ({c.dial})</option>)}
+              </select>
+            </span>
+            <input id="contact-phone" type="tel" inputMode="tel" autoComplete="tel-national" enterKeyHint="next"
+              placeholder={phoneCountry === 'AU' ? '0412 345 678' : 'Phone number'}
+              value={phone} onChange={e => setPhone(e.target.value)} onBlur={touch('phone')}
+              aria-invalid={Boolean(phoneError)} aria-describedby={phoneError ? 'contact-phone-error' : undefined} />
+          </div>
+          {phoneError && <p id="contact-phone-error" role="alert" className="bk-error">{phoneError}</p>}
+        </div>
+
+        {guest && (
+          <div className="bk-field">
+            <span className="bk-label" id="contact-dob-label">Date of birth</span>
+            <DateOfBirthInput id="contact-dob" value={dob} onChange={setDob} className="bk-input" />
+          </div>
+        )}
       </div>
-      {[emailError, phoneError].filter(Boolean).map(message => (
-        <p key={message} role="alert" style={{ ...s.error, marginTop: 12, marginBottom: 0 }}>{message}</p>
-      ))}
-      {guest && <p style={{ ...s.muted, fontSize: 12, marginTop: 12 }}>Name, email, phone and date of birth are all required.</p>}
 
       {studioQuestions?.allergies && (
         <StudioQuestion label="Allergies or medical conditions" placeholder={studioQuestions.allergies.required ? 'Write none if there aren\u2019t any' : ''} {...studioQuestions.allergies} />
@@ -1902,9 +1887,8 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
           </label>
           {account.on && (
             <>
-              <input type="password" autoComplete="new-password" placeholder="Choose a password (6+ characters)" value={account.password}
-                onChange={e => account.setPassword(e.target.value)} minLength={6} aria-label="Account password"
-                style={{ ...s.input, margin: 0 }} />
+              <input className="bk-input" type="password" autoComplete="new-password" placeholder="Choose a password (6+ characters)" value={account.password}
+                onChange={e => account.setPassword(e.target.value)} minLength={6} aria-label="Account password" />
               <span style={{ ...s.muted, fontSize: 12, margin: 0, lineHeight: 1.5 }}>
                 By creating an account you agree to the{' '}
                 <a href="https://www.vanta.tattoo/terms" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Terms of Use</a> and{' '}
@@ -2335,25 +2319,6 @@ const s = {
   },
   // Undo the site-wide text-input styles (min-width 260px, padding).
   reminderCheckbox: { width: 18, height: 18, minWidth: 0, padding: 0, margin: '2px 0 0', accentColor: 'var(--ink)', flexShrink: 0, cursor: 'pointer' },
-  contactGroup: {
-    background: 'rgba(var(--ink-rgb), 0.05)', border: '1px solid rgba(var(--ink-rgb), 0.08)',
-    borderRadius: 14, overflow: 'hidden',
-  },
-  contactRow: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '14px 16px',
-  },
-  contactIcon: { fontSize: 13, flexShrink: 0, width: 18, textAlign: 'center', opacity: 0.45 },
-  contactFieldLabel: {
-    fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500,
-    color: 'rgba(var(--ink-rgb), 0.45)', width: 78, flexShrink: 0,
-  },
-  contactInput: {
-    flex: 1, background: 'none', border: 'none', outline: 'none',
-    color: 'var(--main)', fontFamily: 'var(--font-body)', fontSize: 14,
-    textAlign: 'right', minWidth: 0,
-  },
-  contactDivider: { height: 1, background: 'rgba(var(--ink-rgb), 0.07)', marginLeft: 46 },
 
   // Review
   reviewGroup: {
@@ -2424,14 +2389,9 @@ function InstantPlacePicker({ places, current, artistName, onChoose }) {
 // One of the studio's own booking-form questions.
 function StudioQuestion({ label, placeholder, value, set, required }) {
   return (
-    <label style={{ display: 'block', marginTop: 20 }}>
-      <span style={{ ...s.label, display: 'block', marginBottom: 8 }}>{required ? label : `${label} (optional)`}</span>
-      <textarea value={value} onChange={e => set(e.target.value)} placeholder={placeholder} rows={2}
-        style={{
-          width: '100%', boxSizing: 'border-box', minWidth: 0, resize: 'vertical', padding: '12px 14px', borderRadius: 12,
-          border: '1px solid rgba(var(--ink-rgb), 0.12)', background: 'rgba(var(--ink-rgb), 0.05)', color: 'var(--ink)',
-          fontFamily: 'var(--font-body)', fontSize: 15, lineHeight: 1.5,
-        }} />
+    <label className="bk-field" style={{ marginTop: 18 }}>
+      <span className="bk-label">{label}{!required && <span className="bk-optional"> (optional)</span>}</span>
+      <textarea className="bk-input bk-textarea" value={value} onChange={e => set(e.target.value)} placeholder={placeholder} rows={2} />
     </label>
   );
 }

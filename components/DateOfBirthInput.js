@@ -23,7 +23,7 @@ function daysIn(month, year) {
  * wheel; separate dropdowns each open one simple wheel.
  * value/onChange use "YYYY-MM-DD"; onChange gets '' until all three are chosen.
  */
-export default function DateOfBirthInput({ value, onChange, style, id, required = true, disabled }) {
+export default function DateOfBirthInput({ value, onChange, style, className = '', id, required = true, disabled }) {
   const [draft, setDraft] = useState(() => parts(value));
 
   // Follow outside changes (prefill, reset) without wiping a half-entered date.
@@ -46,20 +46,21 @@ export default function DateOfBirthInput({ value, onChange, style, id, required 
   const years = Array.from({ length: 111 }, (_, i) => String(thisYear - i));
   const days = Array.from({ length: daysIn(draft.month, draft.year) }, (_, i) => String(i + 1));
   const control = { ...style, minHeight: 44 };
+  const part = `${styles.part} ${className}`.trim();
 
   return (
     <div className={styles.dob} role="group" aria-label="Date of birth" style={{ fontSize: style?.fontSize }}>
-      <select id={id} className={styles.part} style={control} aria-label="Day of birth" autoComplete="bday-day" required={required} disabled={disabled}
+      <select id={id} className={part} style={control} aria-label="Day of birth" autoComplete="bday-day" required={required} disabled={disabled}
         value={draft.day} data-empty={!draft.day || undefined} onChange={e => update({ day: e.target.value })}>
         <option value="" disabled>Day</option>
         {days.map(d => <option key={d} value={d}>{d}</option>)}
       </select>
-      <select className={styles.part} style={control} aria-label="Month of birth" autoComplete="bday-month" required={required} disabled={disabled}
+      <select className={part} style={control} aria-label="Month of birth" autoComplete="bday-month" required={required} disabled={disabled}
         value={draft.month} data-empty={!draft.month || undefined} onChange={e => update({ month: e.target.value })}>
         <option value="" disabled>Month</option>
         {MONTHS.map((name, i) => <option key={name} value={String(i + 1)}>{name}</option>)}
       </select>
-      <select className={styles.part} style={control} aria-label="Year of birth" autoComplete="bday-year" required={required} disabled={disabled}
+      <select className={part} style={control} aria-label="Year of birth" autoComplete="bday-year" required={required} disabled={disabled}
         value={draft.year} data-empty={!draft.year || undefined} onChange={e => update({ year: e.target.value })}>
         <option value="" disabled>Year</option>
         {years.map(y => <option key={y} value={y}>{y}</option>)}
