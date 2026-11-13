@@ -48,3 +48,14 @@ test('the artist can make placement, design and availability optional or off', (
   // A studio on Vanta Studio that requires one still gets it.
   assert.deepEqual(formQuestion(form, { body_location: { enabled: true, required: true } }, 'body_location'), { asked: true, required: true });
 });
+
+test('a preview from the app carries unsaved choices, and nothing else', async () => {
+  const { parsePreviewForm } = await import('../lib/booking-form.mjs');
+  const encode = value => Buffer.from(JSON.stringify(value)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const form = parsePreviewForm(encode({ size: { enabled: true, required: true }, body_location: { enabled: false, required: true }, dob: { enabled: true } }));
+  assert.deepEqual(form, { size: { enabled: true, required: true }, body_location: { enabled: false, required: false } });
+  assert.deepEqual(formQuestion(form, null, 'size'), { asked: true, required: true });
+  assert.equal(parsePreviewForm('not json'), null);
+  assert.equal(parsePreviewForm(''), null);
+  assert.equal(parsePreviewForm(encode([1, 2])), null);
+});

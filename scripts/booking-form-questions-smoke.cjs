@@ -89,6 +89,49 @@ const form = {
       console.log(`PASS artist booking form questions at ${width}px`);
       await c.close();
     }
+
+    // Preview from the app: the link's unsaved choices win over the saved form, and nothing is sent.
+    for (const width of [390, 1280]) {
+      const c = await browser.newContext({ viewport: { width, height: 900 } });
+      await c.route('https://aznxvdnpvbcofaqxgmtu.supabase.co/**', route => route.fulfill({ status: 401, json: {} }));
+      let posted = false;
+      await c.route(`${api}/**`, route => {
+        const req = route.request(), path = new URL(req.url()).pathname;
+        if (req.method() !== 'GET') { posted = true; return route.fulfill({ status: 500, json: {} }); }
+        if (path === `/artists/${artistId}`) return route.fulfill({ json: { id: artistId, name: 'Alex Ink', serviceType: 'both' } });
+        if (path === `/artists/${artistId}/booking-form`) return route.fulfill({ json: { fields: {} } });
+        if (path.endsWith('/work-schedule')) return route.fulfill({ json: { schedule: [] } });
+        return route.fulfill({ json: {} });
+      });
+      const preview = Buffer.from(JSON.stringify(form)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const page = await c.newPage();
+      const errors = []; page.on('pageerror', e => errors.push(e.message));
+      await page.goto(`${base}/bookings?artist=${artistId}&preview_form=${preview}`, { waitUntil: 'networkidle' });
+      await page.getByText('Nothing is sent.', { exact: false }).waitFor();
+      if (shots) await page.screenshot({ path: `${shots}/preview-start-${width}.png`, fullPage: true });
+      await page.getByRole('button', { name: /^Small/ }).click();
+      const next = page.getByRole('button', { name: 'Continue', exact: true });
+      await next.click();
+      await page.getByText('SIZE', { exact: true }).waitFor();
+      assert.equal(await page.getByRole('button', { name: 'Select placement…' }).count(), 0, 'Preview choices are used');
+      await page.locator('#booking-size').fill('8');
+      await next.click();
+      await next.click();
+      await page.getByLabel('First name', { exact: true }).fill('Preview');
+      await page.getByLabel('Last name', { exact: true }).fill('Client');
+      await page.getByRole('checkbox', { name: /Create a Vanta account/ }).uncheck();
+      await page.getByLabel('Email', { exact: true }).fill('preview@example.test');
+      await page.getByLabel('Phone number', { exact: true }).fill('0400 555 666');
+      await fillDob(page, '1995-07-08');
+      await next.click();
+      const end = page.getByRole('button', { name: 'End of preview', exact: true });
+      await end.waitFor();
+      assert(await end.isDisabled(), 'The preview never sends');
+      assert.equal(posted, false, 'Nothing was posted');
+      assert.deepEqual(errors, []);
+      console.log(`PASS booking form preview from the app at ${width}px`);
+      await c.close();
+    }
   } finally {
     await browser.close();
   }

@@ -4,7 +4,7 @@ import DateOfBirthInput from '@/components/DateOfBirthInput';
 import { resolveBookingArtist, subdomainReference } from '../../lib/booking-artist.mjs';
 import { flashBookingState, flashNotice, flashPrefill, flashPriceLabel, isFlashReference } from '../../lib/booking-flash.mjs';
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
-import { formQuestion } from '../../lib/booking-form.mjs';
+import { formQuestion, parsePreviewForm } from '../../lib/booking-form.mjs';
 import { depositCharge, money, payWays, BOOKING_FEE_NOTE } from '../../lib/booking-fee.mjs';
 import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL } from '../../lib/booking-instant.mjs';
 import InstantTimePicker from '../../components/InstantTimePicker';
@@ -92,6 +92,9 @@ function BookingContent() {
   const [hostReference] = useState(() => (typeof window === 'undefined' ? '' : subdomainReference(window.location.hostname)));
   const artistReference = searchParams.get('artist') || hostReference || null;
   const flashReference = searchParams.get('flash');
+  // The artist previewing unsaved choices from the app: their questions, nothing sent.
+  const [previewForm] = useState(() => parsePreviewForm(searchParams.get('preview_form')));
+  const previewing = Boolean(previewForm);
   // A flash post shared with ?flash=<id>: attached to the request like "Book this flash" in the app.
   const [flash, setFlash] = useState(null);
   const [flashMessage, setFlashMessage] = useState('');
@@ -296,7 +299,7 @@ function BookingContent() {
       setArtistSchedule(sched);
       setInstantInfo(instant);
       setPlaceInfo(instant);
-      setArtistForm(formData?.fields || null);
+      setArtistForm(previewForm || formData?.fields || null);
       // Several studios: load each one now, so choosing one on the first step is instant.
       if (locations.length > 1) {
         placeCache.current = {};
@@ -553,7 +556,7 @@ function BookingContent() {
   function handleNext() {
     setStepError('');
     if (step < totalSteps - 1) { setStep(s => s + 1); }
-    else { handleSubmit(); }
+    else if (!previewing) { handleSubmit(); }
   }
 
   function handleBack() {
@@ -941,8 +944,13 @@ function BookingContent() {
           {/* ── Multi-step booking form ── */}
           {view === 'form' && (
             <>
-              <h1 style={{ ...s.heading, marginBottom: guest && !session && step === 0 ? 12 : 24 }}>{flash ? 'Book this flash' : 'Make a booking'}</h1>
-              {guest && !session && step === 0 && (
+              {previewing && (
+                <p role="status" style={{ ...s.muted, fontSize: 13, margin: '0 0 16px', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(var(--ink-rgb), 0.12)', background: 'rgba(var(--ink-rgb), 0.04)' }}>
+                  <strong style={{ color: 'var(--main)' }}>Preview</strong> · This is how clients see your booking form. Nothing is sent.
+                </p>
+              )}
+              <h1 style={{ ...s.heading, marginBottom: guest && !session && step === 0 && !previewing ? 12 : 24 }}>{flash ? 'Book this flash' : 'Make a booking'}</h1>
+              {guest && !session && step === 0 && !previewing && (
                 <p style={{ ...s.muted, fontSize: 14, margin: '0 0 24px' }}>
                   Have a Vanta account?{' '}
                   <button type="button" onClick={() => setGuest(false)} style={{ ...s.emailAuthLink, display: 'inline', margin: 0, minHeight: 0, fontSize: 14 }}>Sign in</button>
@@ -1054,16 +1062,16 @@ function BookingContent() {
                 style={{
                   ...s.submitBtn,
                   marginTop: 32,
-                  ...(!nextEnabled() || submitting ? s.submitBtnDisabled : {}),
+                  ...(!nextEnabled() || submitting || (previewing && step >= totalSteps - 1) ? s.submitBtnDisabled : {}),
                 }}
                 onClick={handleNext}
-                disabled={!nextEnabled() || submitting}
+                disabled={!nextEnabled() || submitting || (previewing && step >= totalSteps - 1)}
               >
                 {submitting ? (
                   <span>
                     {Math.round(submitProgress * 100)}%{submitPhase ? ` · ${submitPhase}` : ''}
                   </span>
-                ) : step < totalSteps - 1 ? 'Continue' : instantMode ? `Pay ${money(depositCharge(instantChoice?.deposit).total)}` : 'Send Request'}
+                ) : step < totalSteps - 1 ? 'Continue' : previewing ? 'End of preview' : instantMode ? `Pay ${money(depositCharge(instantChoice?.deposit).total)}` : 'Send Request'}
               </button>
             </>
           )}
