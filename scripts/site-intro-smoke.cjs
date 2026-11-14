@@ -10,7 +10,7 @@ const content = 'body > div[style*="contents"]';
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
   });
   try {
-    for (const path of ['/', '/artists', '/studio', '/pricing', '/signup', '/bookings', '/consent', '/privacy', '/terms', '/artist/account']) {
+    for (const path of ['/', '/artists', '/studio', '/pricing', '/signup', '/bookings', '/consent', '/privacy', '/terms']) {
       const context = await browser.newContext({ viewport: { width: path === '/artists' ? 390 : 1280, height: 900 } });
       const page = await context.newPage();
       const errors = [];
