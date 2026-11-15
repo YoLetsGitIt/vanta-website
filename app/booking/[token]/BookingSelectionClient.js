@@ -122,7 +122,7 @@ export default function BookingSelectionClient() {
       <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
         {choices.map(([method, label]) => (
           <button key={method} style={{ ...s.btn, ...(sendingDeposit ? s.btnDisabled : {}) }} disabled={Boolean(sendingDeposit)} onClick={() => markDepositSent(method)}>
-            {sendingDeposit === method ? 'Saving…' : label}
+            {sendingDeposit === method ? <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Booking your time…</span> : label}
           </button>
         ))}
         <p style={{ ...s.muted, margin: 0, fontSize: 13 }}>Tap this once you’ve sent the money. Your booking is confirmed and the studio checks it’s arrived.</p>
@@ -501,7 +501,7 @@ export default function BookingSelectionClient() {
             disabled={payingDeposit}
             onClick={payDeposit}
           >
-            {payingDeposit ? 'Redirecting…' : `Pay ${money(charge.total)}`}
+            {payingDeposit ? <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Opening secure payment…</span> : `Pay ${money(charge.total)}`}
           </button>
         )}
         {manual && <ManualDepositDetails options={options} amount={ctx?.booking?.deposit_amount} />}
@@ -885,12 +885,12 @@ export default function BookingSelectionClient() {
                   <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
                     {manual.payid && (
                       <button style={{ ...(options.card ? s.btnSecondary : s.btn), ...(submitting ? s.btnDisabled : {}) }} disabled={Boolean(submitting)} onClick={() => handleSubmit('payid')}>
-                        {submitting === 'payid' ? 'Booking…' : 'I’ve paid by PayID'}
+                        {submitting === 'payid' ? <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Booking your time…</span> : 'I’ve paid by PayID'}
                       </button>
                     )}
                     {hasBank && (
                       <button style={{ ...(options.card || manual.payid ? s.btnSecondary : s.btn), ...(submitting ? s.btnDisabled : {}) }} disabled={Boolean(submitting)} onClick={() => handleSubmit('bank_transfer')}>
-                        {submitting === 'bank_transfer' ? 'Booking…' : 'I’ve paid by bank transfer'}
+                        {submitting === 'bank_transfer' ? <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Booking your time…</span> : 'I’ve paid by bank transfer'}
                       </button>
                     )}
                     <p style={{ ...s.muted, margin: 0, fontSize: 13 }}>Tap this once you’ve sent the money. Your time is booked and the studio checks the payment arrived.</p>
@@ -924,7 +924,7 @@ export default function BookingSelectionClient() {
               onClick={() => handleSubmit()}
             >
               {submitting
-                ? (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? 'Redirecting to payment…' : 'Submitting…')
+                ? (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Opening secure payment…</span> : <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Sending your request…</span>)
                 : (ctx?.booking?.deposit_required && ctx.booking.deposit_options?.card !== false ? 'Continue to payment' : 'Request appointment')}
             </button>
           </div>

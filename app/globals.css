@@ -3299,3 +3299,12 @@ select.bk-input { height: 48px; padding-top: 0; padding-bottom: 0; }
 @media (any-pointer: coarse) {
   input:not([type='checkbox']):not([type='radio']):not([type='range']), select, textarea { font-size: max(16px, 1em) !important; }
 }
+
+/* Busy button / status: a small spinner beside one short phrase. */
+.bk-busy { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.bk-spinner {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .bk-spinner { animation-duration: 2.4s; } }

@@ -278,7 +278,7 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
               {payError && <p role="alert" style={{ color: 'var(--danger)', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>{payError}</p>}
               {options.card && (
                 <button onClick={() => confirmBooking('card')} disabled={Boolean(paying)} style={{ ...btn, background: 'var(--ink)', color: 'var(--on-ink)', marginBottom: manual ? 8 : 0 }}>
-                  {paying === 'card' ? 'Opening secure payment…' : `Pay ${money(charge.total)}`}
+                  {paying === 'card' ? <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Opening secure payment…</span> : `Pay ${money(charge.total)}`}
                 </button>
               )}
               {manual && (
@@ -287,12 +287,12 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
                   <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
                     {manual.payid && (
                       <button onClick={() => confirmBooking('payid')} disabled={Boolean(paying)} style={{ ...btn, background: options.card ? 'rgba(var(--ink-rgb), 0.1)' : 'var(--ink)', color: options.card ? 'var(--ink)' : 'var(--page)' }}>
-                        {paying === 'payid' ? 'Booking…' : 'I’ve paid by PayID'}
+                        {paying === 'payid' ? <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Booking your time…</span> : 'I’ve paid by PayID'}
                       </button>
                     )}
                     {hasBank && (
                       <button onClick={() => confirmBooking('bank_transfer')} disabled={Boolean(paying)} style={{ ...btn, background: options.card || manual.payid ? 'rgba(var(--ink-rgb), 0.1)' : 'var(--ink)', color: options.card || manual.payid ? 'var(--ink)' : 'var(--page)' }}>
-                        {paying === 'bank_transfer' ? 'Booking…' : 'I’ve paid by bank transfer'}
+                        {paying === 'bank_transfer' ? <span className="bk-busy"><span className="bk-spinner" aria-hidden="true" />Booking your time…</span> : 'I’ve paid by bank transfer'}
                       </button>
                     )}
                     <p style={{ color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 13, lineHeight: 1.5, margin: 0 }}>Tap this once you’ve sent the money. Your time is booked and the studio checks the payment arrived.</p>
@@ -308,7 +308,11 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
         })()}
 
         {view === 'submitting' && (
-          <p style={{ color: 'rgba(var(--ink-rgb), 0.5)' }}>Confirming your booking…</p>
+          <div role="status" style={{ textAlign: 'center', padding: '48px 0' }}>
+            <span className="bk-spinner" aria-hidden="true" style={{ display: 'inline-block', width: 28, height: 28, borderWidth: 3, color: 'var(--ink)', marginBottom: 18 }} />
+            <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 6px' }}>Confirming your booking</h1>
+            <p style={{ color: 'rgba(var(--ink-rgb), 0.55)', margin: 0, fontSize: 15 }}>This only takes a moment.</p>
+          </div>
         )}
 
         {view === 'receipt' && booking && (

@@ -153,6 +153,8 @@ function BookingContent() {
   const [instantStart, setInstantStart] = useState('');
   // Back from payment: { result, booking, token, state: checking|booked|waiting|closed|released, ... }
   const [payment, setPayment] = useState(null);
+  // The page scrolls inside .booking-page: each new step starts at its top.
+  const pageRef = useRef(null);
   // Booked here wherever the artist takes it, including a studio on Vanta Studio: the
   // booking is passed to that studio and the client stays on this page.
   const instantMode = Boolean(instantInfo?.available);
@@ -583,6 +585,10 @@ function BookingContent() {
     else if (!previewing) { handleSubmit(); }
   }
 
+  useEffect(() => {
+    pageRef.current?.scrollTo({ top: 0 });
+  }, [step, view]);
+
   function handleBack() {
     setStepError('');
     if (step === 0) { /* can't go back from first step */ } else { setStep(s => s - 1); }
@@ -633,7 +639,7 @@ function BookingContent() {
         setSubmitProgress(0.7);
       }
 
-      setSubmitPhase('Sending request…');
+      setSubmitPhase(instantMode ? (Number(instantChoice?.deposit) > 0 ? 'Opening secure payment…' : 'Booking your appointment…') : 'Sending your request…');
       setSubmitProgress(photoFiles.length > 0 ? 0.72 : 0.3);
       // tick slowly while the server processes so the bar keeps moving
       const ticker = setInterval(() => {
@@ -684,7 +690,6 @@ function BookingContent() {
         delete body.earliest_date;
         body.instant = { appointment_type_id: instantType, start_time: instantStart, return_url: returnURL(window.location.href) };
         if (photosAfterPayment) body.photos_after_payment = photoFiles.length;
-        setSubmitPhase('Opening payment…');
       }
 
       const res = await fetch(`${BACKEND_URL}/bookings${asGuest ? '/guest' : ''}`, {
@@ -708,7 +713,7 @@ function BookingContent() {
       const created = await res.json().catch(() => ({}));
       if (instantMode && created.instant?.checkout_url) {
         // A free appointment is already booked: its link is the "you're booked" page.
-        setSubmitPhase(created.instant.confirmed ? 'Booking…' : 'Opening payment…');
+        setSubmitPhase(created.instant.confirmed ? 'Booking your appointment…' : 'Opening secure payment…');
         setSubmitProgress(1);
         if (photosAfterPayment) {
           // Kept against the checkout; the return page uploads them once it's paid.
@@ -818,7 +823,7 @@ function BookingContent() {
   }
 
   return (
-    <div className="booking-page" style={{ animation: 'booking-fade-in 0.35s ease' }}>
+    <div className="booking-page" ref={pageRef} style={{ animation: 'booking-fade-in 0.35s ease' }}>
       <div style={s.pageInner}>
         <div style={s.card}>
 
@@ -1111,18 +1116,19 @@ function BookingContent() {
                 style={{
                   ...s.submitBtn,
                   marginTop: 32,
-                  ...(!nextEnabled() || submitting || (previewing && step >= totalSteps - 1) ? s.submitBtnDisabled : {}),
+                  // While sending it stays solid (with a spinner), so it doesn't look unavailable.
+                  ...(!submitting && (!nextEnabled() || (previewing && step >= totalSteps - 1)) ? s.submitBtnDisabled : {}),
+                  ...(submitting ? { cursor: 'progress' } : {}),
                 }}
                 onClick={handleNext}
                 disabled={!nextEnabled() || submitting || (previewing && step >= totalSteps - 1)}
               >
                 {submitting ? (
-                  // Paying: nothing is uploaded first, so just say where they're going.
-                  instantMode && Number(instantChoice?.deposit) > 0 && submitPhase !== 'Uploading photos…' && submitPhase !== 'Creating your account…' ? <span>Opening payment…</span> : (
-                    <span>
-                      {Math.round(submitProgress * 100)}%{submitPhase ? ` · ${submitPhase}` : ''}
-                    </span>
-                  )
+                  // One clear phrase; a percentage only while photos upload.
+                  <span className="bk-busy">
+                    <span className="bk-spinner" aria-hidden="true" />
+                    <span>{submitPhase === 'Uploading photos…' ? `Uploading photos · ${Math.round(submitProgress * 100)}%` : (submitPhase || 'Just a moment…')}</span>
+                  </span>
                 ) : step < totalSteps - 1 ? 'Continue' : previewing ? 'End of preview' : instantMode ? (Number(instantChoice?.deposit) > 0 ? `Pay ${money(depositCharge(instantChoice?.deposit).total)}` : 'Book') : 'Send Request'}
               </button>
             </>
