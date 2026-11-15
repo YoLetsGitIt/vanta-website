@@ -5,7 +5,7 @@
 // otherwise they ask the studio for a new one.
 import { useEffect, useState, use } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { BACKEND_URL, formatWhen } from '../policyText';
+import { BACKEND_URL, formatWhen, noticeText } from '../policyText';
 
 const s = {
   wrap: { background: 'var(--page)', color: 'var(--ink)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
@@ -27,13 +27,31 @@ const s = {
   muted: { color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 14 },
 };
 
-const REFUSALS = {
-  used: 'This booking has already been moved once, so it can’t be moved again online.',
-  late: 'It’s too close to your appointment to move it online.',
-  requested: 'You’ve already asked for a new time. The studio will be in touch, and your booking stays as it is until then.',
-  not_booked: 'This booking doesn’t have a confirmed time to move.',
-  off: 'This booking can’t be moved online.',
-};
+// Why the booking can't be moved online: a heading, the reason, and the tone of the notice.
+function refusal(opts) {
+  const who = opts.business_name || 'your studio or artist';
+  switch (opts.reason) {
+    case 'late': {
+      const notice = opts.notice_hours > 0 ? noticeText(opts.notice_hours) : '';
+      return {
+        tone: 'warn', title: 'It’s too late to reschedule online',
+        text: notice
+          ? `Bookings with ${who} can be moved online up to ${notice} before the appointment, and yours is less than ${notice} away.`
+          : 'Your appointment is too close to move it online.',
+      };
+    }
+    case 'used':
+      return { tone: 'warn', title: 'This booking has already been moved', text: 'A booking can be moved online once. To change the time again, contact ' + who + '.' };
+    case 'off':
+      return { tone: 'warn', title: 'Online rescheduling isn’t available', text: `${who} doesn’t move bookings online. Contact them to change your time.` };
+    case 'requested':
+      return { tone: 'info', title: 'Your request is with ' + who, text: 'You’ve asked for a new time. They’ll be in touch, and your booking stays as it is until then.' };
+    case 'not_booked':
+      return { tone: 'info', title: 'There’s no time to move yet', text: 'This booking doesn’t have a confirmed time. You’ll be able to move it once it does.' };
+    default:
+      return { tone: 'warn', title: 'This booking can’t be moved online', text: `Contact ${who} to change your time.` };
+  }
+}
 
 function addDays(ymd, n) {
   const d = new Date(`${ymd}T00:00:00Z`);
@@ -159,10 +177,37 @@ export default function RescheduleClient({ params }) {
   );
 
   if (!opts.allowed) {
+    const why = refusal(opts);
+    const warn = why.tone === 'warn';
+    const who = opts.business_name || 'your studio or artist';
     return page(<>
-      <h1 style={s.heading}>Need a different time?</h1>
+      <div role="status" style={{
+        display: 'flex', gap: 14, alignItems: 'flex-start', padding: '18px 18px', borderRadius: 16, marginBottom: 20,
+        background: warn ? 'color-mix(in srgb, var(--warning) 9%, transparent)' : 'rgba(var(--ink-rgb), 0.05)',
+        border: `1px solid ${warn ? 'color-mix(in srgb, var(--warning) 35%, transparent)' : 'rgba(var(--ink-rgb), 0.1)'}`,
+      }}>
+        <span aria-hidden="true" style={{
+          flex: 'none', width: 36, height: 36, borderRadius: '50%', display: 'grid', placeItems: 'center',
+          background: warn ? 'color-mix(in srgb, var(--warning) 16%, transparent)' : 'rgba(var(--ink-rgb), 0.08)',
+          color: warn ? 'var(--warning)' : 'var(--ink)',
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+          </svg>
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, margin: '6px 0 6px', maxWidth: 'none' }}>{why.title}</h1>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: 'rgba(var(--ink-rgb), 0.75)' }}>{why.text}</p>
+        </div>
+      </div>
       {current}
-      <p style={s.sub}>{REFUSALS[opts.reason] || 'This booking can’t be moved online.'} Contact your studio or artist if you need to change it{opts.reason === 'requested' ? '' : <>, or <a style={s.link} href={cancelHref}>cancel your booking</a></>}.</p>
+      {opts.reason !== 'requested' && opts.reason !== 'not_booked' && (
+        <>
+          <div style={s.label}>What you can do</div>
+          <p style={{ ...s.sub, marginTop: 6 }}>Contact {who} directly to change your booking. If you can’t make it at all, you can cancel instead.</p>
+          <a href={cancelHref} style={{ ...s.secondary, textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}>Cancel my booking</a>
+        </>
+      )}
     </>);
   }
 
