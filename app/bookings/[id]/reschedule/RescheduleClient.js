@@ -32,6 +32,7 @@ const REFUSALS = {
   late: 'It’s too close to your appointment to move it online.',
   requested: 'You’ve already asked for a new time. The studio will be in touch, and your booking stays as it is until then.',
   not_booked: 'This booking doesn’t have a confirmed time to move.',
+  off: 'This booking can’t be moved online.',
 };
 
 function addDays(ymd, n) {
