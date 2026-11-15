@@ -9,6 +9,7 @@ import { depositCharge, money, payWays, BOOKING_FEE_NOTE } from '../../lib/booki
 import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL } from '../../lib/booking-instant.mjs';
 import InstantTimePicker from '../../components/InstantTimePicker';
 import AppPromo from '../../components/AppPromo';
+import { canKeepPhotos, keepPhotos, keptPhotos, forgetPhotos } from '../../lib/pending-photos.mjs';
 import { COUNTRIES, DEFAULT_COUNTRY, fullPhone, joinName, splitName, splitPhone, validEmail, validPhone } from '../../lib/booking-contact.mjs';
 import { offeredTypes, sessionTypeFor } from '../../lib/booking-types.mjs';
 
@@ -82,6 +83,29 @@ function uploadFileXHR(url, file, onProgress) {
     xhr.setRequestHeader('Content-Type', mimeType);
     xhr.send(file);
   });
+}
+
+// Uploads reference photos for a booking with the artist; returns them for the booking.
+// session: the signed-in client (null for a guest). onProgress gets 0..1.
+async function uploadReferencePhotos(files, artistId, session, onProgress = () => {}) {
+  const signRes = await fetch(`${BACKEND_URL}/bookings/${session ? '' : 'guest/'}uploads/sign`, {
+    method: 'POST',
+    headers: session ? { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` } : { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      artist_id: artistId,
+      files: files.map(f => ({ mime_type: f.type === 'image/png' ? 'image/png' : 'image/jpeg', byte_size: f.size })),
+    }),
+  });
+  if (!signRes.ok) throw new Error('Failed to prepare photo upload.');
+  const { uploads } = await signRes.json();
+  const fileProgress = new Array(uploads.length).fill(0);
+  await Promise.all(uploads.map((slot, idx) =>
+    uploadFileXHR(slot.upload_token, files[idx], ratio => {
+      fileProgress[idx] = ratio;
+      onProgress(fileProgress.reduce((a, b) => a + b, 0) / uploads.length);
+    })
+  ));
+  return uploads.map(slot => ({ storage_bucket: slot.storage_bucket, storage_object_path: slot.storage_object_path, mime_type: slot.mime_type }));
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
@@ -596,42 +620,16 @@ function BookingContent() {
       }
       const asGuest = !activeSession;
       let refImages = [];
+      // Instant booking: nothing is sent until they've paid. Their photos wait in this
+      // browser and are uploaded on the way back from payment (if the browser can't keep
+      // them, e.g. some private windows, they're uploaded now instead).
+      // A free appointment has nothing to pay, so its photos go with the booking.
+      const photosAfterPayment = instantMode && Number(instantChoice?.deposit) > 0 && photoFiles.length > 0 && await canKeepPhotos();
 
-      if (photoFiles.length > 0) {
-        setSubmitPhase('Preparing photos…');
-        setSubmitProgress(0.05);
-
-        const signRes = await fetch(`${BACKEND_URL}/bookings/${asGuest ? 'guest/' : ''}uploads/sign`, {
-          method: 'POST',
-          headers: asGuest ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', Authorization: `Bearer ${activeSession.access_token}` },
-          body: JSON.stringify({
-            artist_id: artistId,
-            files: photoFiles.map(f => ({
-              mime_type: f.type === 'image/png' ? 'image/png' : 'image/jpeg',
-              byte_size: f.size,
-            })),
-          }),
-        });
-        if (!signRes.ok) throw new Error('Failed to prepare photo upload.');
-        const { uploads } = await signRes.json();
-
+      if (photoFiles.length > 0 && !photosAfterPayment) {
         setSubmitPhase('Uploading photos…');
-        setSubmitProgress(0.1);
-
-        const fileProgress = new Array(uploads.length).fill(0);
-        await Promise.all(uploads.map((slot, idx) =>
-          uploadFileXHR(slot.upload_token, photoFiles[idx], (ratio) => {
-            fileProgress[idx] = ratio;
-            const overall = fileProgress.reduce((a, b) => a + b, 0) / uploads.length;
-            setSubmitProgress(0.1 + overall * 0.6);
-          })
-        ));
-
-        refImages = uploads.map(slot => ({
-          storage_bucket: slot.storage_bucket,
-          storage_object_path: slot.storage_object_path,
-          mime_type: slot.mime_type,
-        }));
+        setSubmitProgress(0.05);
+        refImages = await uploadReferencePhotos(photoFiles, artistId, activeSession, ratio => setSubmitProgress(0.05 + ratio * 0.65));
         setSubmitProgress(0.7);
       }
 
@@ -685,7 +683,8 @@ function BookingContent() {
         body.push_to_later = false;
         delete body.earliest_date;
         body.instant = { appointment_type_id: instantType, start_time: instantStart, return_url: returnURL(window.location.href) };
-        setSubmitPhase('Holding your time…');
+        if (photosAfterPayment) body.photos_after_payment = photoFiles.length;
+        setSubmitPhase('Opening payment…');
       }
 
       const res = await fetch(`${BACKEND_URL}/bookings${asGuest ? '/guest' : ''}`, {
@@ -711,6 +710,10 @@ function BookingContent() {
         // A free appointment is already booked: its link is the "you're booked" page.
         setSubmitPhase(created.instant.confirmed ? 'Booking…' : 'Opening payment…');
         setSubmitProgress(1);
+        if (photosAfterPayment) {
+          // Kept against the checkout; the return page uploads them once it's paid.
+          await keepPhotos(created.instant.checkout_id || created.id, artistId, photoFiles).catch(() => {});
+        }
         window.location.assign(created.instant.checkout_url);
         return;
       }
@@ -739,6 +742,7 @@ function BookingContent() {
     const { booking, token, result } = payment;
     if (result === 'cancelled') {
       // They left payment: give the time back straight away.
+      forgetPhotos(booking);
       fetch(`${BACKEND_URL}/bookings/${booking}/instant-release`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
         .catch(() => {})
         .finally(() => { if (live) setPayment(p => ({ ...p, state: 'released' })); });
@@ -750,13 +754,44 @@ function BookingContent() {
       const res = await fetch(`${BACKEND_URL}/bookings/${booking}/instant-status?t=${encodeURIComponent(token)}`, { cache: 'no-store' }).catch(() => null);
       const data = res?.ok ? await res.json().catch(() => null) : null;
       if (!live) return;
-      if (data?.state === 'booked' || data?.state === 'closed') { setPayment(p => ({ ...p, ...data })); return; }
+      if (data?.state === 'booked') {
+        // Now that they've paid, their photos go to the booking (next effect).
+        const kept = await keptPhotos(booking);
+        if (!live) return;
+        setPayment(p => ({ ...p, ...data, ...(kept ? { state: 'photos', photoProgress: 0, kept } : {}) }));
+        return;
+      }
+      if (data?.state === 'closed') { setPayment(p => ({ ...p, ...data })); return; }
       if (++tries >= 15) { setPayment(p => ({ ...p, ...(data || {}), state: 'waiting' })); return; }
       setTimeout(check, 2000);
     }
     check();
     return () => { live = false; };
   }, [payment]);
+
+  // Paid: upload the photos kept while they paid, and add them to the booking.
+  const paymentState = payment?.state;
+  useEffect(() => {
+    if (paymentState !== 'photos' || !payment?.kept) return;
+    let live = true;
+    const { booking, token, kept } = payment;
+    (async () => {
+      try {
+        const images = await uploadReferencePhotos(kept.files, kept.artistId, null, ratio => live && setPayment(p => ({ ...p, photoProgress: ratio })));
+        const res = await fetch(`${BACKEND_URL}/bookings/${booking}/instant-photos`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, reference_images: images }),
+        });
+        if (!res.ok) throw new Error('photos');
+        forgetPhotos(booking);
+        if (live) setPayment(p => ({ ...p, state: 'booked', kept: null }));
+      } catch {
+        if (live) setPayment(p => ({ ...p, state: 'booked', kept: null, photosFailed: true }));
+      }
+    })();
+    return () => { live = false; };
+    // Runs once per photo step; progress updates don't restart it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentState]);
 
   function bookAgain() {
     window.location.assign(returnURL(window.location.href));
@@ -814,6 +849,16 @@ function BookingContent() {
                   <p style={s.muted}>This only takes a few seconds.</p>
                 </>
               )}
+              {payment.state === 'photos' && (
+                <>
+                  <div style={s.successIcon}>✓</div>
+                  <h1 style={s.heading}>Payment received</h1>
+                  <p style={s.muted}>Adding your reference photos to the booking…</p>
+                  <div style={s.progressTrack} role="progressbar" aria-label="Uploading photos" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((payment.photoProgress || 0) * 100)}>
+                    <div style={{ ...s.progressFill, width: `${Math.max(6, Math.round((payment.photoProgress || 0) * 100))}%` }} />
+                  </div>
+                </>
+              )}
               {payment.state === 'booked' && (
                 <>
                   <div style={s.successIcon}>✓</div>
@@ -822,6 +867,9 @@ function BookingContent() {
                     {payment.chosen_time && instantInfo?.timezone ? `${formatWhen(payment.chosen_time, instantInfo.timezone)} with ${artist?.name || 'your artist'}. ` : ''}
                     {payment.free ? 'A confirmation is on its way to your email.' : 'Your deposit is paid and a confirmation is on its way to your email.'}
                   </p>
+                  {payment.photosFailed && (
+                    <p role="alert" style={{ ...s.error, marginBottom: 20 }}>Your reference photos couldn’t be added. Your booking is safe; send them to {artist?.name || 'your artist'} directly.</p>
+                  )}
                   <AppPromo />
                 </>
               )}
@@ -1069,9 +1117,12 @@ function BookingContent() {
                 disabled={!nextEnabled() || submitting || (previewing && step >= totalSteps - 1)}
               >
                 {submitting ? (
-                  <span>
-                    {Math.round(submitProgress * 100)}%{submitPhase ? ` · ${submitPhase}` : ''}
-                  </span>
+                  // Paying: nothing is uploaded first, so just say where they're going.
+                  instantMode && Number(instantChoice?.deposit) > 0 && submitPhase !== 'Uploading photos…' && submitPhase !== 'Creating your account…' ? <span>Opening payment…</span> : (
+                    <span>
+                      {Math.round(submitProgress * 100)}%{submitPhase ? ` · ${submitPhase}` : ''}
+                    </span>
+                  )
                 ) : step < totalSteps - 1 ? 'Continue' : previewing ? 'End of preview' : instantMode ? (Number(instantChoice?.deposit) > 0 ? `Pay ${money(depositCharge(instantChoice?.deposit).total)}` : 'Book') : 'Send Request'}
               </button>
             </>
