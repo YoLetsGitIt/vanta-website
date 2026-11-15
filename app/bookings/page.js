@@ -708,7 +708,8 @@ function BookingContent() {
       clearInterval(ticker);
       const created = await res.json().catch(() => ({}));
       if (instantMode && created.instant?.checkout_url) {
-        setSubmitPhase('Opening payment…');
+        // A free appointment is already booked: its link is the "you're booked" page.
+        setSubmitPhase(created.instant.confirmed ? 'Booking…' : 'Opening payment…');
         setSubmitProgress(1);
         window.location.assign(created.instant.checkout_url);
         return;
@@ -819,7 +820,7 @@ function BookingContent() {
                   <h1 style={s.heading}>You’re booked in</h1>
                   <p style={s.muted}>
                     {payment.chosen_time && instantInfo?.timezone ? `${formatWhen(payment.chosen_time, instantInfo.timezone)} with ${artist?.name || 'your artist'}. ` : ''}
-                    Your deposit is paid and a confirmation is on its way to your email.
+                    {payment.free ? 'A confirmation is on its way to your email.' : 'Your deposit is paid and a confirmation is on its way to your email.'}
                   </p>
                   <AppPromo />
                 </>
@@ -1071,7 +1072,7 @@ function BookingContent() {
                   <span>
                     {Math.round(submitProgress * 100)}%{submitPhase ? ` · ${submitPhase}` : ''}
                   </span>
-                ) : step < totalSteps - 1 ? 'Continue' : previewing ? 'End of preview' : instantMode ? `Pay ${money(depositCharge(instantChoice?.deposit).total)}` : 'Send Request'}
+                ) : step < totalSteps - 1 ? 'Continue' : previewing ? 'End of preview' : instantMode ? (Number(instantChoice?.deposit) > 0 ? `Pay ${money(depositCharge(instantChoice?.deposit).total)}` : 'Book') : 'Send Request'}
               </button>
             </>
           )}
@@ -1909,6 +1910,8 @@ function StepReview({ sessionType, appointment, designDetails, bodyLocations, si
   const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Colour — ${colourDetails}` : colourLabel(colourStyle);
 
   function ReviewGroup({ title, rows }) {
+    // Nothing answered here (e.g. the artist's form doesn't ask about the design).
+    if (!rows.some(Boolean)) return null;
     return (
       <div style={{ marginBottom: 16 }}>
         <div style={{ ...s.sectionLabel, marginBottom: 8 }}>{title}</div>
@@ -1929,8 +1932,8 @@ function StepReview({ sessionType, appointment, designDetails, bodyLocations, si
 
   return (
     <div>
-      <h2 style={{ ...s.stepHeading, marginBottom: instant ? 6 : 20 }}>{instant ? 'Review and pay' : 'Review your request'}</h2>
-      {instant && <p style={{ ...s.muted, fontSize: 13, margin: '0 0 20px' }}>Your time is held for 30 minutes while you pay. It’s booked once the deposit goes through.</p>}
+      <h2 style={{ ...s.stepHeading, marginBottom: instant ? 6 : 20 }}>{instant ? (Number(instant.type.deposit) > 0 ? 'Review and pay' : 'Review and book') : 'Review your request'}</h2>
+      {instant && <p style={{ ...s.muted, fontSize: 13, margin: '0 0 20px' }}>{Number(instant.type.deposit) > 0 ? 'Your time is held for 30 minutes while you pay. It’s booked once the deposit goes through.' : 'It’s free: you’re booked as soon as you tap Book.'}</p>}
 
       {/* Session type */}
       {(appointment || st) && !instant && (
@@ -1976,14 +1979,19 @@ function StepReview({ sessionType, appointment, designDetails, bodyLocations, si
         studio.timezone && { label: 'Time zone', value: studio.timezone.replaceAll('_', ' ') },
       ].filter(Boolean)} />}
 
-      {instant && <ReviewGroup title="APPOINTMENT" rows={[
+      {instant && <ReviewGroup title="APPOINTMENT" rows={Number(instant.type.deposit) > 0 ? [
         { label: 'Type', value: `${instant.type.name} · ${formatLength(instant.type.duration_minutes)}` },
         { label: 'Time', value: formatWhen(instant.start, instant.zone) },
         { label: 'Deposit', value: money(instant.type.deposit) },
         { label: 'Vanta booking fee', value: money(depositCharge(instant.type.deposit).fee) },
         { label: 'Total to pay now', value: `${money(depositCharge(instant.type.deposit).total)} AUD` },
+      ] : [
+        // A free appointment: nothing to pay.
+        { label: 'Type', value: `${instant.type.name} · ${formatLength(instant.type.duration_minutes)}` },
+        { label: 'Time', value: formatWhen(instant.start, instant.zone) },
+        { label: 'Price', value: 'Free · nothing to pay' },
       ]} />}
-      {instant && <p style={{ ...s.muted, fontSize: 12, margin: '-8px 0 20px' }}>{BOOKING_FEE_NOTE} {payWays(false)}</p>}
+      {instant && Number(instant.type.deposit) > 0 && <p style={{ ...s.muted, fontSize: 12, margin: '-8px 0 20px' }}>{BOOKING_FEE_NOTE} {payWays(false)}</p>}
 
       {!instant && (availabilityWindows.length > 0 || (pushToLater && earliestDate)) && <ReviewGroup title="AVAILABILITY" rows={[
         ...availabilityWindows.map(w => {

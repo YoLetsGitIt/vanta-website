@@ -69,7 +69,7 @@ const form = {
       await page.getByLabel('Last name', { exact: true }).fill('Client');
       await page.getByRole('checkbox', { name: /Create a Vanta account/ }).uncheck();
       await page.getByLabel('Email', { exact: true }).fill('guest@example.test');
-      await page.getByLabel('Phone number', { exact: true }).fill('0400 555 666');
+      await page.getByLabel('Mobile number', { exact: true }).fill('0400 555 666');
       await fillDob(page, '1995-07-08');
       await next.click();
 
@@ -121,7 +121,7 @@ const form = {
       await page.getByLabel('Last name', { exact: true }).fill('Client');
       await page.getByRole('checkbox', { name: /Create a Vanta account/ }).uncheck();
       await page.getByLabel('Email', { exact: true }).fill('preview@example.test');
-      await page.getByLabel('Phone number', { exact: true }).fill('0400 555 666');
+      await page.getByLabel('Mobile number', { exact: true }).fill('0400 555 666');
       await fillDob(page, '1995-07-08');
       await next.click();
       const end = page.getByRole('button', { name: 'End of preview', exact: true });
