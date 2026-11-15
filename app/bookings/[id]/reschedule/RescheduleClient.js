@@ -40,6 +40,17 @@ function addDays(ymd, n) {
   return d.toISOString().slice(0, 10);
 }
 
+// A wall-clock date and time in a time zone, as an ISO time with the right offset.
+function zonedISO(date, time, timeZone) {
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  const guess = Date.UTC(y, m - 1, d, hh, mm);
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    .formatToParts(new Date(guess)).map(p => [p.type, p.value]));
+  const asZone = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute);
+  return new Date(guess - (asZone - guess)).toISOString();
+}
+
 function todayIn(timeZone) {
   return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
@@ -60,6 +71,9 @@ export default function RescheduleClient({ params }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [picked, setPicked] = useState('');
   const [message, setMessage] = useState('');
+  // A particular time the client would like (optional); the studio can approve it.
+  const [wantDate, setWantDate] = useState('');
+  const [wantTime, setWantTime] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [doneText, setDoneText] = useState('');
@@ -130,7 +144,7 @@ export default function RescheduleClient({ params }) {
   if (view === 'done') {
     return page(<div style={{ textAlign: 'center', paddingTop: 24 }}>
       <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
-      <h1 style={s.heading}>{opts?.mode === 'pick' ? 'Booking moved' : 'Request sent'}</h1>
+      <h1 style={s.heading}>{opts?.mode === 'request' ? 'Request sent' : 'Booking moved'}</h1>
       <p style={s.sub}>{doneText}</p>
     </div>);
   }
@@ -156,10 +170,20 @@ export default function RescheduleClient({ params }) {
       <h1 style={s.heading}>Ask for a new time</h1>
       {current}
       <p style={s.sub}>Tell the studio when suits you better. Your booking and deposit stay as they are until they move it. You can move a booking once.</p>
-      <label htmlFor="msg" style={s.label}>When would suit you?</label>
+      <div style={s.label}>A time that suits you <span style={{ fontWeight: 400 }}>(optional)</span></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)', gap: 8, marginBottom: 16 }}>
+        <input type="date" aria-label="Preferred date" style={{ ...s.textarea, minHeight: 0, minWidth: 0 }} min={todayIn(opts.timezone || 'Australia/Sydney')} value={wantDate} onChange={e => setWantDate(e.target.value)} />
+        <input type="time" aria-label="Preferred time" step={900} style={{ ...s.textarea, minHeight: 0, minWidth: 0 }} value={wantTime} onChange={e => setWantTime(e.target.value)} />
+      </div>
+      <label htmlFor="msg" style={s.label}>Anything else?</label>
       <textarea id="msg" style={s.textarea} maxLength={1000} value={message} onChange={e => setMessage(e.target.value)} placeholder="e.g. Any weekday afternoon the week after" />
-      <button style={{ ...s.primary, ...(saving ? s.disabled : {}) }} disabled={saving}
-        onClick={() => submit('reschedule-request', { message }, 'The studio will be in touch with a new time. Your booking stays as it is until then.')}>
+      <button style={{ ...s.primary, ...(saving || (wantDate && !wantTime) ? s.disabled : {}) }} disabled={saving || Boolean(wantDate && !wantTime)}
+        onClick={() => submit('reschedule-request', {
+          message,
+          ...(wantDate && wantTime ? { preferred_time: zonedISO(wantDate, wantTime, opts.timezone || 'Australia/Sydney') } : {}),
+        }, wantDate && wantTime
+          ? 'We’ve asked the studio to move you to that time. They’ll confirm it or send you other times to choose from. Your booking stays as it is until then.'
+          : 'The studio will be in touch with times to choose from. Your booking stays as it is until then.')}>
         {saving ? 'Sending…' : 'Ask for a new time'}
       </button>
       {error && <p style={s.err}>{error}</p>}
@@ -168,6 +192,28 @@ export default function RescheduleClient({ params }) {
 
   const timeLabel = iso => new Date(iso).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz });
   const dayLabel = ymd => new Date(`${ymd}T12:00:00Z`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+  // The studio or artist offered times: choose one.
+  if (opts.mode === 'choose') {
+    const offered = opts.offered || [];
+    return page(<>
+      <h1 style={s.heading}>Choose a new time</h1>
+      {current}
+      <p style={s.sub}>These times were offered for your booking. Your deposit moves with it. You can move a booking once, so choose a time you're sure about.</p>
+      <div style={{ display: 'grid', gap: 8 }}>
+        {offered.map(at => (
+          <button key={at} style={{ ...s.slot, textAlign: 'left', padding: '14px 16px', ...(picked === at ? s.slotOn : {}) }} aria-pressed={picked === at} onClick={() => setPicked(at)}>
+            {formatWhen(at, tz)}
+          </button>
+        ))}
+      </div>
+      <button style={{ ...s.primary, ...(!picked || saving ? s.disabled : {}) }} disabled={!picked || saving}
+        onClick={() => submit('client-reschedule', { start_time: picked }, `You're now booked for ${formatWhen(picked, tz)}. We've emailed you the new time.`)}>
+        {saving ? 'Moving…' : picked ? `Move to ${formatWhen(picked, tz)}` : 'Choose a time'}
+      </button>
+      {error && <p style={s.err}>{error}</p>}
+    </>);
+  }
 
   return page(<>
     <h1 style={s.heading}>Pick a new time</h1>
