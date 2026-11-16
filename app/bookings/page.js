@@ -781,6 +781,8 @@ function BookingContent() {
         return;
       }
       if (data?.state === 'closed') { setPayment(p => ({ ...p, ...data })); return; }
+      // Paid from their bank: booked once the money arrives (an email says so).
+      if (data?.state === 'processing') { setPayment(p => ({ ...p, ...data })); return; }
       if (++tries >= 15) { setPayment(p => ({ ...p, ...(data || {}), state: 'waiting' })); return; }
       setTimeout(check, 2000);
     }
@@ -900,6 +902,17 @@ function BookingContent() {
                   <div style={s.successIcon}>✓</div>
                   <h1 style={s.heading}>Payment received</h1>
                   <p style={s.muted}>We’re confirming your booking now. You’ll get an email as soon as it’s done.</p>
+                  <AppPromo />
+                </>
+              )}
+              {payment.state === 'processing' && (
+                <>
+                  <div style={s.successIcon}>✓</div>
+                  <h1 style={s.heading}>Your bank payment is on its way</h1>
+                  <p style={s.muted}>
+                    {payment.chosen_time && instantInfo?.timezone ? `${formatWhen(payment.chosen_time, instantInfo.timezone)} is held for you. ` : 'Your time is held for you. '}
+                    Bank payments can take a little while to arrive. You’ll get an email as soon as it has and you’re booked in.
+                  </p>
                   <AppPromo />
                 </>
               )}

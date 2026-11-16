@@ -6,21 +6,23 @@
 import { useEffect, useState, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BACKEND_URL, formatWhen, noticeText } from '../policyText';
+import TimeCalendar from '../../../../components/TimeCalendar';
+import { cachedMonth, monthOf } from '../../../../lib/open-times.mjs';
+import { formatWhen as shortWhen } from '../../../../lib/booking-instant.mjs';
 
 const s = {
-  wrap: { background: 'var(--page)', color: 'var(--ink)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+  wrap: { background: 'var(--page)', color: 'var(--ink)', fontFamily: 'var(--font-body)' },
   inner: { maxWidth: 480, margin: '0 auto', padding: '48px 16px' },
-  heading: { fontSize: 24, fontWeight: 700, marginBottom: 8 },
+  heading: { fontFamily: 'var(--font-heading)', fontSize: 26, fontWeight: 700, color: 'var(--main)', margin: '0 0 10px', lineHeight: 1.25, maxWidth: 'none' },
   sub: { color: 'rgba(var(--ink-rgb), 0.6)', fontSize: 15, lineHeight: 1.5, marginBottom: 24 },
   current: { background: 'rgba(var(--ink-rgb), 0.06)', border: '1px solid rgba(var(--ink-rgb), 0.1)', borderRadius: 12, padding: '14px 16px', marginBottom: 24 },
   label: { fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(var(--ink-rgb), 0.45)', marginBottom: 4 },
-  day: { fontSize: 14, fontWeight: 600, margin: '20px 0 10px' },
-  slots: { display: 'flex', flexWrap: 'wrap', gap: 8 },
-  slot: { padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(var(--ink-rgb), 0.15)', background: 'transparent', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', minWidth: 84 },
-  slotOn: { background: 'var(--gold)', borderColor: 'var(--gold)', color: '#111', fontWeight: 600 },
-  primary: { display: 'block', width: '100%', background: 'var(--gold)', color: '#111', fontWeight: 600, fontSize: 15, padding: '14px', borderRadius: 50, border: 'none', cursor: 'pointer', marginTop: 24 },
+  slot: { padding: '12px 14px', borderRadius: 10, background: 'rgba(var(--ink-rgb), 0.06)', border: '1px solid rgba(var(--ink-rgb), 0.08)', color: 'rgba(var(--ink-rgb), 0.85)', fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 500, cursor: 'pointer', minWidth: 84 },
+  slotOn: { background: 'var(--ink)', borderColor: 'var(--ink)', color: 'var(--paper)', fontWeight: 600 },
+  // The booking form's main button.
+  primary: { display: 'block', width: '100%', background: 'var(--main)', color: 'var(--background)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 16, padding: '15px 0', borderRadius: 50, border: 'none', cursor: 'pointer', marginTop: 28 },
   secondary: { display: 'block', width: '100%', background: 'rgba(var(--ink-rgb), 0.08)', color: 'var(--ink)', fontWeight: 500, fontSize: 15, padding: '14px', borderRadius: 50, border: '1px solid rgba(var(--ink-rgb), 0.12)', cursor: 'pointer', marginTop: 12 },
-  disabled: { opacity: 0.5, cursor: 'not-allowed' },
+  disabled: { opacity: 0.4, cursor: 'not-allowed' },
   textarea: { width: '100%', boxSizing: 'border-box', minHeight: 110, borderRadius: 12, border: '1px solid rgba(var(--ink-rgb), 0.15)', background: 'rgba(var(--ink-rgb), 0.04)', color: 'var(--ink)', padding: 12, fontSize: 16, fontFamily: 'inherit' },
   err: { color: 'var(--danger)', fontSize: 14, marginTop: 12 },
   link: { color: 'var(--gold)', textDecoration: 'none' },
@@ -53,12 +55,6 @@ function refusal(opts) {
   }
 }
 
-function addDays(ymd, n) {
-  const d = new Date(`${ymd}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
 // A wall-clock date and time in a time zone, as an ISO time with the right offset.
 function zonedISO(date, time, timeZone) {
   const [y, m, d] = date.split('-').map(Number);
@@ -85,10 +81,8 @@ export default function RescheduleClient({ params }) {
 
   const [view, setView] = useState('loading'); // loading | invalid | load-error | ready | done
   const [opts, setOpts] = useState(null);
-  const [days, setDays] = useState([]);
-  const [nextFrom, setNextFrom] = useState('');
-  const [loadingMore, setLoadingMore] = useState(false);
   const [picked, setPicked] = useState('');
+  const [calendarView, setCalendarView] = useState('month');
   const [message, setMessage] = useState('');
   // A particular time the client would like (optional); the studio can approve it.
   const [wantDate, setWantDate] = useState('');
@@ -98,19 +92,18 @@ export default function RescheduleClient({ params }) {
   const [doneText, setDoneText] = useState('');
   const [attempt, setAttempt] = useState(0);
 
-  async function loadDays(from, tz) {
-    const res = await fetch(`${base}/reschedule?${q}&date=${from}&days=14`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('times');
-    const data = await res.json();
-    setDays(prev => [...prev, ...(data.days || []).filter(d => d.slots.length > 0)]);
-    setNextFrom(addDays(from, 14));
-    return data;
+  // A month of open times to move to, fetched once (the same calendar as the booking form).
+  function loadTimes(month, timeZone) {
+    return cachedMonth({
+      key: `reschedule|${id}`, month, today: todayIn(timeZone),
+      fetchDays: (start, days) => fetch(`${base}/reschedule?${q}&date=${start}&days=${days}`, { cache: 'no-store' })
+        .then(res => { if (!res.ok) throw new Error('Times could not be loaded. Please try again.'); return res.json(); }),
+    });
   }
 
   useEffect(() => {
     if (!id || !tok || id === '_') { setView('invalid'); return; }
     setView('loading');
-    setDays([]);
     fetch(`${base}/reschedule?${q}`, { cache: 'no-store' })
       .then(r => {
         if ([400, 401, 403, 404].includes(r.status)) return null;
@@ -120,18 +113,13 @@ export default function RescheduleClient({ params }) {
       .then(async data => {
         if (!data) { setView('invalid'); return; }
         setOpts(data);
-        if (data.allowed && data.mode === 'pick') await loadDays(todayIn(data.timezone), data.timezone);
+        // This month's times start loading now; the calendar shows them when they arrive.
+        if (data.allowed && data.mode === 'pick') loadTimes(monthOf(todayIn(data.timezone)), data.timezone).catch(() => {});
         setView('ready');
       })
       .catch(() => setView('load-error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, tok, attempt]);
-
-  async function more() {
-    setLoadingMore(true);
-    try { await loadDays(nextFrom, opts.timezone); } catch { setError('Times could not be loaded. Please try again.'); }
-    setLoadingMore(false);
-  }
 
   async function submit(path, body, okText) {
     setSaving(true);
@@ -236,8 +224,6 @@ export default function RescheduleClient({ params }) {
     </>);
   }
 
-  const timeLabel = iso => new Date(iso).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz });
-  const dayLabel = ymd => new Date(`${ymd}T12:00:00Z`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 
   // The studio or artist offered times: choose one.
   if (opts.mode === 'choose') {
@@ -262,28 +248,14 @@ export default function RescheduleClient({ params }) {
   }
 
   return page(<>
-    <h1 style={s.heading}>Pick a new time</h1>
+    <h1 style={s.heading}>{calendarView === 'month' ? 'Pick a new day' : 'Pick a new time'}</h1>
     {current}
     <p style={s.sub}>Your deposit moves with your booking. You can move a booking once, so pick a time you're sure about.</p>
-    {days.length === 0 && <p style={s.muted}>No open times in the next two weeks.</p>}
-    {days.map(d => (
-      <div key={d.date}>
-        <div style={s.day}>{dayLabel(d.date)}</div>
-        <div style={s.slots}>
-          {d.slots.map(slot => (
-            <button key={slot} style={{ ...s.slot, ...(picked === slot ? s.slotOn : {}) }} aria-pressed={picked === slot} onClick={() => setPicked(slot)}>
-              {timeLabel(slot)}
-            </button>
-          ))}
-        </div>
-      </div>
-    ))}
-    <button style={{ ...s.secondary, ...(loadingMore ? s.disabled : {}) }} disabled={loadingMore} onClick={more}>
-      {loadingMore ? 'Loading…' : 'Show later dates'}
-    </button>
+    <TimeCalendar zone={tz} source={`reschedule|${id}`} start={picked} onStart={setPicked} onView={setCalendarView}
+      loadMonth={month => loadTimes(month, tz)} prefetch={month => { loadTimes(month, tz).catch(() => {}); }} />
     <button style={{ ...s.primary, ...(!picked || saving ? s.disabled : {}) }} disabled={!picked || saving}
       onClick={() => submit('client-reschedule', { start_time: picked }, `You're now booked for ${formatWhen(picked, tz)}. We've emailed you the new time.`)}>
-      {saving ? 'Moving…' : picked ? `Move to ${timeLabel(picked)}, ${dayLabel(picked.slice(0, 10))}` : 'Choose a time'}
+      {saving ? 'Moving…' : picked ? `Move to ${shortWhen(picked, tz)}` : 'Choose a time'}
     </button>
     {error && <p style={s.err}>{error}</p>}
   </>);
