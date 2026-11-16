@@ -215,6 +215,10 @@ function BookingContent() {
   // The studio whose instant booking details are loaded (or '' while loading).
   const [placeReady, setPlaceReady] = useState('');
   const latestStudio = useRef('');
+  // A studio is picked on the studio step and its details are still loading.
+  const studioLoading = page === -1 && Boolean(selectedStudio) && placeReady !== selectedStudio.id;
+  // The instant booking place being switched to (undefined: none).
+  const [placeSwitching, setPlaceSwitching] = useState(undefined);
 
   // Step 3 – contact
   // First and last name; saved together as one name.
@@ -525,10 +529,12 @@ function BookingContent() {
 
   // Instant booking at another of the artist's places: its own types, times and deposit.
   async function chooseInstantPlace(studioId) {
-    if ((instantInfo?.studio_id || null) === studioId) return;
+    if ((instantInfo?.studio_id || null) === studioId || placeSwitching !== undefined) return;
     const param = studioId || 'personal';
+    setPlaceSwitching(studioId);
     const next = await fetch(`${BACKEND_URL}/artists/${artistId}/instant-booking?studio_id=${encodeURIComponent(param)}`, { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : null)).catch(() => null);
+    setPlaceSwitching(undefined);
     if (!next?.available) { setSubmitError('That place isn\u2019t taking instant bookings right now.'); return; }
     setInstantInfo(next);
     setPlaceInfo(next);
@@ -822,13 +828,16 @@ function BookingContent() {
     );
   }
 
+  // Later form steps leave out the artist and heading, so the step itself is up top.
+  const firstScreen = view !== 'form' || step === 0;
+
   return (
     <div className="booking-page" ref={pageRef} style={{ animation: 'booking-fade-in 0.35s ease' }}>
       <div style={s.pageInner}>
         <div style={s.card}>
 
-          {/* Artist header */}
-          {artist && (
+          {/* Artist header: on the first step only (and outside the form). */}
+          {artist && firstScreen && (
             <div style={s.artistHeader}>
               {artist.profileImage ? (
                 <img src={artist.profileImage} alt={artist.name} style={s.avatar} />
@@ -841,7 +850,7 @@ function BookingContent() {
             </div>
           )}
 
-          {flash && <FlashCard post={flash} />}
+          {flash && firstScreen && <FlashCard post={flash} />}
           {!flash && flashMessage && view !== 'success' && <p style={s.flashNotice}>{flashMessage}</p>}
 
           {/* Artists at a Vanta Studio studio are booked instantly through the studio's form. */}
@@ -1003,7 +1012,7 @@ function BookingContent() {
                   <strong style={{ color: 'var(--main)' }}>Preview</strong> · This is how clients see your booking form. Nothing is sent.
                 </p>
               )}
-              <h1 style={{ ...s.heading, marginBottom: guest && !session && step === 0 && !previewing ? 12 : 24 }}>{flash ? 'Book this flash' : 'Make a booking'}</h1>
+              {step === 0 && <h1 style={{ ...s.heading, marginBottom: guest && !session && !previewing ? 12 : 24 }}>{flash ? 'Book this flash' : 'Make a booking'}</h1>}
               {guest && !session && step === 0 && !previewing && (
                 <p style={{ ...s.muted, fontSize: 14, margin: '0 0 24px' }}>
                   Have a Vanta account?{' '}
@@ -1058,7 +1067,7 @@ function BookingContent() {
                 )}
                 {page === 2 && instantMode && !studioStep && (instantInfo.places?.length || 0) > 1 && (
                   <InstantPlacePicker places={instantInfo.places} current={instantInfo.studio_id || null}
-                    artistName={artist?.name} onChoose={chooseInstantPlace} />
+                    switching={placeSwitching} artistName={artist?.name} onChoose={chooseInstantPlace} />
                 )}
                 {page === 2 && instantMode && (
                   <InstantTimePicker key={instantInfo.studio_id || 'personal'} backend={BACKEND_URL} artistId={artistId} info={instantInfo}
@@ -1117,13 +1126,19 @@ function BookingContent() {
                   ...s.submitBtn,
                   marginTop: 32,
                   // While sending it stays solid (with a spinner), so it doesn't look unavailable.
-                  ...(!submitting && (!nextEnabled() || (previewing && step >= totalSteps - 1)) ? s.submitBtnDisabled : {}),
-                  ...(submitting ? { cursor: 'progress' } : {}),
+                  ...(!submitting && !studioLoading && (!nextEnabled() || (previewing && step >= totalSteps - 1)) ? s.submitBtnDisabled : {}),
+                  ...(submitting || studioLoading ? { cursor: 'progress' } : {}),
                 }}
                 onClick={handleNext}
                 disabled={!nextEnabled() || submitting || (previewing && step >= totalSteps - 1)}
+                aria-busy={submitting || studioLoading}
               >
-                {submitting ? (
+                {studioLoading ? (
+                  <span className="bk-busy">
+                    <span className="bk-spinner" aria-hidden="true" />
+                    <span>Loading {selectedStudio.name || 'studio'}…</span>
+                  </span>
+                ) : submitting ? (
                   // One clear phrase; a percentage only while photos upload.
                   <span className="bk-busy">
                     <span className="bk-spinner" aria-hidden="true" />
@@ -2427,22 +2442,27 @@ const s = {
 };
 
 // Where to book instantly, when the artist takes instant bookings in more than one place.
-function InstantPlacePicker({ places, current, artistName, onChoose }) {
+// switching: the place whose times are loading (undefined: none).
+function InstantPlacePicker({ places, current, switching, artistName, onChoose }) {
   return (
     <div style={{ marginBottom: 18 }}>
       <p style={{ ...s.label, margin: '0 0 8px' }}>Where</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }} aria-busy={switching !== undefined}>
         {places.map(place => {
           const id = place.studio_id || null;
-          const on = id === current;
+          const loading = switching !== undefined && id === switching;
+          const on = switching !== undefined ? loading : id === current;
           return (
             <button key={id || 'personal'} type="button" onClick={() => onChoose(id)} aria-pressed={on}
               style={{
-                padding: '9px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600,
+                padding: '9px 14px', borderRadius: 999, cursor: switching !== undefined ? 'progress' : 'pointer', fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600,
                 border: on ? '1px solid rgba(var(--ink-rgb), 0.65)' : '1px solid rgba(var(--ink-rgb), 0.12)',
                 background: on ? 'rgba(var(--ink-rgb), 0.1)' : 'rgba(var(--ink-rgb), 0.03)', color: 'var(--ink)',
               }}>
-              {place.name || `With ${artistName || 'the artist'}`}
+              <span className="bk-busy" style={{ gap: 8 }}>
+                {loading && <span className="bk-spinner" aria-hidden="true" style={{ width: 12, height: 12 }} />}
+                {place.name || `With ${artistName || 'the artist'}`}
+              </span>
             </button>
           );
         })}
