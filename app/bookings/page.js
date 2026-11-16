@@ -6,8 +6,9 @@ import { flashBookingState, flashNotice, flashPrefill, flashPriceLabel, isFlashR
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
 import { formQuestion, parsePreviewForm } from '../../lib/booking-form.mjs';
 import { depositCharge, money, payWays, BOOKING_FEE_NOTE } from '../../lib/booking-fee.mjs';
-import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL } from '../../lib/booking-instant.mjs';
+import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL, todayIn } from '../../lib/booking-instant.mjs';
 import InstantTimePicker from '../../components/InstantTimePicker';
+import { clearOpenTimes, monthOf as openTimesMonth, prefetchMonth, timesPlace } from '../../lib/open-times.mjs';
 import AppPromo from '../../components/AppPromo';
 import { canKeepPhotos, keepPhotos, keptPhotos, forgetPhotos } from '../../lib/pending-photos.mjs';
 import { COUNTRIES, DEFAULT_COUNTRY, fullPhone, joinName, splitName, splitPhone, validEmail, validPhone } from '../../lib/booking-contact.mjs';
@@ -524,7 +525,13 @@ function BookingContent() {
     const size = sessionTypeFor(type, artist?.serviceType);
     if ((sessionType === 'piercing') !== (size === 'piercing')) setBodyLocations([]);
     setSessionType(size);
-    if (instantMode && type.id !== instantType) { setInstantType(type.id); setInstantStart(''); }
+    if (instantMode && type.id !== instantType) {
+      setInstantType(type.id);
+      setInstantStart('');
+      // This month's times start loading now, so they're ready by the time step.
+      const today = todayIn(instantInfo.timezone);
+      prefetchMonth({ backend: BACKEND_URL, artistId, place: timesPlace(instantInfo), typeId: type.id, month: openTimesMonth(today), today });
+    }
   }
 
   // Instant booking at another of the artist's places: its own types, times and deposit.
@@ -707,7 +714,8 @@ function BookingContent() {
         clearInterval(ticker);
         const err = await res.json().catch(() => ({}));
         if (instantMode && res.status === 409) {
-          // Someone else got the time first: pick another.
+          // Someone else got the time first: pick another, from fresh times.
+          clearOpenTimes();
           setInstantStart('');
           setStep(2 + studioStep);
           setStepError(err.error || 'That time was just taken. Pick another time.');
