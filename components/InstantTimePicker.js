@@ -14,9 +14,9 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
   const today = useMemo(() => todayIn(zone), [zone]);
   const viewerZone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : '';
   const place = timesPlace(info);
-  // Coming back to this step with a time chosen opens its week; otherwise this month.
+  // It always opens on the month to pick a day; a time already chosen shows on its day.
   const startDay = start ? todayIn(zone, new Date(start)) : '';
-  const [view, setView] = useState(startDay ? 'week' : 'month');
+  const [view, setView] = useState('month');
   const [month, setMonth] = useState(monthOf(startDay || today));
   const [day, setDay] = useState(startDay);
   const [weekStart, setWeekStart] = useState(weekOf(startDay || today)[0]);
@@ -80,7 +80,7 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
 
   return (
     <div>
-      <h2 style={st.heading}>Pick a time</h2>
+      <h2 style={st.heading}>{typeId && view === 'month' ? 'Pick a day' : 'Pick a time'}</h2>
       {hideTypes ? (() => {
         const chosen = info.types.find(t => t.id === typeId);
         const free = chosen && !(Number(chosen.deposit) > 0);
