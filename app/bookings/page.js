@@ -984,7 +984,7 @@ function BookingContent() {
                 </div>
                 {authMode === 'signup' && (
                   <label style={s.consentLabel}>
-                    <input type="checkbox" checked={authConsent} onChange={e => setAuthConsent(e.target.checked)} style={s.checkbox} />
+                    <Checkbox checked={authConsent} onChange={setAuthConsent} />
                     <span>
                       I agree to the{' '}
                       <a href="https://www.vanta.tattoo/terms" target="_blank" rel="noopener noreferrer" style={s.consentLink}>Terms of Use</a>
@@ -1212,6 +1212,16 @@ function StepStudio({ studios, selectedStudio, onChoose }) {
         </div>
       </fieldset>
     </div>
+  );
+}
+
+// A tick box that looks like one (the site-wide input styles are for text fields).
+function Checkbox({ checked, onChange }) {
+  return (
+    <span className="bk-check">
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 5" /></svg>
+    </span>
   );
 }
 
@@ -1967,13 +1977,8 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
         <StudioQuestion label="Home address" placeholder="Street, suburb, postcode" {...studioQuestions.address} />
       )}
 
-      <label style={s.reminderOption}>
-        <input
-          type="checkbox"
-          checked={smsReminders}
-          onChange={e => setSmsReminders(e.target.checked)}
-          style={s.reminderCheckbox}
-        />
+      <label style={{ ...s.reminderOption, ...(smsReminders ? s.reminderOptionOn : {}) }}>
+        <Checkbox checked={smsReminders} onChange={setSmsReminders} />
         <span>
           <span style={{ display: 'block', color: 'var(--ink)', fontWeight: 600, fontSize: 14 }}>Send me SMS reminders</span>
           <span style={{ display: 'block', ...s.muted, fontSize: 12, margin: '2px 0 0', lineHeight: 1.5 }}>
@@ -1983,9 +1988,9 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
       </label>
 
       {account && (
-        <div style={{ ...s.reminderOption, flexDirection: 'column', gap: 12, marginTop: 12, cursor: 'default' }}>
+        <div style={{ ...s.reminderOption, ...(account.on ? s.reminderOptionOn : {}), flexDirection: 'column', gap: 12, marginTop: 12, cursor: 'default' }}>
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-            <input type="checkbox" checked={account.on} onChange={e => account.setOn(e.target.checked)} style={s.reminderCheckbox} />
+            <Checkbox checked={account.on} onChange={account.setOn} />
             <span>
               <span style={{ display: 'block', color: 'var(--ink)', fontWeight: 600, fontSize: 14 }}>Create a Vanta account with these details</span>
               <span style={{ display: 'block', ...s.muted, fontSize: 12, margin: '2px 0 0', lineHeight: 1.5 }}>
@@ -2432,8 +2437,7 @@ const s = {
     display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 20, padding: '14px 16px',
     borderRadius: 12, border: '1px solid rgba(var(--ink-rgb), 0.1)', background: 'rgba(var(--ink-rgb), 0.03)', cursor: 'pointer',
   },
-  // Undo the site-wide text-input styles (min-width 260px, padding).
-  reminderCheckbox: { width: 18, height: 18, minWidth: 0, padding: 0, margin: '2px 0 0', accentColor: 'var(--ink)', flexShrink: 0, cursor: 'pointer' },
+  reminderOptionOn: { border: '1px solid rgba(var(--ink-rgb), 0.3)', background: 'rgba(var(--ink-rgb), 0.05)' },
 
   // Review
   reviewGroup: {
