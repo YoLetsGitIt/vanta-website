@@ -1211,37 +1211,64 @@ function StepStudio({ studios, selectedStudio, onChoose }) {
 
 // instant: the time is booked straight away, so the total to pay is shown.
 function StepAppointmentType({ types, chosen, onChoose, instant }) {
+  const quoted = types.some(t => Number(t.price) > 0);
   return (
     <div>
       <h2 style={s.stepHeading}>What appointment would you like?</h2>
       <div role="radiogroup" aria-label="Appointment" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
-        {types.map(t => {
-          const selected = chosen?.id === t.id;
-          return (
-            <button key={t.id} type="button" role="radio" aria-checked={selected}
-              style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}) }}
-              onClick={() => onChoose(t)}>
-              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                <div style={{ ...s.sessionCardLabel, ...(selected ? { color: 'var(--paper)' } : {}) }}>{t.name}</div>
-                {t.description && <div style={{ ...s.sessionCardDesc, whiteSpace: 'normal', lineHeight: 1.45, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.6)' } : {}) }}>{t.description}</div>}
-                <div style={{ ...s.sessionCardDuration, marginTop: 4, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.45)' } : {}) }}>{formatLength(t.duration_minutes)}</div>
-              </div>
-              {t.price != null && Number(t.price) >= 0 && (
-                // The artist's price for this appointment; $0 is free (e.g. a consultation).
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ ...s.sessionCardMeta, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.75)' } : {}) }}>{Number(t.price) === 0 ? 'Free' : formatMoney(t.price)}</div>
-                  {Number(t.price) > 0 && <div style={{ ...s.sessionCardDuration, ...(selected ? { color: 'rgba(var(--paper-rgb), 0.45)' } : {}) }}>quote</div>}
-                </div>
-              )}
-              <div style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}) }}>
-                {selected && <span style={{ fontSize: 12, color: 'var(--ink)' }}>✓</span>}
-              </div>
-            </button>
-          );
-        })}
+        {types.map(t => <AppointmentTypeRow key={t.id} type={t} selected={chosen?.id === t.id} onChoose={onChoose} />)}
       </div>
-      {instant && <p style={{ ...s.muted, fontSize: 12, marginTop: 14 }}>You’ll pick a time next.</p>}
+      {quoted && (
+        <p style={{ ...s.muted, fontSize: 12.5, lineHeight: 1.5, margin: '14px 2px 0' }}>
+          Prices are the artist’s quote. The final price is confirmed on the day and can change with the design, size and time it takes.
+        </p>
+      )}
+      {instant && <p style={{ ...s.muted, fontSize: 12.5, margin: '8px 2px 0' }}>You’ll pick a time next.</p>}
     </div>
+  );
+}
+
+// One appointment: name and length first, the quote on the right, the artist's
+// description underneath.
+function AppointmentTypeRow({ type: t, selected, onChoose }) {
+  const ink = selected ? 'var(--paper-rgb)' : 'var(--ink-rgb)';
+  const price = t.price != null && Number(t.price) >= 0 ? Number(t.price) : null;
+  return (
+    <button type="button" role="radio" aria-checked={selected}
+      style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}), display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto',
+        columnGap: 14, rowGap: 0, alignItems: 'start', padding: '16px 18px' }}
+      onClick={() => onChoose(t)}>
+      <span style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}), marginTop: 1 }}>
+        {selected && <span style={{ fontSize: 12, color: 'var(--ink)' }}>✓</span>}
+      </span>
+      <span style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 16, fontWeight: 650, lineHeight: 1.3, color: selected ? 'var(--paper)' : 'var(--main)', overflowWrap: 'anywhere' }}>{t.name}</span>
+        {t.duration_minutes > 0 && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)', fontSize: 13.5, fontWeight: 500, color: `rgba(${ink}, 0.7)` }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flex: 'none' }}>
+              <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M8 4.75V8l2.25 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {formatLength(t.duration_minutes)}
+          </span>
+        )}
+      </span>
+      {price != null ? (
+        // The artist's price for this appointment; $0 is free (e.g. a consultation).
+        <span style={{ display: 'grid', justifyItems: 'end', gap: 3, textAlign: 'right' }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: 18, fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums', color: selected ? 'var(--paper)' : 'var(--main)' }}>
+            {price === 0 ? 'Free' : formatMoney(price)}
+          </span>
+          {price > 0 && <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: `rgba(${ink}, 0.5)` }}>Quote</span>}
+        </span>
+      ) : <span />}
+      {t.description && (
+        <span style={{ gridColumn: '2 / 4', marginTop: 10, paddingTop: 10, borderTop: `1px solid rgba(${ink}, 0.1)`,
+          fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 400, lineHeight: 1.5, color: `rgba(${ink}, 0.6)`, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+          {t.description}
+        </span>
+      )}
+    </button>
   );
 }
 
