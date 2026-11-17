@@ -153,6 +153,8 @@ function BookingContent() {
   // piece open full size.
   const [pickedWork, setPickedWork] = useState(null);
   const [viewingWork, setViewingWork] = useState(null);
+  // An appointment's whole set of work, open in a sheet.
+  const [allWork, setAllWork] = useState(null);
   // Each studio's details, loaded while the client is still on the first step.
   const placeCache = useRef({});
   const [instantStart, setInstantStart] = useState('');
@@ -1075,7 +1077,12 @@ function BookingContent() {
               <div style={{ marginTop: 28 }}>
                 {page === -1 && <StepStudio studios={studios} selectedStudio={selectedStudio} onChoose={chooseBookingStudio} />}
                 {page === 0 && types.length > 0 && <StepAppointmentType types={types} chosen={chosenType} onChoose={chooseType} instant={instantMode}
-                  work={flash ? {} : typeWork} picked={pickedWork} onView={(tattoo, type) => setViewingWork({ tattoo, type })} onUnpick={() => setPickedWork(null)} />}
+                  work={flash ? {} : typeWork} picked={pickedWork} onView={(tattoo, type) => setViewingWork({ tattoo, type })} onUnpick={() => setPickedWork(null)}
+                  onShowAll={type => setAllWork({ type, tattoos: typeWork[type.id] || [] })} />}
+                {allWork && (
+                  <AllWorkSheet type={allWork.type} tattoos={allWork.tattoos} picked={pickedWork}
+                    onView={tattoo => setViewingWork({ tattoo, type: allWork.type })} onClose={() => setAllWork(null)} />
+                )}
                 {viewingWork && (
                   <WorkViewer tattoo={viewingWork.tattoo} type={viewingWork.type} picked={pickedWork?.id === viewingWork.tattoo.id}
                     onClose={() => setViewingWork(null)}
@@ -1083,6 +1090,7 @@ function BookingContent() {
                       chooseType(viewingWork.type);
                       setPickedWork({ ...viewingWork.tattoo, typeId: viewingWork.type.id });
                       setViewingWork(null);
+                      setAllWork(null);
                     }}
                     onUnpick={() => { setPickedWork(null); setViewingWork(null); }} />
                 )}
@@ -1264,7 +1272,7 @@ function Checkbox({ checked, onChange }) {
 // ─── Step 0: The artist's appointment types ─────────────────────────────────
 
 // instant: the time is booked straight away, so the total to pay is shown.
-function StepAppointmentType({ types, chosen, onChoose, instant, work = {}, picked, onView, onUnpick }) {
+function StepAppointmentType({ types, chosen, onChoose, instant, work = {}, picked, onView, onUnpick, onShowAll }) {
   const quoted = types.some(t => Number(t.price) > 0);
   const showsWork = types.some(t => work[t.id]?.length);
   return (
@@ -1279,7 +1287,7 @@ function StepAppointmentType({ types, chosen, onChoose, instant, work = {}, pick
           return (
             <div key={t.id} style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}), display: 'block', padding: 0, overflow: 'hidden', cursor: 'default' }}>
               <AppointmentTypeRow type={t} selected={selected} onChoose={onChoose} bare />
-              <TypeWorkStrip type={t} tattoos={work[t.id]} picked={picked} selected={selected} onView={onView} onUnpick={onUnpick} />
+              <TypeWorkStrip type={t} tattoos={work[t.id]} picked={picked} selected={selected} onView={onView} onUnpick={onUnpick} onShowAll={onShowAll} />
             </div>
           );
         })}
@@ -1294,36 +1302,82 @@ function StepAppointmentType({ types, chosen, onChoose, instant, work = {}, pick
   );
 }
 
-// The artist's work for one appointment, inside its card: a row of photos to open full size.
-function TypeWorkStrip({ type, tattoos, picked, selected, onView, onUnpick }) {
+// How many photos fit across a card: 4 on a phone, 6 on a wider screen.
+function useWorkColumns() {
+  const [columns, setColumns] = useState(4);
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 640px)');
+    const update = () => setColumns(query.matches ? 6 : 4);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return columns;
+}
+
+// One photo tile: square, flash badge, tick when it's the client's pick.
+function WorkTile({ tattoo: t, isPicked, ink, selected, onClick, size }) {
+  return (
+    <button type="button" role="listitem" onClick={onClick}
+      aria-label={`${t.title || 'Tattoo'}${t.flash ? ', flash' : ''}${isPicked ? ', your pick' : ''}`}
+      style={{ ...(size ? { width: size, height: size } : { width: '100%', aspectRatio: '1 / 1' }), padding: 0, borderRadius: 12, overflow: 'hidden',
+        position: 'relative', cursor: 'pointer', background: `rgba(${ink}, 0.08)`, minWidth: 0,
+        border: isPicked ? `2px solid ${selected ? 'var(--paper)' : 'var(--main)'}` : `1px solid rgba(${ink}, 0.12)` }}>
+      <img src={t.image_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      {t.flash && <span style={s.workBadge}>Flash</span>}
+      {isPicked && <span style={s.workCheck} aria-hidden="true">✓</span>}
+    </button>
+  );
+}
+
+// The artist's work for one appointment, inside its card: a row that fits the card, with a
+// "+N" tile opening all of it when there's more.
+function TypeWorkStrip({ type, tattoos, picked, selected, onView, onUnpick, onShowAll }) {
+  const columns = useWorkColumns();
   const pickedHere = picked && picked.typeId === type.id;
   const ink = selected ? 'var(--paper-rgb)' : 'var(--ink-rgb)';
+  const overflow = tattoos.length > columns;
+  // With more than fit, the last place is the "+N" tile; a pick further along stays visible.
+  let shown = overflow ? tattoos.slice(0, columns - 1) : tattoos;
+  if (overflow && pickedHere && !shown.some(t => t.id === picked.id)) {
+    const pick = tattoos.find(t => t.id === picked.id);
+    if (pick) shown = [...shown.slice(0, -1), pick];
+  }
+  const more = tattoos.length - shown.length;
+  const behind = tattoos.find(t => !shown.some(x => x.id === t.id));
   return (
     <div style={{ margin: '0 18px', padding: '12px 0 14px', borderTop: `1px solid rgba(${ink}, 0.1)` }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
         <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: `rgba(${ink}, 0.55)` }}>
           Example work
         </span>
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500, color: `rgba(${ink}, 0.5)` }}>
-          {tattoos.length === 1 ? '1 piece' : `${tattoos.length} pieces`} · tap to view
-        </span>
+        {overflow ? (
+          <button type="button" onClick={() => onShowAll(type)}
+            style={{ ...s.workTextButton, fontSize: 12, color: `rgba(${ink}, 0.75)` }}>
+            See all {tattoos.length}
+          </button>
+        ) : (
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500, color: `rgba(${ink}, 0.5)` }}>
+            {tattoos.length === 1 ? '1 piece' : `${tattoos.length} pieces`} · tap to view
+          </span>
+        )}
       </div>
       <div role="list" aria-label={`${type.name}: the artist’s work`}
-        style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x proximity', WebkitOverflowScrolling: 'touch', margin: '0 -18px', padding: '0 18px 2px', scrollPaddingLeft: 18 }}>
-        {tattoos.map(t => {
-          const isPicked = pickedHere && picked.id === t.id;
-          return (
-            <button key={t.id} type="button" role="listitem" onClick={() => onView(t, type)}
-              aria-label={`${t.title || 'Tattoo'}${t.flash ? ', flash' : ''}${isPicked ? ', your pick' : ''}`}
-              style={{ flex: 'none', width: 92, height: 92, padding: 0, borderRadius: 12, overflow: 'hidden', position: 'relative', cursor: 'pointer',
-                scrollSnapAlign: 'start', background: `rgba(${ink}, 0.08)`,
-                border: isPicked ? `2px solid ${selected ? 'var(--paper)' : 'var(--main)'}` : `1px solid rgba(${ink}, 0.12)` }}>
-              <img src={t.image_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              {t.flash && <span style={s.workBadge}>Flash</span>}
-              {isPicked && <span style={s.workCheck} aria-hidden="true">✓</span>}
-            </button>
-          );
-        })}
+        style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: 8 }}>
+        {shown.map(t => (
+          <WorkTile key={t.id} tattoo={t} isPicked={pickedHere && picked.id === t.id} ink={ink} selected={selected} onClick={() => onView(t, type)} />
+        ))}
+        {more > 0 && (
+          <button type="button" onClick={() => onShowAll(type)} aria-label={`See all ${tattoos.length} pieces for ${type.name}`}
+            style={{ width: '100%', aspectRatio: '1 / 1', padding: 0, borderRadius: 12, overflow: 'hidden', position: 'relative', cursor: 'pointer',
+              background: `rgba(${ink}, 0.08)`, border: `1px solid rgba(${ink}, 0.12)`, minWidth: 0 }}>
+            {behind && <img src={behind.image_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(2px)', transform: 'scale(1.08)' }} />}
+            <span style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-body)', fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+              +{more}
+            </span>
+          </button>
+        )}
       </div>
       {pickedHere && (
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: `rgba(${ink}, 0.75)`, margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -1331,6 +1385,34 @@ function TypeWorkStrip({ type, tattoos, picked, selected, onView, onUnpick }) {
           <button type="button" onClick={onUnpick} style={{ ...s.workTextButton, color: selected ? 'var(--paper)' : 'var(--main)' }}>Remove</button>
         </p>
       )}
+    </div>
+  );
+}
+
+// All of an appointment's work in a 3-column grid, like the artist's portfolio.
+function AllWorkSheet({ type, tattoos, picked, onView, onClose }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  const pickedHere = picked && picked.typeId === type.id;
+  return (
+    <div style={s.modalOverlay} onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={`${type.name}: the artist’s work`} style={{ ...s.modal, maxHeight: '88vh' }} onClick={e => e.stopPropagation()}>
+        <div style={s.modalHeader}>
+          <div>
+            <div style={s.modalTitle}>{type.name}</div>
+            <div style={s.modalSub}>{tattoos.length} pieces · tap one to view or pick it</div>
+          </div>
+          <button type="button" onClick={onClose} style={s.modalDone}>Done</button>
+        </div>
+        <div role="list" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, padding: 16, overflowY: 'auto' }}>
+          {tattoos.map(t => (
+            <WorkTile key={t.id} tattoo={t} isPicked={pickedHere && picked.id === t.id} ink="var(--ink-rgb)" selected={false} onClick={() => onView(t)} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
