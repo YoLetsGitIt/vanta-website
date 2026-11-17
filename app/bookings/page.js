@@ -1074,7 +1074,7 @@ function BookingContent() {
               </div>
 
               {/* Step content */}
-              <div style={{ marginTop: 28 }}>
+              <div style={{ marginTop: 16 }}>
                 {page === -1 && <StepStudio studios={studios} selectedStudio={selectedStudio} onChoose={chooseBookingStudio} />}
                 {page === 0 && types.length > 0 && <StepAppointmentType types={types} chosen={chosenType} onChoose={chooseType} instant={instantMode}
                   work={flash ? {} : typeWork} picked={pickedWork} onView={(tattoo, type) => setViewingWork({ tattoo, type })} onUnpick={() => setPickedWork(null)}
@@ -2537,7 +2537,14 @@ const s = {
   submitBtnDisabled: { opacity: 0.4, cursor: 'not-allowed' },
 
   // Progress header
-  progressHeader: { marginBottom: 0 },
+  // Stays at the top while the step scrolls. The shadow paints the page colour out to
+  // the screen edges (clipped to the header's height) so content doesn't show in the gutters.
+  progressHeader: {
+    position: 'sticky', top: 0, zIndex: 20, marginBottom: 0,
+    paddingTop: 'max(12px, env(safe-area-inset-top))', paddingBottom: 12,
+    background: 'var(--background)',
+    boxShadow: '0 0 0 100vmax var(--background)', clipPath: 'inset(0 -100vmax)',
+  },
   progressTop: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: 14, position: 'relative',
