@@ -149,6 +149,10 @@ function BookingContent() {
   const [placeInfo, setPlaceInfo] = useState(null);
   // The artist's appointment type the client chose (instant booking or a request).
   const [appointmentTypeId, setAppointmentTypeId] = useState('');
+  // A piece of the artist's work the client picked under an appointment type, and the
+  // piece open full size.
+  const [pickedWork, setPickedWork] = useState(null);
+  const [viewingWork, setViewingWork] = useState(null);
   // Each studio's details, loaded while the client is still on the first step.
   const placeCache = useRef({});
   const [instantStart, setInstantStart] = useState('');
@@ -520,8 +524,11 @@ function BookingContent() {
   // The artist's appointment types at this place (empty: the standard sizes).
   const types = offeredTypes(instantMode ? instantInfo : placeInfo, instantMode);
   const chosenType = types.find(t => t.id === appointmentTypeId) || null;
+  // The artist's work shown under each appointment type here, by type id.
+  const typeWork = (instantMode ? instantInfo : placeInfo)?.type_tattoos || {};
   function chooseType(type) {
     setAppointmentTypeId(type.id);
+    if (pickedWork && pickedWork.typeId !== type.id) setPickedWork(null);
     const size = sessionTypeFor(type, artist?.serviceType);
     if ((sessionType === 'piercing') !== (size === 'piercing')) setBodyLocations([]);
     setSessionType(size);
@@ -547,6 +554,7 @@ function BookingContent() {
     setPlaceInfo(next);
     setInstantType('');
     setAppointmentTypeId('');
+    setPickedWork(null);
     setInstantStart('');
     setSubmitError('');
   }
@@ -582,6 +590,7 @@ function BookingContent() {
     setInstantType('');
     setInstantStart('');
     setAppointmentTypeId('');
+    setPickedWork(null);
     const loading = placeCache.current[id] || fetch(`${BACKEND_URL}/artists/${artistId}/instant-booking?studio_id=${encodeURIComponent(id)}`, { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : null)).catch(() => null);
     placeCache.current[id] = loading;
@@ -690,6 +699,8 @@ function BookingContent() {
         source: 'personal',
         ...(asGuest ? { dob: contactDob } : {}),
         ...(flash ? { flash_tattoo_id: flash.id } : {}),
+        // The piece picked under the chosen appointment.
+        ...(!flash && pickedWork && chosenType && pickedWork.typeId === chosenType.id ? { reference_tattoo_id: pickedWork.id } : {}),
         // A request for one of the artist's appointment types.
         ...(!instantMode && chosenType ? { appointment_type_id: chosenType.id } : {}),
       };
@@ -1063,7 +1074,18 @@ function BookingContent() {
               {/* Step content */}
               <div style={{ marginTop: 28 }}>
                 {page === -1 && <StepStudio studios={studios} selectedStudio={selectedStudio} onChoose={chooseBookingStudio} />}
-                {page === 0 && types.length > 0 && <StepAppointmentType types={types} chosen={chosenType} onChoose={chooseType} instant={instantMode} />}
+                {page === 0 && types.length > 0 && <StepAppointmentType types={types} chosen={chosenType} onChoose={chooseType} instant={instantMode}
+                  work={flash ? {} : typeWork} picked={pickedWork} onView={(tattoo, type) => setViewingWork({ tattoo, type })} onUnpick={() => setPickedWork(null)} />}
+                {viewingWork && (
+                  <WorkViewer tattoo={viewingWork.tattoo} type={viewingWork.type} picked={pickedWork?.id === viewingWork.tattoo.id}
+                    onClose={() => setViewingWork(null)}
+                    onPick={() => {
+                      chooseType(viewingWork.type);
+                      setPickedWork({ ...viewingWork.tattoo, typeId: viewingWork.type.id });
+                      setViewingWork(null);
+                    }}
+                    onUnpick={() => { setPickedWork(null); setViewingWork(null); }} />
+                )}
                 {page === 0 && !types.length && <StepSessionType hideLength={instantMode} services={artist?.serviceType} sessionType={sessionType} setSessionType={type => { if ((sessionType === 'piercing') !== (type === 'piercing')) setBodyLocations([]); setSessionType(type); }} />}
                 {page === 1 && (
                   <StepDesign
@@ -1123,6 +1145,7 @@ function BookingContent() {
                 {page === 4 && (
                   <StepReview
                     sessionType={sessionType} appointment={chosenType}
+                    picked={!flash && pickedWork && pickedWork.typeId === chosenType?.id ? pickedWork : null}
                     designDetails={designDetails} bodyLocations={bodyLocations}
                     size={!isPiercing && asks('size') && tattooSize.trim() ? `${tattooSize.trim()} ${sizeUnit}` : ''}
                     skinTone={!isPiercing && asks('skin_tone') ? skinTone : ''}
@@ -1241,13 +1264,20 @@ function Checkbox({ checked, onChange }) {
 // ─── Step 0: The artist's appointment types ─────────────────────────────────
 
 // instant: the time is booked straight away, so the total to pay is shown.
-function StepAppointmentType({ types, chosen, onChoose, instant }) {
+function StepAppointmentType({ types, chosen, onChoose, instant, work = {}, picked, onView, onUnpick }) {
   const quoted = types.some(t => Number(t.price) > 0);
+  const showsWork = types.some(t => work[t.id]?.length);
   return (
     <div>
       <h2 style={s.stepHeading}>What appointment would you like?</h2>
+      {showsWork && <p style={{ ...s.muted, fontSize: 13.5, margin: '6px 0 0' }}>Tap a photo to see the artist’s work for that appointment. You can pick one you’d like.</p>}
       <div role="radiogroup" aria-label="Appointment" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
-        {types.map(t => <AppointmentTypeRow key={t.id} type={t} selected={chosen?.id === t.id} onChoose={onChoose} />)}
+        {types.map(t => (
+          <div key={t.id}>
+            <AppointmentTypeRow type={t} selected={chosen?.id === t.id} onChoose={onChoose} />
+            {work[t.id]?.length > 0 && <TypeWorkStrip type={t} tattoos={work[t.id]} picked={picked} onView={onView} onUnpick={onUnpick} />}
+          </div>
+        ))}
       </div>
       {quoted && (
         <p style={{ ...s.muted, fontSize: 12.5, lineHeight: 1.5, margin: '14px 2px 0' }}>
@@ -1255,6 +1285,77 @@ function StepAppointmentType({ types, chosen, onChoose, instant }) {
         </p>
       )}
       {instant && <p style={{ ...s.muted, fontSize: 12.5, margin: '8px 2px 0' }}>You’ll pick a time next.</p>}
+    </div>
+  );
+}
+
+// The artist's work for one appointment: a row of photos to open full size.
+function TypeWorkStrip({ type, tattoos, picked, onView, onUnpick }) {
+  const pickedHere = picked && picked.typeId === type.id;
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div role="list" aria-label={`${type.name}: the artist’s work`}
+        style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 2px 6px', scrollSnapType: 'x proximity', WebkitOverflowScrolling: 'touch' }}>
+        {tattoos.map(t => {
+          const isPicked = pickedHere && picked.id === t.id;
+          return (
+            <button key={t.id} type="button" role="listitem" onClick={() => onView(t, type)}
+              aria-label={`${t.title}${t.flash ? ', flash' : ''}${isPicked ? ', your pick' : ''}`}
+              style={{ flex: 'none', width: 76, height: 76, padding: 0, borderRadius: 12, overflow: 'hidden', position: 'relative', cursor: 'pointer',
+                scrollSnapAlign: 'start', background: 'rgba(var(--ink-rgb), 0.05)',
+                border: isPicked ? '2px solid var(--main)' : '1px solid rgba(var(--ink-rgb), 0.1)' }}>
+              <img src={t.image_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              {t.flash && <span style={s.workBadge}>Flash</span>}
+              {isPicked && <span style={s.workCheck} aria-hidden="true">✓</span>}
+            </button>
+          );
+        })}
+      </div>
+      {pickedHere && (
+        <p style={{ ...s.muted, fontSize: 13, margin: '2px 2px 4px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span>You picked “{picked.title}”.</span>
+          <button type="button" onClick={onUnpick} style={s.workTextButton}>Remove</button>
+        </p>
+      )}
+    </div>
+  );
+}
+
+// One piece of work full size, with "I want this one".
+function WorkViewer({ tattoo, type, picked, onPick, onUnpick, onClose }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  const images = tattoo.images?.length ? tattoo.images : [tattoo.image_url];
+  const price = tattoo.price_from != null
+    ? (tattoo.price_to != null && tattoo.price_to > tattoo.price_from ? `${formatMoney(tattoo.price_from)}–${formatMoney(tattoo.price_to)}` : formatMoney(tattoo.price_from))
+    : '';
+  return (
+    <div style={s.modalOverlay} onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={tattoo.title} style={{ ...s.modal, maxHeight: '92vh' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory', background: 'rgba(var(--ink-rgb), 0.04)' }}>
+          {images.map((src, i) => (
+            <img key={i} src={src} alt={i === 0 ? tattoo.title : ''}
+              style={{ flex: 'none', width: '100%', maxHeight: '58vh', objectFit: 'contain', scrollSnapAlign: 'center', display: 'block' }} />
+          ))}
+        </div>
+        <div style={{ padding: '16px 20px 20px', display: 'grid', gap: 14 }}>
+          <div>
+            <div style={s.modalTitle}>{tattoo.title}</div>
+            <div style={s.modalSub}>
+              {[type.name, tattoo.flash ? (tattoo.one_off ? 'One-off flash' : 'Flash') : null, price, images.length > 1 ? `${images.length} photos` : null].filter(Boolean).join(' · ')}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <button type="button" onClick={onClose} style={s.workSecondary}>Close</button>
+            {picked
+              ? <button type="button" onClick={onUnpick} style={s.workSecondary}>Remove pick</button>
+              : <button type="button" onClick={onPick} style={s.workPrimary}>I want this one</button>}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2030,7 +2131,7 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
 
 // ─── Step 4: Review ──────────────────────────────────────────────────────────
 
-function StepReview({ sessionType, appointment, designDetails, bodyLocations, size, skinTone, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio, instant }) {
+function StepReview({ sessionType, appointment, picked, designDetails, bodyLocations, size, skinTone, colourStyle, colourDetails, notes, photoPreviews, availabilityWindows, pushToLater, earliestDate, name, email, phone, smsReminders, studio, instant }) {
   const st = SESSION_TYPES.find(t => t.value === sessionType);
   const colourValue = sessionType === 'piercing' ? '' : colourStyle === 'Color' && colourDetails ? `Colour — ${colourDetails}` : colourLabel(colourStyle);
 
@@ -2074,6 +2175,18 @@ function StepReview({ sessionType, appointment, designDetails, bodyLocations, si
           <div style={s.reviewRow}>
             <span style={s.reviewLabel}>Session</span>
             <span style={s.reviewValue}>{st.label}</span>
+          </div>
+        </div>
+      )}
+
+      {picked && (
+        <div style={{ ...s.reviewGroup, marginBottom: 16 }}>
+          <div style={{ ...s.reviewRow, alignItems: 'center' }}>
+            <span style={s.reviewLabel}>Your pick</span>
+            <span style={{ ...s.reviewValue, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+              <img src={picked.image_url} alt="" width={40} height={40} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
+              {picked.title}
+            </span>
           </div>
         </div>
       )}
@@ -2370,6 +2483,29 @@ const s = {
     border: '1px dashed rgba(var(--ink-rgb), 0.15)',
     color: 'rgba(var(--ink-rgb), 0.45)', fontSize: 22, cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+
+  // The artist's work under an appointment type
+  workBadge: {
+    position: 'absolute', left: 4, bottom: 4, padding: '2px 6px', borderRadius: 6,
+    background: 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 700, letterSpacing: '0.03em',
+  },
+  workCheck: {
+    position: 'absolute', right: 4, top: 4, width: 20, height: 20, borderRadius: 10,
+    background: 'var(--main)', color: 'var(--paper)', fontSize: 12, fontWeight: 700,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  workTextButton: {
+    background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline',
+    fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, color: 'var(--main)',
+  },
+  workPrimary: {
+    minHeight: 48, borderRadius: 14, border: 'none', cursor: 'pointer', background: 'var(--main)', color: 'var(--paper)',
+    fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 650,
+  },
+  workSecondary: {
+    minHeight: 48, borderRadius: 14, cursor: 'pointer', background: 'rgba(var(--ink-rgb), 0.06)', color: 'var(--main)',
+    border: '1px solid rgba(var(--ink-rgb), 0.1)', fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 600,
   },
 
   // Body picker modal
