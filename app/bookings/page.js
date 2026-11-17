@@ -1278,26 +1278,34 @@ function StepAppointmentType({ types, chosen, onChoose, instant, work = {}, pick
   return (
     <div>
       <h2 style={s.stepHeading}>What appointment would you like?</h2>
-      {showsWork && <p style={{ ...s.muted, fontSize: 13.5, margin: '6px 0 0' }}>Tap a photo to see the artist’s work for that appointment. You can pick one you’d like.</p>}
+      {showsWork && <p style={{ ...s.muted, fontSize: 14, lineHeight: 1.5, margin: '6px 0 0' }}>Tap a photo to see it up close. If there’s a piece you’d like, you can pick it.</p>}
       <div role="radiogroup" aria-label="Appointment" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
         {types.map(t => {
           const selected = chosen?.id === t.id;
           if (!work[t.id]?.length) return <AppointmentTypeRow key={t.id} type={t} selected={selected} onChoose={onChoose} />;
           // The type's work sits inside its card, under the details.
           return (
-            <div key={t.id} style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}), display: 'block', padding: 0, overflow: 'hidden', cursor: 'default' }}>
+            <div key={t.id} style={{ ...typeCard(selected), padding: 0, overflow: 'hidden', cursor: 'default' }}>
               <AppointmentTypeRow type={t} selected={selected} onChoose={onChoose} bare />
-              <TypeWorkStrip type={t} tattoos={work[t.id]} picked={picked} selected={selected} onView={onView} onUnpick={onUnpick} onShowAll={onShowAll} />
+              <TypeWorkStrip type={t} tattoos={work[t.id]} picked={picked} onView={onView} onUnpick={onUnpick} onShowAll={onShowAll} />
             </div>
           );
         })}
       </div>
-      {quoted && (
-        <p style={{ ...s.muted, fontSize: 12.5, lineHeight: 1.5, margin: '14px 2px 0' }}>
-          Prices are the artist’s quote. The final price is confirmed on the day and can change with the design, size and time it takes.
+      {(quoted || instant) && (
+        <p style={{ display: 'flex', gap: 8, alignItems: 'flex-start', ...s.muted, fontSize: 12.5, lineHeight: 1.5, margin: '16px 2px 0' }}>
+          {quoted && (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flex: 'none', marginTop: 2 }}>
+              <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.4" />
+              <path d="M8 7.25v3.75M8 5h.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          )}
+          <span>
+            {quoted && 'Prices are the artist’s quote. The final price is confirmed on the day and can change with the design, size and time it takes. '}
+            {instant && 'You’ll pick a time next.'}
+          </span>
         </p>
       )}
-      {instant && <p style={{ ...s.muted, fontSize: 12.5, margin: '8px 2px 0' }}>You’ll pick a time next.</p>}
     </div>
   );
 }
@@ -1316,13 +1324,13 @@ function useWorkColumns() {
 }
 
 // One photo tile: square, flash badge, tick when it's the client's pick.
-function WorkTile({ tattoo: t, isPicked, ink, selected, onClick, size }) {
+function WorkTile({ tattoo: t, isPicked, onClick, size }) {
   return (
     <button type="button" role="listitem" onClick={onClick}
       aria-label={`${t.title || 'Tattoo'}${t.flash ? ', flash' : ''}${isPicked ? ', your pick' : ''}`}
-      style={{ ...(size ? { width: size, height: size } : { width: '100%', aspectRatio: '1 / 1' }), padding: 0, borderRadius: 12, overflow: 'hidden',
-        position: 'relative', cursor: 'pointer', background: `rgba(${ink}, 0.08)`, minWidth: 0,
-        border: isPicked ? `2px solid ${selected ? 'var(--paper)' : 'var(--main)'}` : `1px solid rgba(${ink}, 0.12)` }}>
+      style={{ ...(size ? { width: size, height: size } : { width: '100%', aspectRatio: '1 / 1' }), padding: 0, borderRadius: 10, overflow: 'hidden',
+        position: 'relative', cursor: 'pointer', background: 'rgba(var(--ink-rgb), 0.08)', minWidth: 0, boxShadow: 'none',
+        border: isPicked ? '2px solid var(--main)' : '1px solid rgba(var(--ink-rgb), 0.1)' }}>
       <img src={t.image_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       {t.flash && <span style={s.workBadge}>Flash</span>}
       {isPicked && <span style={s.workCheck} aria-hidden="true">✓</span>}
@@ -1332,10 +1340,10 @@ function WorkTile({ tattoo: t, isPicked, ink, selected, onClick, size }) {
 
 // The artist's work for one appointment, inside its card: a row that fits the card, with a
 // "+N" tile opening all of it when there's more.
-function TypeWorkStrip({ type, tattoos, picked, selected, onView, onUnpick, onShowAll }) {
+function TypeWorkStrip({ type, tattoos, picked, onView, onUnpick, onShowAll }) {
   const columns = useWorkColumns();
   const pickedHere = picked && picked.typeId === type.id;
-  const ink = selected ? 'var(--paper-rgb)' : 'var(--ink-rgb)';
+  const ink = 'var(--ink-rgb)';
   const overflow = tattoos.length > columns;
   // With more than fit, the last place is the "+N" tile; a pick further along stays visible.
   let shown = overflow ? tattoos.slice(0, columns - 1) : tattoos;
@@ -1346,31 +1354,28 @@ function TypeWorkStrip({ type, tattoos, picked, selected, onView, onUnpick, onSh
   const more = tattoos.length - shown.length;
   const behind = tattoos.find(t => !shown.some(x => x.id === t.id));
   return (
-    <div style={{ margin: '0 18px', padding: '12px 0 14px', borderTop: `1px solid rgba(${ink}, 0.1)` }}>
+    // Lines up with the name and length above, past the radio circle.
+    <div style={{ margin: '0 18px 0 54px', padding: '12px 0 16px', borderTop: `1px solid rgba(${ink}, 0.08)` }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: `rgba(${ink}, 0.55)` }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, color: `rgba(${ink}, 0.6)` }}>
           Example work
         </span>
-        {overflow ? (
+        {overflow && (
           <button type="button" onClick={() => onShowAll(type)}
-            style={{ ...s.workTextButton, fontSize: 12, color: `rgba(${ink}, 0.75)` }}>
-            See all {tattoos.length}
+            style={{ ...s.workTextButton, fontSize: 12.5, textDecoration: 'none', boxShadow: 'none', color: 'var(--main)' }}>
+            See all {tattoos.length} →
           </button>
-        ) : (
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500, color: `rgba(${ink}, 0.5)` }}>
-            {tattoos.length === 1 ? '1 piece' : `${tattoos.length} pieces`} · tap to view
-          </span>
         )}
       </div>
       <div role="list" aria-label={`${type.name}: the artist’s work`}
         style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: 8 }}>
         {shown.map(t => (
-          <WorkTile key={t.id} tattoo={t} isPicked={pickedHere && picked.id === t.id} ink={ink} selected={selected} onClick={() => onView(t, type)} />
+          <WorkTile key={t.id} tattoo={t} isPicked={pickedHere && picked.id === t.id} onClick={() => onView(t, type)} />
         ))}
         {more > 0 && (
           <button type="button" onClick={() => onShowAll(type)} aria-label={`See all ${tattoos.length} pieces for ${type.name}`}
-            style={{ width: '100%', aspectRatio: '1 / 1', padding: 0, borderRadius: 12, overflow: 'hidden', position: 'relative', cursor: 'pointer',
-              background: `rgba(${ink}, 0.08)`, border: `1px solid rgba(${ink}, 0.12)`, minWidth: 0 }}>
+            style={{ width: '100%', aspectRatio: '1 / 1', padding: 0, borderRadius: 10, overflow: 'hidden', position: 'relative', cursor: 'pointer',
+              background: `rgba(${ink}, 0.08)`, border: `1px solid rgba(${ink}, 0.1)`, minWidth: 0, boxShadow: 'none' }}>
             {behind && <img src={behind.image_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(2px)', transform: 'scale(1.08)' }} />}
             <span style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--font-body)', fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
@@ -1382,7 +1387,7 @@ function TypeWorkStrip({ type, tattoos, picked, selected, onView, onUnpick, onSh
       {pickedHere && (
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: `rgba(${ink}, 0.75)`, margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span>You picked “{picked.title || 'this piece'}”.</span>
-          <button type="button" onClick={onUnpick} style={{ ...s.workTextButton, color: selected ? 'var(--paper)' : 'var(--main)' }}>Remove</button>
+          <button type="button" onClick={onUnpick} style={{ ...s.workTextButton, boxShadow: 'none' }}>Remove</button>
         </p>
       )}
     </div>
@@ -1409,7 +1414,7 @@ function AllWorkSheet({ type, tattoos, picked, onView, onClose }) {
         </div>
         <div role="list" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, padding: 16, overflowY: 'auto' }}>
           {tattoos.map(t => (
-            <WorkTile key={t.id} tattoo={t} isPicked={pickedHere && picked.id === t.id} ink="var(--ink-rgb)" selected={false} onClick={() => onView(t)} />
+            <WorkTile key={t.id} tattoo={t} isPicked={pickedHere && picked.id === t.id} onClick={() => onView(t)} />
           ))}
         </div>
       </div>
@@ -1458,23 +1463,39 @@ function WorkViewer({ tattoo, type, picked, onPick, onUnpick, onClose }) {
 
 // One appointment: name and length first, the quote on the right, the artist's
 // description underneath.
+// An appointment card: light either way; the chosen one gets a solid ring and a lifted look.
+function typeCard(selected) {
+  return {
+    display: 'block', width: '100%', textAlign: 'left', borderRadius: 16, cursor: 'pointer',
+    transition: 'border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease',
+    ...(selected
+      ? { background: 'var(--paper)', border: '1px solid var(--main)', boxShadow: '0 0 0 1px var(--main), 0 6px 18px rgba(var(--ink-rgb), 0.08)' }
+      : { background: 'rgba(var(--ink-rgb), 0.035)', border: '1px solid rgba(var(--ink-rgb), 0.09)', boxShadow: 'none' }),
+  };
+}
+
 function AppointmentTypeRow({ type: t, selected, onChoose, bare = false }) {
-  const ink = selected ? 'var(--paper-rgb)' : 'var(--ink-rgb)';
+  const ink = 'var(--ink-rgb)';
   const price = t.price != null && Number(t.price) >= 0 ? Number(t.price) : null;
   return (
     <button type="button" role="radio" aria-checked={selected}
-      style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}), display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto',
+      style={{ ...typeCard(selected), display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto',
         columnGap: 14, rowGap: 0, alignItems: 'start', padding: '16px 18px',
         // Inside a card that also holds the type's work: the card draws the box.
         ...(bare ? { background: 'transparent', border: 'none', borderRadius: 0, boxShadow: 'none' } : {}) }}
       onClick={() => onChoose(t)}>
-      <span style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}), marginTop: 1 }}>
-        {selected && <span style={{ fontSize: 12, color: 'var(--ink)' }}>✓</span>}
+      <span style={{ ...s.sessionCheckCircle, marginTop: 1, transition: 'background-color 150ms ease, border-color 150ms ease',
+        ...(selected ? { background: 'var(--main)', border: '1.5px solid var(--main)' } : {}) }}>
+        {selected && (
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="var(--paper)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
       </span>
-      <span style={{ display: 'grid', gap: 5, minWidth: 0 }}>
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: 16, fontWeight: 650, lineHeight: 1.3, color: selected ? 'var(--paper)' : 'var(--main)', overflowWrap: 'anywhere' }}>{t.name}</span>
+      <span style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 16.5, fontWeight: 650, lineHeight: 1.3, color: 'var(--main)', overflowWrap: 'anywhere' }}>{t.name}</span>
         {t.duration_minutes > 0 && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)', fontSize: 13.5, fontWeight: 500, color: `rgba(${ink}, 0.7)` }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)', fontSize: 13.5, fontWeight: 500, color: `rgba(${ink}, 0.62)` }}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flex: 'none' }}>
               <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
               <path d="M8 4.75V8l2.25 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1485,16 +1506,21 @@ function AppointmentTypeRow({ type: t, selected, onChoose, bare = false }) {
       </span>
       {price != null ? (
         // The artist's price for this appointment; $0 is free (e.g. a consultation).
-        <span style={{ display: 'grid', justifyItems: 'end', gap: 3, textAlign: 'right' }}>
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: 18, fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums', color: selected ? 'var(--paper)' : 'var(--main)' }}>
+        <span style={{ display: 'grid', justifyItems: 'end', gap: 2, textAlign: 'right' }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: 18, fontWeight: 700, lineHeight: 1.25, fontVariantNumeric: 'tabular-nums', color: 'var(--main)' }}>
             {price === 0 ? 'Free' : formatMoney(price)}
           </span>
-          {price > 0 && <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: `rgba(${ink}, 0.5)` }}>Quote</span>}
+          {price > 0 && <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500, color: `rgba(${ink}, 0.5)` }}>quote</span>}
         </span>
-      ) : <span />}
+      ) : (
+        // No price set: the artist quotes once they know the design.
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 500, lineHeight: 1.6, color: `rgba(${ink}, 0.5)`, textAlign: 'right' }}>
+          Quoted on request
+        </span>
+      )}
       {t.description && (
-        <span style={{ gridColumn: '2 / 4', marginTop: 10, paddingTop: 10, borderTop: `1px solid rgba(${ink}, 0.1)`,
-          fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 400, lineHeight: 1.5, color: `rgba(${ink}, 0.6)`, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+        <span style={{ gridColumn: '2 / 4', marginTop: 8,
+          fontFamily: 'var(--font-body)', fontSize: 13.5, fontWeight: 400, lineHeight: 1.5, color: `rgba(${ink}, 0.62)`, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
           {t.description}
         </span>
       )}
