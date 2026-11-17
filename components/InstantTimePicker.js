@@ -21,11 +21,11 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
       {hideTypes ? (() => {
         const chosen = info.types.find(t => t.id === typeId);
         const free = chosen && !(Number(chosen.deposit) > 0);
-        return <p style={st.sub}>{chosen ? `Times for your ${chosen.name} (${formatLength(chosen.duration_minutes)}). ` : ''}{free ? 'It’s free, so there’s nothing to pay: you’re booked as soon as you confirm.' : 'Your time is held while you pay the deposit and the Vanta booking fee.'}</p>;
+        return <p style={st.sub}>{chosen ? `Times for your ${chosen.name} (${formatLength(chosen.duration_minutes)}). ` : ''}{free ? 'It’s free, so there’s nothing to pay: you’re booked as soon as you confirm.' : info.fee_absorbed ? 'Your time is held while you pay the deposit.' : 'Your time is held while you pay the deposit and the Vanta booking fee.'}</p>;
       })() : <>
       <p style={st.sub}>Choose your appointment, then a time. {info.types.every(t => !(Number(t.deposit) > 0))
         ? 'There’s nothing to pay: you’re booked as soon as you confirm.'
-        : 'A deposit and the Vanta booking fee lock in your time; free appointments are booked straight away. Prices below are what you pay now.'}</p>
+        : info.fee_absorbed ? 'A deposit locks in your time; free appointments are booked straight away. Prices below are what you pay now.' : 'A deposit and the Vanta booking fee lock in your time; free appointments are booked straight away. Prices below are what you pay now.'}</p>
 
       <div style={st.label}>APPOINTMENT</div>
       <div role="radiogroup" aria-label="Appointment" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -42,7 +42,7 @@ export default function InstantTimePicker({ backend, artistId, info, typeId, onT
                 <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(var(--paper-rgb), 0.55)' } : {}) }}>{formatLength(t.duration_minutes)}</span>
               </span>
               {Number(t.deposit) > 0
-                ? <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(var(--paper-rgb), 0.65)' } : {}), flexShrink: 0 }}>{money(depositCharge(t.deposit).total)} to book<span style={{ display: 'block', fontSize: 11, textAlign: 'right' }}>{formatMoney(t.deposit)} deposit + {money(depositCharge(t.deposit).fee)} fee</span></span>
+                ? <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(var(--paper-rgb), 0.65)' } : {}), flexShrink: 0 }}>{money(depositCharge(t.deposit, { fee_absorbed: info.fee_absorbed }).total)} to book<span style={{ display: 'block', fontSize: 11, textAlign: 'right' }}>{info.fee_absorbed ? 'deposit, no booking fee' : `${formatMoney(t.deposit)} deposit + ${money(depositCharge(t.deposit).fee)} fee`}</span></span>
                 : <span style={{ ...st.typeMeta, ...(on ? { color: 'rgba(var(--paper-rgb), 0.65)' } : {}), flexShrink: 0 }}>Free<span style={{ display: 'block', fontSize: 11, textAlign: 'right' }}>no deposit</span></span>}
             </button>
           );

@@ -907,6 +907,7 @@ export default function BookingSelectionClient() {
                 ? `A $${Math.round(ctx.booking.deposit_amount ?? 0)} deposit is required. After you request this time you'll see how to pay by ${ctx.booking.deposit_options?.manual?.payid ? 'PayID' : ''}${ctx.booking.deposit_options?.manual?.payid && ctx.booking.deposit_options?.manual?.bank_bsb ? ' or ' : ''}${ctx.booking.deposit_options?.manual?.bank_bsb ? 'bank transfer' : ''}.`
                 : (() => {
                   const charge = depositCharge(ctx.booking.deposit_amount, ctx.booking.deposit_options);
+                  if (charge.absorbed) return `A ${money(charge.deposit)} deposit is required. The Vanta booking fee is covered for you. You'll be taken to a secure payment page to confirm your appointment.`;
                   return `A ${money(charge.deposit)} deposit is required, plus a ${money(charge.fee)} Vanta booking fee: ${money(charge.total)} in total. You'll be taken to a secure payment page to confirm your appointment.`;
                 })())
               : 'The studio will confirm your appointment. You\'ll receive an email once it\'s locked in.'}

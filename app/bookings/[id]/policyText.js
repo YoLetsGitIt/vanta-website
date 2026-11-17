@@ -28,6 +28,7 @@ export function cancelConsequence(p) {
   const notice = noticeText(p.policy?.window_hours ?? 48);
   if (p.deposit === 'refund') {
     if (p.paid_through_vanta) {
+      if (p.fee_absorbed) return { tone: 'good', text: `You'll get your ${money(p.refund_amount)} deposit back. Refunds usually reach your account within 5–10 business days.` };
       return { tone: 'good', text: `You'll get your ${money(p.refund_amount)} deposit back. The Vanta booking fee isn't refunded. Refunds usually reach your account within 5–10 business days.` };
     }
     return { tone: 'good', text: `You paid your ${money(p.refund_amount)} deposit straight to the studio, so they'll send it back to you.` };

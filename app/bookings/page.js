@@ -5,7 +5,7 @@ import { resolveBookingArtist, subdomainReference } from '../../lib/booking-arti
 import { flashBookingState, flashNotice, flashPrefill, flashPriceLabel, isFlashReference } from '../../lib/booking-flash.mjs';
 import { bookingStudios, scheduleForStudio, windowsFitSchedule } from '../../lib/booking-studios.mjs';
 import { formQuestion, parsePreviewForm } from '../../lib/booking-form.mjs';
-import { depositCharge, money, payWays, BOOKING_FEE_NOTE } from '../../lib/booking-fee.mjs';
+import { depositCharge, money, payWays, BOOKING_FEE_NOTE, BOOKING_FEE_COVERED_NOTE } from '../../lib/booking-fee.mjs';
 import { formatLength, formatMoney, formatWhen, paymentReturn, returnURL, todayIn } from '../../lib/booking-instant.mjs';
 import InstantTimePicker from '../../components/InstantTimePicker';
 import { clearOpenTimes, monthOf as openTimesMonth, prefetchMonth, timesPlace } from '../../lib/open-times.mjs';
@@ -1164,7 +1164,7 @@ function BookingContent() {
                     name={contactName} email={contactEmail} phone={contactPhone}
                     smsReminders={smsReminders}
                     studio={instantMode && !studioStep ? null : selectedStudio}
-                    instant={instantChoice && instantStart ? { type: instantChoice, start: instantStart, zone: instantInfo.timezone } : null}
+                    instant={instantChoice && instantStart ? { type: instantChoice, start: instantStart, zone: instantInfo.timezone, feeAbsorbed: Boolean(instantInfo.fee_absorbed) } : null}
                   />
                 )}
               </div>
@@ -1196,7 +1196,7 @@ function BookingContent() {
                     <span className="bk-spinner" aria-hidden="true" />
                     <span>{submitPhase === 'Uploading photos…' ? `Uploading photos · ${Math.round(submitProgress * 100)}%` : (submitPhase || 'Just a moment…')}</span>
                   </span>
-                ) : step < totalSteps - 1 ? 'Continue' : previewing ? 'End of preview' : instantMode ? (Number(instantChoice?.deposit) > 0 ? `Pay ${money(depositCharge(instantChoice?.deposit).total)}` : 'Book') : 'Send Request'}
+                ) : step < totalSteps - 1 ? 'Continue' : previewing ? 'End of preview' : instantMode ? (Number(instantChoice?.deposit) > 0 ? `Pay ${money(depositCharge(instantChoice?.deposit, { fee_absorbed: instantInfo?.fee_absorbed }).total)}` : 'Book') : 'Send Request'}
               </button>
             </>
           )}
@@ -2345,15 +2345,15 @@ function StepReview({ sessionType, appointment, picked, designDetails, bodyLocat
         { label: 'Type', value: `${instant.type.name} · ${formatLength(instant.type.duration_minutes)}` },
         { label: 'Time', value: formatWhen(instant.start, instant.zone) },
         { label: 'Deposit', value: money(instant.type.deposit) },
-        { label: 'Vanta booking fee', value: money(depositCharge(instant.type.deposit).fee) },
-        { label: 'Total to pay now', value: `${money(depositCharge(instant.type.deposit).total)} AUD` },
+        { label: 'Vanta booking fee', value: instant.feeAbsorbed ? 'Covered' : money(depositCharge(instant.type.deposit).fee) },
+        { label: 'Total to pay now', value: `${money(depositCharge(instant.type.deposit, { fee_absorbed: instant.feeAbsorbed }).total)} AUD` },
       ] : [
         // A free appointment: nothing to pay.
         { label: 'Type', value: `${instant.type.name} · ${formatLength(instant.type.duration_minutes)}` },
         { label: 'Time', value: formatWhen(instant.start, instant.zone) },
         { label: 'Price', value: 'Free · nothing to pay' },
       ]} />}
-      {instant && Number(instant.type.deposit) > 0 && <p style={{ ...s.muted, fontSize: 12, margin: '-8px 0 20px' }}>{BOOKING_FEE_NOTE} {payWays(false)}</p>}
+      {instant && Number(instant.type.deposit) > 0 && <p style={{ ...s.muted, fontSize: 12, margin: '-8px 0 20px' }}>{instant.feeAbsorbed ? BOOKING_FEE_COVERED_NOTE : BOOKING_FEE_NOTE} {payWays(false)}</p>}
 
       {!instant && (availabilityWindows.length > 0 || (pushToLater && earliestDate)) && <ReviewGroup title="AVAILABILITY" rows={[
         ...availabilityWindows.map(w => {
