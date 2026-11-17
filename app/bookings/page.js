@@ -1272,12 +1272,17 @@ function StepAppointmentType({ types, chosen, onChoose, instant, work = {}, pick
       <h2 style={s.stepHeading}>What appointment would you like?</h2>
       {showsWork && <p style={{ ...s.muted, fontSize: 13.5, margin: '6px 0 0' }}>Tap a photo to see the artist’s work for that appointment. You can pick one you’d like.</p>}
       <div role="radiogroup" aria-label="Appointment" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
-        {types.map(t => (
-          <div key={t.id}>
-            <AppointmentTypeRow type={t} selected={chosen?.id === t.id} onChoose={onChoose} />
-            {work[t.id]?.length > 0 && <TypeWorkStrip type={t} tattoos={work[t.id]} picked={picked} onView={onView} onUnpick={onUnpick} />}
-          </div>
-        ))}
+        {types.map(t => {
+          const selected = chosen?.id === t.id;
+          if (!work[t.id]?.length) return <AppointmentTypeRow key={t.id} type={t} selected={selected} onChoose={onChoose} />;
+          // The type's work sits inside its card, under the details.
+          return (
+            <div key={t.id} style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}), display: 'block', padding: 0, overflow: 'hidden', cursor: 'default' }}>
+              <AppointmentTypeRow type={t} selected={selected} onChoose={onChoose} bare />
+              <TypeWorkStrip type={t} tattoos={work[t.id]} picked={picked} selected={selected} onView={onView} onUnpick={onUnpick} />
+            </div>
+          );
+        })}
       </div>
       {quoted && (
         <p style={{ ...s.muted, fontSize: 12.5, lineHeight: 1.5, margin: '14px 2px 0' }}>
@@ -1289,21 +1294,30 @@ function StepAppointmentType({ types, chosen, onChoose, instant, work = {}, pick
   );
 }
 
-// The artist's work for one appointment: a row of photos to open full size.
-function TypeWorkStrip({ type, tattoos, picked, onView, onUnpick }) {
+// The artist's work for one appointment, inside its card: a row of photos to open full size.
+function TypeWorkStrip({ type, tattoos, picked, selected, onView, onUnpick }) {
   const pickedHere = picked && picked.typeId === type.id;
+  const ink = selected ? 'var(--paper-rgb)' : 'var(--ink-rgb)';
   return (
-    <div style={{ marginTop: 8 }}>
+    <div style={{ margin: '0 18px', padding: '12px 0 14px', borderTop: `1px solid rgba(${ink}, 0.1)` }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: `rgba(${ink}, 0.55)` }}>
+          Example work
+        </span>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500, color: `rgba(${ink}, 0.5)` }}>
+          {tattoos.length === 1 ? '1 piece' : `${tattoos.length} pieces`} · tap to view
+        </span>
+      </div>
       <div role="list" aria-label={`${type.name}: the artist’s work`}
-        style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 2px 6px', scrollSnapType: 'x proximity', WebkitOverflowScrolling: 'touch' }}>
+        style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x proximity', WebkitOverflowScrolling: 'touch', margin: '0 -18px', padding: '0 18px 2px', scrollPaddingLeft: 18 }}>
         {tattoos.map(t => {
           const isPicked = pickedHere && picked.id === t.id;
           return (
             <button key={t.id} type="button" role="listitem" onClick={() => onView(t, type)}
-              aria-label={`${t.title}${t.flash ? ', flash' : ''}${isPicked ? ', your pick' : ''}`}
-              style={{ flex: 'none', width: 76, height: 76, padding: 0, borderRadius: 12, overflow: 'hidden', position: 'relative', cursor: 'pointer',
-                scrollSnapAlign: 'start', background: 'rgba(var(--ink-rgb), 0.05)',
-                border: isPicked ? '2px solid var(--main)' : '1px solid rgba(var(--ink-rgb), 0.1)' }}>
+              aria-label={`${t.title || 'Tattoo'}${t.flash ? ', flash' : ''}${isPicked ? ', your pick' : ''}`}
+              style={{ flex: 'none', width: 92, height: 92, padding: 0, borderRadius: 12, overflow: 'hidden', position: 'relative', cursor: 'pointer',
+                scrollSnapAlign: 'start', background: `rgba(${ink}, 0.08)`,
+                border: isPicked ? `2px solid ${selected ? 'var(--paper)' : 'var(--main)'}` : `1px solid rgba(${ink}, 0.12)` }}>
               <img src={t.image_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               {t.flash && <span style={s.workBadge}>Flash</span>}
               {isPicked && <span style={s.workCheck} aria-hidden="true">✓</span>}
@@ -1312,9 +1326,9 @@ function TypeWorkStrip({ type, tattoos, picked, onView, onUnpick }) {
         })}
       </div>
       {pickedHere && (
-        <p style={{ ...s.muted, fontSize: 13, margin: '2px 2px 4px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span>You picked “{picked.title}”.</span>
-          <button type="button" onClick={onUnpick} style={s.workTextButton}>Remove</button>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: `rgba(${ink}, 0.75)`, margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span>You picked “{picked.title || 'this piece'}”.</span>
+          <button type="button" onClick={onUnpick} style={{ ...s.workTextButton, color: selected ? 'var(--paper)' : 'var(--main)' }}>Remove</button>
         </p>
       )}
     </div>
@@ -1334,7 +1348,7 @@ function WorkViewer({ tattoo, type, picked, onPick, onUnpick, onClose }) {
     : '';
   return (
     <div style={s.modalOverlay} onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={tattoo.title} style={{ ...s.modal, maxHeight: '92vh' }} onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label={tattoo.title || 'Tattoo'} style={{ ...s.modal, maxHeight: '92vh' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory', background: 'rgba(var(--ink-rgb), 0.04)' }}>
           {images.map((src, i) => (
             <img key={i} src={src} alt={i === 0 ? tattoo.title : ''}
@@ -1343,7 +1357,7 @@ function WorkViewer({ tattoo, type, picked, onPick, onUnpick, onClose }) {
         </div>
         <div style={{ padding: '16px 20px 20px', display: 'grid', gap: 14 }}>
           <div>
-            <div style={s.modalTitle}>{tattoo.title}</div>
+            <div style={s.modalTitle}>{tattoo.title || type.name}</div>
             <div style={s.modalSub}>
               {[type.name, tattoo.flash ? (tattoo.one_off ? 'One-off flash' : 'Flash') : null, price, images.length > 1 ? `${images.length} photos` : null].filter(Boolean).join(' · ')}
             </div>
@@ -1362,13 +1376,15 @@ function WorkViewer({ tattoo, type, picked, onPick, onUnpick, onClose }) {
 
 // One appointment: name and length first, the quote on the right, the artist's
 // description underneath.
-function AppointmentTypeRow({ type: t, selected, onChoose }) {
+function AppointmentTypeRow({ type: t, selected, onChoose, bare = false }) {
   const ink = selected ? 'var(--paper-rgb)' : 'var(--ink-rgb)';
   const price = t.price != null && Number(t.price) >= 0 ? Number(t.price) : null;
   return (
     <button type="button" role="radio" aria-checked={selected}
       style={{ ...s.sessionCard, ...(selected ? s.sessionCardActive : {}), display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto',
-        columnGap: 14, rowGap: 0, alignItems: 'start', padding: '16px 18px' }}
+        columnGap: 14, rowGap: 0, alignItems: 'start', padding: '16px 18px',
+        // Inside a card that also holds the type's work: the card draws the box.
+        ...(bare ? { background: 'transparent', border: 'none', borderRadius: 0, boxShadow: 'none' } : {}) }}
       onClick={() => onChoose(t)}>
       <span style={{ ...s.sessionCheckCircle, ...(selected ? s.sessionCheckCircleActive : {}), marginTop: 1 }}>
         {selected && <span style={{ fontSize: 12, color: 'var(--ink)' }}>✓</span>}
