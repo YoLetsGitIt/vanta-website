@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import PhotoIdField from '../../components/PhotoIdField';
 import { uploadPhotoIdAnswers } from '../../lib/photoId';
+import { joinName, splitName } from '../../lib/booking-contact.mjs';
 
 const BACKEND = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -58,7 +59,9 @@ function ConsentForm() {
   const token = searchParams.get('token');
 
   const [info, setInfo]           = useState(null);
-  const [signerName, setSignerName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const signerName = joinName(firstName, lastName);
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [loadErr, setLoadErr]     = useState('');
   const [templateState, setTemplateState] = useState({});
@@ -74,7 +77,7 @@ function ConsentForm() {
   useEffect(() => {
     if (!token) { setLoadErr('No consent token provided.'); return; }
     getPublicConsentInfo(token)
-      .then(data => { setInfo(data); setSignerName(data.signer_name || ''); setDateOfBirth(data.dob || ''); })
+      .then(data => { setInfo(data); { const n = splitName(data.signer_name); setFirstName(n.first); setLastName(n.last); } setDateOfBirth(data.dob || ''); })
       .catch(e => setLoadErr(e.message));
   }, [token]);
 
@@ -106,8 +109,8 @@ function ConsentForm() {
     e.preventDefault();
     const templates = info?.templates ?? [];
 
-    if (info?.booking_consent && (!signerName.trim() || !dateOfBirth)) {
-      setSubmitErr('Please enter your full name and date of birth.');
+    if (info?.booking_consent && (!firstName.trim() || !lastName.trim() || !dateOfBirth)) {
+      setSubmitErr('Please enter your first name, last name and date of birth.');
       return;
     }
 
@@ -208,9 +211,14 @@ function ConsentForm() {
 
       <form onSubmit={handleSubmit} style={s.form}>
         {info.booking_consent && <div style={s.fieldStack}>
-          <label style={s.label}>Full name
-            <input style={s.input} autoComplete="name" value={signerName} onChange={e => setSignerName(e.target.value)} required />
-          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+            <label style={s.label}>First name
+              <input style={s.input} autoComplete="given-name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+            </label>
+            <label style={s.label}>Last name
+              <input style={s.input} autoComplete="family-name" value={lastName} onChange={e => setLastName(e.target.value)} required />
+            </label>
+          </div>
           <div style={s.label}>Date of birth
             <DateOfBirthInput style={s.input} value={dateOfBirth} onChange={setDateOfBirth} disabled={Boolean(info.dob)} />
           </div>
