@@ -3332,3 +3332,23 @@ select.bk-input { height: 48px; padding-top: 0; padding-bottom: 0; }
 }
 .bk-check input:checked + svg { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .bk-check input, .bk-check svg { transition: none; } }
+
+/* Gallery system: light gallery walls, whatever the device theme.
+   Opt in with the .gallery class; pages move over to it one at a time. */
+.gallery {
+  --g-wall: #f3f3f1;
+  --g-wall-2: #e6e6e2;
+  --g-ink: #111214;
+  --g-ink-2: #45474d;
+  --g-placard: #5d6067;
+  --g-on-ink: #f3f3f1;
+  --g-stencil: #5a3fd6;
+  --g-on-stencil: #ffffff;
+  --g-display: var(--font-gallery), 'Inter Tight', 'Helvetica Neue', Arial, sans-serif;
+  --g-text: var(--font-gallery), 'Inter Tight', 'Helvetica Neue', Arial, sans-serif;
+  --g-mono: var(--font-placard), 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: light;
+  background: var(--g-wall);
+  color: var(--g-ink);
+  font-family: var(--g-text);
+}
