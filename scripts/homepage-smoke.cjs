@@ -21,8 +21,8 @@ const base = process.env.PUBLIC_TEST_URL || 'http://localhost:4174';
       for (const link of await page.getByRole('link', { name: 'Download Vanta on the App Store', exact: true }).all()) {
         assert.match(await link.getAttribute('href'), /^https:\/\/apps.apple.com\//);
       }
-      for (const link of await page.getByRole('link', { name: 'Join the Vanta Android beta on Google Play', exact: true }).all()) {
-        assert.equal(await link.getAttribute('href'), 'https://play.google.com/apps/testing/vanta.tattoo');
+      for (const link of await page.getByRole('link', { name: 'Request access to the Vanta Android beta by email', exact: true }).all()) {
+        assert.match(await link.getAttribute('href'), /^mailto:support@vanta\.tattoo\?subject=Vanta%20Android%20beta%20access/);
       }
       const downloadBounds = await page.getByRole('link', { name: 'Download Vanta on the App Store', exact: true }).first().boundingBox();
       assert(downloadBounds.y >= 0 && downloadBounds.y + downloadBounds.height < 900, 'Downloads are visible in the opening viewport');
@@ -88,8 +88,8 @@ const base = process.env.PUBLIC_TEST_URL || 'http://localhost:4174';
     }
     const android = await browser.newPage({ userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36' });
     await android.goto(base + '/');
-    await android.waitForFunction(() => document.querySelector('[aria-label="Join the Vanta Android beta on Google Play"]')?.href === 'https://play.google.com/apps/testing/vanta.tattoo');
+    await android.waitForFunction(() => document.querySelector('[aria-label="Request access to the Vanta Android beta by email"]')?.dataset.preferred === 'true');
     await android.close();
-    console.log('PASS Android: beta download opens Google Play');
+    console.log('PASS Android: beta button asks for access by email');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });

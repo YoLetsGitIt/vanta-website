@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './artists.module.css';
 
 const appStore = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
-// The Android app is in closed beta: the public store page returns Not Found until it's released,
-// so every Google Play button opens the beta sign-up. Point this back at the store page on release.
-const googlePlay = 'https://play.google.com/apps/testing/vanta.tattoo';
-const googlePlayTesting = 'https://play.google.com/apps/testing/vanta.tattoo';
+// The Android app is a closed beta on Google Play: only invited testers can install it, and the Play
+// pages show "App not available" to everyone else. So the Android button asks people to email for an
+// invite, with the Google account to add. On release, point this at the store page again.
+const androidBeta = 'mailto:support@vanta.tattoo?subject=Vanta%20Android%20beta%20access&body=Hi%2C%20I%E2%80%99d%20like%20access%20to%20the%20Vanta%20Android%20beta.%20The%20Google%20account%20on%20my%20phone%20is%3A%20';
 
 // The artist shown in the page's examples. The work is the same real work as the home page wall.
 const artist = { name: 'Mia', styles: 'Blackwork · Fine Line · Melbourne', avatar: '/welcome/wall-4.webp' };
@@ -33,9 +33,9 @@ function Downloads() {
       <svg viewBox="0 0 814 1000" aria-hidden="true" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.3 143.1-317 284-317 74.9 0 137.2 48.3 184.4 48.3 44.9 0 117.1-51.5 200.3-51.5 32.3 0 117.1 2.6 178.1 97.3zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
       <span><small>Download on the</small><strong>App Store</strong></span>
     </a>
-    <a href={isAndroid ? googlePlay : googlePlayTesting} className={styles.storeBadge} data-preferred={isAndroid} target="_blank" rel="noopener noreferrer" aria-label="Join the Vanta Android beta on Google Play">
+    <a href={androidBeta} className={styles.storeBadge} data-preferred={isAndroid} aria-label="Request access to the Vanta Android beta by email">
       <svg viewBox="0 0 24 26" aria-hidden="true" fill="currentColor"><path d="M2 2.2v21.6L13 13 2 2.2Zm1.8-.7 12 6.8-2.2 2.8L3.8 1.5Zm0 23 9.8-9.6 2.2 2.8-12 6.8ZM15 13l2.7-3.3 4.4 2.5c.6.4.6 1.2 0 1.6l-4.4 2.5L15 13Z"/></svg>
-      <span><small>Join the beta on</small><strong>Google Play</strong></span>
+      <span><small>Android beta</small><strong>Request access</strong></span>
     </a>
   </div>;
 }
@@ -384,7 +384,7 @@ export default function ArtistsPage() {
   return <main ref={page} className={`gallery ${styles.page}`} aria-label="Vanta for artists">
     <header className={styles.navigation}>
       <a href="/" aria-label="Vanta home" className={styles.wordmark}>vanta</a>
-      <nav aria-label="Vanta products"><a href="/">For clients</a><a href="/studio">For studios</a><a href={isAndroid ? googlePlay : appStore} className={styles.navCta} target="_blank" rel="noopener noreferrer">Get the app</a></nav>
+      <nav aria-label="Vanta products"><a href="/">For clients</a><a href="/studio">For studios</a><a href={isAndroid ? androidBeta : appStore} className={styles.navCta} {...(isAndroid ? {} : { target: '_blank', rel: 'noopener noreferrer' })}>Get the app</a></nav>
     </header>
 
     <section className={styles.hero} aria-labelledby="artist-heading">
