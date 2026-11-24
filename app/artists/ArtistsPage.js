@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './artists.module.css';
 
 const appStore = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
-const googlePlay = 'https://play.google.com/store/apps/details?id=vanta.tattoo';
+// The Android app is in closed beta: the public store page returns Not Found until it's released,
+// so every Google Play button opens the beta sign-up. Point this back at the store page on release.
+const googlePlay = 'https://play.google.com/apps/testing/vanta.tattoo';
 const googlePlayTesting = 'https://play.google.com/apps/testing/vanta.tattoo';
 
 // The artist shown in the page's examples. The work is the same real work as the home page wall.
@@ -105,49 +107,89 @@ const sentenceChoices = {
 const typeLabels = { fixed: [['Session', '2h · $250']], quote: [['Custom piece', 'price quoted']], mix: [['Flash', '1h · $120'], ['Custom piece', 'price quoted']] };
 const cancelLabels = { 24: '24 hours', 48: '48 hours', 72: '72 hours', 168: '7 days' };
 
-// A violet word in the sentence that can be changed; it sizes itself to the chosen phrase.
+// A violet phrase in the sentence that can be changed; it sizes itself to the chosen phrase.
 function Choice({ name, label, value, onChange, after = '' }) {
   const measure = useRef(null);
   const [width, setWidth] = useState();
   const text = sentenceChoices[name].find(option => option[0] === value)[1];
   useEffect(() => {
-    const fit = () => setWidth(measure.current ? measure.current.getBoundingClientRect().width + 2 : undefined);
+    const fit = () => setWidth(measure.current ? Math.ceil(measure.current.getBoundingClientRect().width) + 34 : undefined);
     fit();
     document.fonts?.ready.then(fit);
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
   }, [text]);
   return <span className={styles.choice}>
-    <select aria-label={label} value={value} onChange={event => onChange(name, event.target.value)} style={width ? { width } : undefined}>
-      {sentenceChoices[name].map(option => <option key={option[0]} value={option[0]}>{option[1]}</option>)}
-    </select>
+    <span className={styles.choiceBox}>
+      <select aria-label={label} value={value} onChange={event => onChange(name, event.target.value)} style={width ? { width } : undefined}>
+        {sentenceChoices[name].map(option => <option key={option[0]} value={option[0]}>{option[1]}</option>)}
+      </select>
+      <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    </span>
     <span ref={measure} className={styles.measure} aria-hidden="true">{text}</span>{after}
   </span>;
 }
 
-function ClientPreview({ setup }) {
+// Which part of the client's form each setting changes, so that part can flash when it does.
+const previewPart = { time: 'time', type: 'type', photos: 'idea', consent: 'consent', dep: 'pay', notice: 'pay', cancel: 'pay' };
+
+function ClientPreview({ setup, flash }) {
   const instant = setup.time === 'instant';
-  const asks = [['Design description', 'required'], ['Placement', 'required']];
-  if (setup.photos !== 'off') asks.push(['Reference photos', setup.photos === 'req' ? 'required' : 'optional']);
-  asks.push(['Colour', 'required']);
+  const lit = part => (flash && previewPart[flash.key] === part ? String(flash.n) : undefined);
   const pay = setup.dep === '0' ? (instant ? 'Book' : 'Send request') : instant ? `Pay $${setup.dep} and book` : `Send request · $${setup.dep} deposit when you pick a time`;
   const notice = `Cancel or move your booking up to ${cancelLabels[setup.notice]} before.`;
   const fine = setup.dep === '0' ? notice : setup.cancel === 'never' ? `${notice} The deposit isn’t refunded.` : `${notice} Cancel in time to get the deposit back.`;
   return <figure className={styles.clientPreview} aria-label="What your clients would see">
     <div className={styles.who}><img src={artist.avatar} alt="" width="72" height="72"/><div><b>Book with {artist.name}</b><span>yourname.vanta.tattoo</span></div></div>
-    <div className={styles.previewBox}>{typeLabels[setup.type].map(([typeName, typeDetail]) => <div key={typeName} className={styles.previewTitle}>{typeName}<span>{typeDetail}</span></div>)}</div>
-    <div className={styles.previewBox}>
-      {setup.time === 'instant' && <><div className={styles.previewTitle}>Pick a time<span>open times</span></div><div className={styles.slots}>{['Tue 10:00', 'Tue 14:00', 'Wed 11:00', 'Thu 10:00', 'Fri 13:00', 'Sat 10:00'].map((slot, index) => <span key={slot} data-on={index === 1}>{slot}</span>)}</div></>}
+    <div className={styles.previewBox} data-flash={lit('type')} key={`type-${lit('type')}`}>{typeLabels[setup.type].map(([typeName, typeDetail]) => <div key={typeName} className={styles.previewTitle}>{typeName}<span>{typeDetail}</span></div>)}</div>
+    <div className={styles.previewBox} data-flash={lit('time')} key={`time-${lit('time')}`}>
+      {instant && <><div className={styles.previewTitle}>Pick a time<span>open times</span></div><div className={styles.slots}>{['Tue 10:00', 'Tue 14:00', 'Wed 11:00', 'Thu 10:00', 'Fri 13:00', 'Sat 10:00'].map((slot, index) => <span key={slot} data-on={index === 1}>{slot}</span>)}</div></>}
       {setup.time === 'avail' && <><div className={styles.previewTitle}>When are you free?<span>each week</span></div><div className={styles.days}>{[['Mon pm', true], ['Tue', false], ['Thu am', true], ['Sat', true], ['Sun', false]].map(([day, on]) => <span key={day} data-on={on}>{day}</span>)}</div></>}
     </div>
-    <div className={styles.previewBox}>
-      <div className={styles.previewTitle}>Your idea<span>{setup.photos === 'off' ? 'no photos needed' : ''}</span></div>
-      <div className={styles.asks}>{asks.map(([question, mode]) => <div key={question}>{question}<em data-required={mode === 'required'}>{mode}</em></div>)}</div>
+    <div className={styles.previewBox} data-flash={lit('idea')} key={`idea-${lit('idea')}`}>
+      <div className={styles.previewTitle}>Your idea<span>{setup.photos === 'off' ? 'description and placement' : setup.photos === 'req' ? 'photos required' : 'photos optional'}</span></div>
     </div>
-    {setup.consent === 'mine' && <div className={styles.previewBox}><div className={styles.previewTitle}>Consent form<span>before booking</span></div></div>}
-    <span className={styles.fakeButton}>{pay}</span>
-    <p className={styles.fine}>{fine}</p>
+    {setup.consent === 'mine' && <div className={styles.previewBox} data-flash={lit('consent')} key={`consent-${lit('consent')}`}><div className={styles.previewTitle}>Consent form<span>before booking</span></div></div>}
+    <div className={styles.payBlock} data-flash={lit('pay')} key={`pay-${lit('pay')}`}>
+      <span className={styles.fakeButton}>{pay}</span>
+      <p className={styles.fine}>{fine}</p>
+    </div>
   </figure>;
+}
+
+// The booking form's appointment step, as clients see it: each appointment type with its price and the
+// artist's example work; tapping a photo opens it, and "I want this one" picks it for the booking.
+const sessionTypes = [
+  { name: 'Consultation', length: '30 min', price: 'Free' },
+  { name: 'Small tattoo', length: '2 hours', price: '$250', priceNote: 'quote', detail: 'Up to palm size, black and grey', work: [work.peony, work.olive] },
+  { name: 'Half day', length: '4 hours', quoted: true, work: [work.headdress, work.wings] },
+];
+function Clock() {
+  return <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.4"/><path d="M8 4.8V8l2.2 1.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>;
+}
+function SessionTypeScreens() {
+  return <div className={styles.sessionScreens} aria-hidden="true">
+    <div className={styles.sessionScreen}>
+      <div className={styles.sessionTop}><span>‹</span><b>Session Type</b><i/></div>
+      <div className={styles.sessionBar}><i/></div>
+      <p className={styles.sessionQ}>What appointment would you like?</p>
+      <p className={styles.sessionHelp}>Tap a photo to see it up close. If there’s a piece you’d like, you can pick it.</p>
+      {sessionTypes.map(type => <div key={type.name} className={styles.sessionCard}>
+        <i className={styles.radio}/>
+        <div className={styles.sessionMain}>
+          <b>{type.name}</b><span className={styles.sessionLen}><Clock/>{type.length}</span>
+          {type.detail && <span className={styles.sessionDetail}>{type.detail}</span>}
+          {type.work && <div className={styles.sessionWork}><small>Example work</small><div>{type.work.map(piece => <img key={piece.title} src={piece.src} alt="" width="120" height="120" loading="lazy" data-on={piece === work.peony}/>)}</div></div>}
+        </div>
+        <div className={styles.sessionPrice}>{type.quoted ? <small>Quoted on request</small> : <><b>{type.price}</b>{type.priceNote && <small>{type.priceNote}</small>}</>}</div>
+      </div>)}
+    </div>
+    <div className={styles.pieceSheet}>
+      <img src={work.peony.src} alt="" width={work.peony.width} height={work.peony.height} loading="lazy"/>
+      <div className={styles.pieceInfo}><b>Peony, fine line</b><span>Small tattoo</span></div>
+      <div className={styles.pieceButtons}><span>I want this one</span></div>
+    </div>
+  </div>;
 }
 
 function YourRules() {
@@ -155,66 +197,54 @@ function YourRules() {
   const [answers, setAnswers] = useState({});
   const [done, setDone] = useState(false);
   const [setup, setSetup] = useState(typicalSetup);
+  const [flash, setFlash] = useState(null);
   const heading = useRef(null);
   const question = questions[step];
+  // While answering, the preview already follows the answers given so far.
+  const shown = done ? setup : { ...typicalSetup, ...answers };
   useEffect(() => { if (heading.current && (done || step > 0)) heading.current.focus({ preventScroll: true }); }, [done, step]);
-  function finish(final) {
-    const next = { ...typicalSetup, ...final };
-    setSetup(next); setDone(true);
-  }
+  const lightUp = key => setFlash(current => ({ key, n: (current?.n || 0) + 1 }));
+  function finish(final) { setSetup({ ...typicalSetup, ...final }); setDone(true); }
   function answer(value) {
     const next = { ...answers, [question.key]: value };
-    setAnswers(next);
+    setAnswers(next); lightUp(question.key);
     if (step < questions.length - 1) setStep(step + 1); else finish(next);
   }
-  function restart() { setAnswers({}); setStep(0); setDone(false); }
+  function change(key, value) { setSetup({ ...setup, [key]: value }); lightUp(key); }
+  function restart() { setAnswers({}); setStep(0); setDone(false); setFlash(null); }
   return <section id="your-rules" className={styles.rules} aria-labelledby="rules-heading" data-reveal>
     <div className={styles.inner}>
-      <header className={styles.sectionHead}>
-        <p className={styles.kicker}>Your bookings</p>
-        <h2 id="rules-heading">Your rules. <em>Your way.</em></h2>
-        <p>Vanta doesn’t make you work one way. Answer a few questions to see how it would fit the way you already work.</p>
+      <header className={styles.formHead}>
+        <div><p className={styles.kicker}>Your bookings</p><h2 id="rules-heading">Your rules. <em>Your way.</em></h2></div>
+        <p>Vanta doesn’t make you work one way. Answer two questions and see what your clients would get.</p>
       </header>
       <div className={styles.flow}>
-        {!done ? <div className={styles.quiz}>
-          <div className={styles.quizTop}><span>How do you like to work?</span><span>{step + 1} of {questions.length}</span></div>
-          <div className={styles.progress} role="progressbar" aria-label="Questions answered" aria-valuemin={0} aria-valuemax={questions.length} aria-valuenow={step}><i style={{ width: `${((step + 1) / questions.length) * 100}%` }}/></div>
-          <h3 key={`q-${step}`} ref={heading} tabIndex={-1} className={styles.question}>{question.title}</h3>
-          <p className={styles.questionHelp}>{question.help}</p>
-          <div key={`a-${step}`} className={styles.answers} role="group" aria-label={question.title}>
-            {question.options.map(([value, title, detail]) => <button key={value} type="button" aria-pressed={answers[question.key] === value} onClick={() => answer(value)}><b>{title}</b>{detail && <span>{detail}</span>}</button>)}
-          </div>
-          <div className={styles.quizFoot}>
-            <span className={styles.quizLinks}><button type="button" onClick={() => setStep(step - 1)} disabled={step === 0}>← Back</button><button type="button" onClick={() => finish(answers)}>Skip to the result →</button></span>
-            <span className={styles.privacyNote}>Just a preview. Nothing you pick is saved or sent.</span>
-          </div>
-        </div> : <div className={styles.result}>
-          <div className={styles.quizTop}><span>Here’s how Vanta would set you up</span><button type="button" className={styles.textButton} onClick={restart}>Start again</button></div>
-          <div className={styles.resultGrid}>
-            <div>
-              <h3 ref={heading} tabIndex={-1} className={styles.sentence}>
-                Clients <Choice name="time" label="How clients pick a time" value={setup.time} onChange={(key, value) => setSetup({ ...setup, [key]: value })} after=","/>{' '}
-                at <Choice name="type" label="Pricing" value={setup.type} onChange={(key, value) => setSetup({ ...setup, [key]: value })} after="."/>{' '}
-                They <Choice name="photos" label="Reference photos" value={setup.photos} onChange={(key, value) => setSetup({ ...setup, [key]: value })} after=","/>{' '}
-                pay a <Choice name="dep" label="Deposit" value={setup.dep} onChange={(key, value) => setSetup({ ...setup, [key]: value })} after=","/>{' '}
-                sign <Choice name="consent" label="Consent form" value={setup.consent} onChange={(key, value) => setSetup({ ...setup, [key]: value })} after=","/>{' '}
-                and can cancel or move it up to <Choice name="notice" label="Cancel and reschedule notice" value={setup.notice} onChange={(key, value) => setSetup({ ...setup, [key]: value })}/> before, but <Choice name="cancel" label="Deposit refund" value={setup.cancel} onChange={(key, value) => setSetup({ ...setup, [key]: value })} after="."/>{' '}
-              </h3>
-              <p className={styles.sentenceNote}>Change any violet phrase. Each one is a setting in the Vanta app, and you can change them any time. Prices here are examples.</p>
-              <Downloads/>
+        <div className={styles.flowMain}>
+          {!done ? <div className={styles.quiz}>
+            <p className={styles.stepCount}>{step + 1} / {questions.length}</p>
+            <h3 key={`q-${step}`} ref={heading} tabIndex={-1} className={styles.question}>{question.title}</h3>
+            <p className={styles.questionHelp}>{question.help}</p>
+            <div key={`a-${step}`} className={styles.answers} role="group" aria-label={question.title}>
+              {question.options.map(([value, title, detail]) => <button key={value} type="button" aria-pressed={answers[question.key] === value} onClick={() => answer(value)}><b>{title}</b>{detail && <span>{detail}</span>}<i aria-hidden="true">→</i></button>)}
             </div>
-            <ClientPreview setup={setup}/>
-          </div>
-        </div>}
+            <div className={styles.quizLinks}>{step > 0 && <button type="button" onClick={() => setStep(step - 1)}>← Back</button>}<button type="button" onClick={() => finish(answers)}>Skip to the result →</button><span className={styles.privacyNote}>Nothing you pick is saved or sent.</span></div>
+          </div> : <div className={styles.result}>
+            <h3 ref={heading} tabIndex={-1} className={styles.sentence}>
+              Clients <Choice name="time" label="How clients pick a time" value={setup.time} onChange={change} after=","/>{' '}
+              at <Choice name="type" label="Pricing" value={setup.type} onChange={change} after="."/>{' '}
+              They <Choice name="photos" label="Reference photos" value={setup.photos} onChange={change} after=","/>{' '}
+              pay a <Choice name="dep" label="Deposit" value={setup.dep} onChange={change} after=","/>{' '}
+              sign <Choice name="consent" label="Consent form" value={setup.consent} onChange={change} after=","/>{' '}
+              and can cancel or move it up to <Choice name="notice" label="Cancel and reschedule notice" value={setup.notice} onChange={change}/>{' '}
+              before, but <Choice name="cancel" label="Deposit refund" value={setup.cancel} onChange={change} after="."/>
+            </h3>
+            <div className={styles.quizLinks}><button type="button" onClick={restart}>← Start again</button><span className={styles.privacyNote}>Tap a violet phrase to change it. Prices are examples.</span></div>
+          </div>}
+        </div>
+        <div className={styles.flowPreview}>
+          <ClientPreview setup={shown} flash={flash}/>
+        </div>
       </div>
-      <ul className={styles.alsoSet} aria-label="You can also set">
-        <li><b>Appointment types</b>Length, price or quote, what’s included</li>
-        <li><b>Your booking form</b>Every question required, optional or off</li>
-        <li><b>Booking fee</b>You pay it, or your client does</li>
-        <li><b>Reschedules</b>How close to the day clients can move</li>
-        <li><b>Your week</b>Hours, days off, a studio per day, buffers</li>
-        <li><b>Your consent form</b>Your questions, photo ID, under 18s</li>
-      </ul>
     </div>
   </section>;
 }
@@ -404,19 +434,25 @@ export default function ArtistsPage() {
 
     <section id="your-work" className={styles.work} aria-labelledby="work-heading" data-reveal>
       <div className={styles.inner}>
-        <header className={styles.workHead}>
-          <div><p className={styles.kicker}>Your work</p><h2 id="work-heading">Clients find you through <em>your work.</em></h2></div>
-          <p>Your portfolio is in the Vanta feed, where clients browse by style and save what they love. Flash can be booked straight from the photo.</p>
+        <header className={styles.formHead}>
+          <div><p className={styles.kicker}>Your work</p><h2 id="work-heading">Your work, seen <em>where it counts.</em></h2></div>
+          <p>Upload once. Your portfolio reaches new clients in the feed, and sits in front of the ones already booking.</p>
         </header>
-        <ul className={styles.wall} aria-label="Work on a Vanta portfolio">
-          {[work.peony, work.headdress, work.flash, work.wings, work.olive].map(piece => <li key={piece.title} style={{ '--ratio': piece.width / piece.height }}>
-            <figure>
-              <img src={piece.src} alt={`${piece.title}, ${piece.style} tattoo`} width={piece.width} height={piece.height} loading="lazy"/>
-              <figcaption className={styles.placard}><strong>{piece.title}</strong><span>{piece.style}</span></figcaption>
-              {piece === work.flash && <span className={styles.tag}>Bookable flash</span>}
-            </figure>
-          </li>)}
-        </ul>
+        <div className={styles.channels}>
+          <article className={styles.channel}>
+            <div className={styles.channelText}><p className={styles.kicker}>1 · In the Vanta feed</p><h3>Get discovered</h3><p>Clients browse by style and save what they love. Every piece links back to you, and flash can be booked straight from the photo.</p></div>
+            <div className={styles.channelArt}>
+              <img className={styles.feedShot} src="/home/discover-feed.webp" alt="The Vanta feed of tattoo photos that clients browse" width="560" height="1218" loading="lazy"/>
+              <div className={styles.feedWall} aria-hidden="true">
+                {[work.peony, work.flash, work.wings].map(piece => <figure key={piece.title}><img src={piece.src} alt="" width={piece.width} height={piece.height} loading="lazy"/>{piece === work.flash && <span className={styles.tag}>Bookable flash</span>}</figure>)}
+              </div>
+            </div>
+          </article>
+          <article className={styles.channel}>
+            <div className={styles.channelText}><p className={styles.kicker}>2 · In your booking form</p><h3>Win the booking</h3><p>Clients who open your link are ready to book. Each appointment shows your example work, and they can tap a piece and say “I want this one”.</p></div>
+            <div className={styles.channelArt}><SessionTypeScreens/></div>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -430,7 +466,9 @@ export default function ArtistsPage() {
           <p>Free to download. Add your work, set your rules and share your link.</p>
           <Downloads/>
         </div>
-        <div className={styles.ctaArt} aria-hidden="true"><BookingFormPreview/></div>
+        <div className={styles.ctaArt} aria-hidden="true">
+          {[work.flash, work.peony, work.wings].map(piece => <img key={piece.title} src={piece.src} alt="" width={piece.width} height={piece.height} loading="lazy"/>)}
+        </div>
       </div>
     </section>
 

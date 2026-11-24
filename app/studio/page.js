@@ -1,7 +1,17 @@
-import ProductJourney from '@/components/ProductJourney';
+import StudioPage from './StudioPage';
+
 export const metadata = {
-  title: 'For Studios — Vanta',
-  description: 'Bookings, client records, consent, artist scheduling and studio finances. Step inside Vanta Studio.',
+  title: 'Vanta Studio — Run the whole studio from one desk',
+  description: 'Every artist’s schedule, every booking, every client and every payout, in one place built for tattoo studios. Bookings, consent, deposits and artist payouts on the web.',
   alternates: { canonical: 'https://vanta.tattoo/studio' },
 };
-export default function StudioPage() { return <ProductJourney audience="owner" />; }
+
+// The studio page is the same light gallery as the home and artist pages.
+export const viewport = {
+  themeColor: '#f3f3f1',
+  viewportFit: 'cover',
+};
+
+export default function Page() {
+  return <StudioPage />;
+}

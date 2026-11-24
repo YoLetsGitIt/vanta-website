@@ -16,7 +16,8 @@ const STUDIO_LINK_RE = /^\/(b|c|w)\/([a-z0-9-]{3,40})\/?$/i;
 // phones go to the store and computers to the artists page.
 const STUDIO_INVITE_RE = /^\/j\/[a-z0-9]{6,20}\/?$/i;
 const APP_STORE_URL = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
-const PLAY_URL = 'https://play.google.com/store/apps/details?id=vanta.tattoo';
+// The Android app is in closed beta, so link to the beta sign-up (the store page is Not Found until release).
+const PLAY_URL = 'https://play.google.com/apps/testing/vanta.tattoo';
 
 function storeFor(ua, touchPoints) {
   if (/android/i.test(ua)) return PLAY_URL;

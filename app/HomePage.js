@@ -5,7 +5,9 @@ import { afterSiteIntro } from '../lib/siteIntro';
 import styles from './home.module.css';
 
 const appStore = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
-const googlePlay = 'https://play.google.com/store/apps/details?id=vanta.tattoo';
+// The Android app is in closed beta: the public store page returns Not Found until it's released,
+// so every Google Play button opens the beta sign-up. Point this back at the store page on release.
+const googlePlay = 'https://play.google.com/apps/testing/vanta.tattoo';
 const googlePlayTesting = 'https://play.google.com/apps/testing/vanta.tattoo';
 
 // The wall: real work, hung on one centre line, each with a gallery placard.

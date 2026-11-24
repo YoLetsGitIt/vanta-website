@@ -88,7 +88,7 @@ const base = process.env.PUBLIC_TEST_URL || 'http://localhost:4174';
     }
     const android = await browser.newPage({ userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36' });
     await android.goto(base + '/');
-    await android.waitForFunction(() => document.querySelector('[aria-label="Join the Vanta Android beta on Google Play"]')?.href === 'https://play.google.com/store/apps/details?id=vanta.tattoo');
+    await android.waitForFunction(() => document.querySelector('[aria-label="Join the Vanta Android beta on Google Play"]')?.href === 'https://play.google.com/apps/testing/vanta.tattoo');
     await android.close();
     console.log('PASS Android: beta download opens Google Play');
   } finally { await browser.close(); }

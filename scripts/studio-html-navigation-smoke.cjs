@@ -40,7 +40,7 @@ const origin = new URL(base).origin;
           await page.goto(`${base}${from}`, { waitUntil: 'networkidle' });
           await page.getByRole('link', { name: 'For studios', exact: true }).first().click();
           await page.waitForURL(`${base}/studio`);
-          await page.getByRole('heading', { name: 'From the first hello to the final detail.' }).waitFor();
+          await page.getByRole('heading', { level: 1, name: /Run the whole studio from one desk/ }).waitFor();
           assert.equal(await page.evaluate(() => document.contentType), 'text/html');
           assert.equal(documents.at(-1), '/studio', 'The browser must load the actual HTML page');
           assert.deepEqual(dataRequests, [], 'Public navigation must not depend on the .txt page-data fetch');
@@ -57,20 +57,20 @@ const origin = new URL(base).origin;
     page.setDefaultTimeout(15000);
     for (const path of ['/studio', '/studio/', '/studio.html', '/studios/']) {
       await page.goto(`${base}${path}`, { waitUntil: 'networkidle' });
-      await page.getByRole('heading', { name: 'From the first hello to the final detail.' }).waitFor();
+      await page.getByRole('heading', { level: 1, name: /Run the whole studio from one desk/ }).waitFor();
       assert.equal(await page.evaluate(() => document.contentType), 'text/html');
       assert(!new URL(page.url()).pathname.endsWith('.txt'));
       results.push(`PASS direct ${path}: HTML and studio content`);
     }
     for (const path of ['/studio', '/studio/', '/studio.html']) {
       await page.goto(`${base}${path}`);
-      await page.getByRole('heading', { name: 'From the first hello to the final detail.' }).waitFor();
+      await page.getByRole('heading', { level: 1, name: /Run the whole studio from one desk/ }).waitFor();
       await page.reload();
-      await page.getByRole('heading', { name: 'From the first hello to the final detail.' }).waitFor();
+      await page.getByRole('heading', { level: 1, name: /Run the whole studio from one desk/ }).waitFor();
       assert.equal(await page.evaluate(() => document.contentType), 'text/html');
     }
     await page.goto(`${base}/`);
-    await page.getByRole('navigation', { name: 'For tattoo professionals' }).getByRole('link', { name: 'Vanta Studio' }).click();
+    await page.getByRole('navigation', { name: 'Vanta products' }).getByRole('link', { name: 'For studios' }).click();
     await page.waitForURL(`${base}/studio`);
     await page.goBack();
     await page.waitForURL(`${base}/`);
