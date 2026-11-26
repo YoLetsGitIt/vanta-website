@@ -59,3 +59,15 @@ test('a preview from the app carries unsaved choices, and nothing else', async (
   assert.equal(parsePreviewForm(''), null);
   assert.equal(parsePreviewForm(encode([1, 2])), null);
 });
+
+test('at a Vanta Studio studio only the studio form decides', () => {
+  const artist = { design_details: { enabled: true, required: true }, allergies: { enabled: true, required: true }, color: { enabled: false } };
+  const studio = { design_details: { enabled: true, required: false }, allergies: { enabled: false }, address: { enabled: true, required: true } };
+  assert.deepEqual(formQuestion(artist, studio, 'design_details', true), { asked: true, required: false });
+  assert.deepEqual(formQuestion(artist, studio, 'allergies', true), { asked: false, required: false });
+  assert.deepEqual(formQuestion(artist, studio, 'address', true), { asked: true, required: true });
+  // Colour is always asked on a studio's page, never required.
+  assert.deepEqual(formQuestion(artist, studio, 'color', true), { asked: true, required: false });
+  // Elsewhere the artist's form still decides.
+  assert.deepEqual(formQuestion(artist, studio, 'design_details'), { asked: true, required: true });
+});

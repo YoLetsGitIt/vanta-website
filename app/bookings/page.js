@@ -263,6 +263,8 @@ function BookingContent() {
   const [accountPassword, setAccountPassword] = useState('');
   // The booking's studio has its own booking form: ask the questions it asks.
   const [studioForm, setStudioForm] = useState(null);
+  // The booking's studio is on Vanta Studio: its form is the whole form there.
+  const [studioFormOnly, setStudioFormOnly] = useState(false);
   // The artist's own booking form: which questions they ask (Settings > Your forms).
   const [artistForm, setArtistForm] = useState(null);
   const [allergies, setAllergies] = useState('');
@@ -567,14 +569,17 @@ function BookingContent() {
   // Which studio the booking goes to: the one picked, or the instant booking's place.
   const bookingStudioId = (instantMode ? instantInfo?.studio_id : selectedStudio?.id) || '';
   useEffect(() => {
-    if (!bookingStudioId) { setStudioForm(null); return; }
+    if (!bookingStudioId) { setStudioForm(null); setStudioFormOnly(false); return; }
     const controller = new AbortController();
     fetch(`${BACKEND_URL}/studios/${bookingStudioId}/form-config`, { signal: controller.signal, cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : null)).then(cfg => setStudioForm(cfg?.fields || null)).catch(() => {});
+      .then(r => (r.ok ? r.json() : null)).then(cfg => {
+        setStudioForm(cfg?.fields || null);
+        setStudioFormOnly(Boolean(cfg?.managed && cfg?.fields));
+      }).catch(() => {});
     return () => controller.abort();
   }, [bookingStudioId]);
-  const asks = key => formQuestion(artistForm, studioForm, key).asked;
-  const needs = key => formQuestion(artistForm, studioForm, key).required;
+  const asks = key => formQuestion(artistForm, studioForm, key, studioFormOnly).asked;
+  const needs = key => formQuestion(artistForm, studioForm, key, studioFormOnly).required;
 
   function chooseStudio(id) {
     if (id === selectedStudioId) return;
@@ -1111,13 +1116,13 @@ function BookingContent() {
                     photoInputRef={photoInputRef}
                     onAddPhoto={handlePhotoChange} onRemovePhoto={removePhoto}
                     showBodyPicker={showBodyPicker} setShowBodyPicker={setShowBodyPicker}
-                    design={formQuestion(artistForm, studioForm, 'design_details')}
-                    placement={formQuestion(artistForm, studioForm, 'body_location')}
-                    size={{ ...formQuestion(artistForm, studioForm, 'size'), value: tattooSize, set: setTattooSize, unit: sizeUnit, setUnit: setSizeUnit }}
-                    skinTone={{ ...formQuestion(artistForm, studioForm, 'skin_tone'), value: skinTone, set: setSkinTone }}
-                    photos={formQuestion(artistForm, studioForm, 'image_paths')}
-                    colour={formQuestion(artistForm, studioForm, 'color')}
-                    notesQuestion={formQuestion(artistForm, studioForm, 'notes')}
+                    design={formQuestion(artistForm, studioForm, 'design_details', studioFormOnly)}
+                    placement={formQuestion(artistForm, studioForm, 'body_location', studioFormOnly)}
+                    size={{ ...formQuestion(artistForm, studioForm, 'size', studioFormOnly), value: tattooSize, set: setTattooSize, unit: sizeUnit, setUnit: setSizeUnit }}
+                    skinTone={{ ...formQuestion(artistForm, studioForm, 'skin_tone', studioFormOnly), value: skinTone, set: setSkinTone }}
+                    photos={formQuestion(artistForm, studioForm, 'image_paths', studioFormOnly)}
+                    colour={formQuestion(artistForm, studioForm, 'color', studioFormOnly)}
+                    notesQuestion={formQuestion(artistForm, studioForm, 'notes', studioFormOnly)}
                   />
                 )}
                 {page === 2 && instantMode && !studioStep && (instantInfo.places?.length || 0) > 1 && (
@@ -1137,7 +1142,7 @@ function BookingContent() {
                     artistSchedule={studioSchedule}
                     studios={studioStep ? [] : studios} selectedStudio={selectedStudio}
                     onChooseStudio={chooseStudio} restrictSchedule={restrictSchedule}
-                    availability={formQuestion(artistForm, studioForm, 'availability_windows')} artistName={artist?.name}
+                    availability={formQuestion(artistForm, studioForm, 'availability_windows', studioFormOnly)} artistName={artist?.name}
                   />
                 )}
                 {page === 3 && (
