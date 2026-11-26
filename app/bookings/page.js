@@ -255,6 +255,9 @@ function BookingContent() {
   }
   // "Send me SMS reminders", ticked unless the client unticks it. It becomes their setting.
   const [smsReminders, setSmsReminders] = useState(true);
+  // "Send me offers and updates" from the studio: never pre-ticked (Australian spam rules
+  // need the client to opt in themselves).
+  const [offers, setOffers] = useState(false);
   // "Create a Vanta account with these details", ticked like the reminders box; needs a password.
   const [createAccount, setCreateAccount] = useState(true);
   const [accountPassword, setAccountPassword] = useState('');
@@ -683,6 +686,7 @@ function BookingContent() {
         requester_email: contactEmail.trim(),
         requester_phone: contactPhone.trim(),
         sms_reminder_opt_in: smsReminders && !!contactPhone.trim(),
+        marketing_opt_in: offers,
         ...(asks('allergies') && allergies.trim() ? { allergies: allergies.trim() } : {}),
         ...(asks('address') && homeAddress.trim() ? { address: homeAddress.trim() } : {}),
         session_type: sessionType,
@@ -1142,6 +1146,7 @@ function BookingContent() {
                     email={contactEmail} setEmail={setContactEmail}
                     phoneCountry={phoneCountry} setPhoneCountry={setPhoneCountry} phone={phoneNumber} setPhone={setPhoneNumber}
                     smsReminders={smsReminders} setSmsReminders={setSmsReminders}
+                    offers={offers} setOffers={setOffers} studioName={selectedStudio?.name || instantInfo?.studio?.name || ''}
                     account={session ? null : { on: createAccount, setOn: setCreateAccount, password: accountPassword, setPassword: setAccountPassword }}
                     studioQuestions={{
                       allergies: asks('allergies') ? { value: allergies, set: setAllergies, required: needs('allergies') } : null,
@@ -2142,7 +2147,7 @@ function flagOf(code) {
   return String(code || '').toUpperCase().replace(/[A-Z]/g, ch => String.fromCodePoint(0x1f1e6 + ch.charCodeAt(0) - 65));
 }
 
-function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCountry, setPhoneCountry, phone, setPhone, smsReminders, setSmsReminders, studioQuestions, account, guest, dob, setDob }) {
+function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCountry, setPhoneCountry, phone, setPhone, smsReminders, setSmsReminders, offers, setOffers, studioName, studioQuestions, account, guest, dob, setDob }) {
   // Checked once the client leaves a field, so it doesn't complain while they type.
   const [touched, setTouched] = useState({});
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }));
@@ -2221,6 +2226,16 @@ function StepContact({ first, setFirst, last, setLast, email, setEmail, phoneCou
           <span style={{ display: 'block', color: 'var(--ink)', fontWeight: 600, fontSize: 14 }}>Send me SMS reminders</span>
           <span style={{ display: 'block', ...s.muted, fontSize: 12, margin: '2px 0 0', lineHeight: 1.5 }}>
             A text before your appointment. Reply STOP to any reminder to turn them off.
+          </span>
+        </span>
+      </label>
+
+      <label style={{ ...s.reminderOption, ...(offers ? s.reminderOptionOn : {}), marginTop: 12 }}>
+        <Checkbox checked={offers} onChange={setOffers} />
+        <span>
+          <span style={{ display: 'block', color: 'var(--ink)', fontWeight: 600, fontSize: 14 }}>Send me offers and updates</span>
+          <span style={{ display: 'block', ...s.muted, fontSize: 12, margin: '2px 0 0', lineHeight: 1.5 }}>
+            News and offers from {studioName || 'the studio'} by email and text. Optional; unsubscribe at any time.
           </span>
         </span>
       </label>
