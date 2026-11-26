@@ -1,17 +1,18 @@
 'use client';
 
+import { appScreens } from './AppScreens';
 import { useEffect, useRef, useState } from 'react';
 import styles from './artists.module.css';
 
-const appStore = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
+export const appStore = 'https://apps.apple.com/au/app/vanta-find-your-next-tattoo/id6760996738';
 // The Android app is a closed beta on Google Play: only invited testers can install it, and the Play
 // pages show "App not available" to everyone else. So the Android button asks people to email for an
 // invite, with the Google account to add. On release, point this at the store page again.
-const androidBeta = 'mailto:support@vanta.tattoo?subject=Vanta%20Android%20beta%20access&body=Hi%2C%20I%E2%80%99d%20like%20access%20to%20the%20Vanta%20Android%20beta.%20The%20Google%20account%20on%20my%20phone%20is%3A%20';
+export const androidBeta = 'mailto:support@vanta.tattoo?subject=Vanta%20Android%20beta%20access&body=Hi%2C%20I%E2%80%99d%20like%20access%20to%20the%20Vanta%20Android%20beta.%20The%20Google%20account%20on%20my%20phone%20is%3A%20';
 
 // The artist shown in the page's examples. The work is the same real work as the home page wall.
-const artist = { name: 'Mia', styles: 'Blackwork · Fine Line · Melbourne', avatar: '/welcome/wall-4.webp' };
-const work = {
+export const artist = { name: 'Mia', styles: 'Blackwork · Fine Line · Melbourne', avatar: '/welcome/wall-4.webp' };
+export const work = {
   peony: { src: '/welcome/wall-1.webp', width: 720, height: 1080, title: 'Peony', style: 'Fine Line' },
   olive: { src: '/welcome/wall-2.webp', width: 720, height: 900, title: 'Olive branch', style: 'Fine Line' },
   sleeve: { src: '/welcome/wall-3.webp', width: 720, height: 1080, title: 'Skull and rose', style: 'Old School' },
@@ -20,13 +21,13 @@ const work = {
   flash: { src: '/studio/flash-sheet.webp', width: 1024, height: 1536, title: 'Flash sheet', style: 'Old School' },
 };
 
-function useIsAndroid() {
+export function useIsAndroid() {
   const [isAndroid, setIsAndroid] = useState(false);
   useEffect(() => { setIsAndroid(navigator.userAgentData?.platform === 'Android' || /Android/i.test(navigator.userAgent)); }, []);
   return isAndroid;
 }
 
-function Downloads() {
+export function Downloads() {
   const isAndroid = useIsAndroid();
   return <div className={styles.downloads} aria-label="Get the Vanta app">
     <a href={appStore} className={styles.storeBadge} data-preferred={!isAndroid} target="_blank" rel="noopener noreferrer" aria-label="Download Vanta on the App Store">
@@ -43,7 +44,7 @@ function Downloads() {
 /* ---------- Hero: both sides of one booking ---------- */
 
 // A drawing of the booking form clients see on an artist's link: their work to pick from, then Book.
-function BookingFormPreview({ compact = false }) {
+export function BookingFormPreview({ compact = false }) {
   return <div className={styles.bookingForm}>
     <div className={styles.browserBar}><i/><i/><i/><span>yourname.vanta.tattoo</span></div>
     <div className={styles.formBody}>
@@ -59,7 +60,7 @@ function BookingFormPreview({ compact = false }) {
   </div>;
 }
 
-function DaySheet({ rows, title = 'Tue 17 Oct', className = '' }) {
+export function DaySheet({ rows, title = 'Tue 17 Oct', className = '' }) {
   return <div className={`${styles.daySheet} ${className}`}>
     <div className={styles.sheetHead}><span>{title}</span><span>{rows.filter(row => row.time !== 'New').length} sessions</span></div>
     {rows.map(row => <div key={row.time + row.name} className={styles.sheetRow}>
@@ -70,12 +71,12 @@ function DaySheet({ rows, title = 'Tue 17 Oct', className = '' }) {
   </div>;
 }
 
-const heroDay = [
+export const heroDay = [
   { time: '10:00', name: 'Sam Taylor', status: '✓ deposit', state: 'done' },
   { time: '14:00', name: 'Alex Morgan', status: '✓ consent', state: 'done' },
   { time: '16:30', name: 'Jamie Lee', status: '✓ reminded', state: 'done' },
 ];
-const fullDay = [
+export const fullDay = [
   { time: '10:00', name: 'Sam Taylor', detail: 'Fine line peony · inner forearm · 3h', status: '✓ deposit paid', state: 'done' },
   { time: '14:00', name: 'Alex Morgan', detail: 'Old school rose · hand · 2h', status: '✓ consent signed', state: 'done' },
   { time: '16:30', name: 'Jamie Lee', detail: 'Consult · blackwork back piece', status: '✓ reminder sent', state: 'done' },
@@ -87,15 +88,15 @@ const fullDay = [
 // Every question maps to a setting in the Vanta app.
 // Two questions: how you price, then how clients book. The rest start from a typical setup and can be
 // changed in the sentence. Answers live only in this component's state: nothing is sent, stored or remembered.
-const questions = [
-  { key: 'type', title: 'Do you have a fixed rate, or do you quote each piece?', help: 'Each of your appointment types can have a set price, or you quote every client.',
-    options: [['fixed', 'A fixed rate', 'Clients see the price before they book'], ['quote', 'I quote each piece', 'You send a price once you’ve seen the idea'], ['mix', 'A bit of both', 'Set prices for some work, quotes for the rest']] },
-  { key: 'time', title: 'Do you want clients to book a slot straight away?', help: 'Or would you rather hear from them first and choose the time together?',
-    options: [['instant', 'Yes, straight into a slot', 'They pick one of your open times and pay the deposit'], ['avail', 'They tell me when they’re free', 'You offer the times that suit you']] },
+export const questions = [
+  { key: 'type', title: 'How do you price your work?',
+    options: [['fixed', 'A set rate'], ['quote', 'I quote each piece'], ['mix', 'A bit of both']] },
+  { key: 'time', title: 'Can clients book a slot straight away?',
+    options: [['instant', 'Yes, straight into a slot'], ['avail', 'No, they tell me when they’re free']] },
 ];
 // The usual setup: a $50 deposit that's never refunded, and clients can cancel or move up to 48 hours before.
-const typicalSetup = { time: 'instant', type: 'fixed', photos: 'req', dep: '50', consent: 'mine', notice: '48', cancel: 'never' };
-const sentenceChoices = {
+export const typicalSetup = { time: 'instant', type: 'fixed', photos: 'req', dep: '50', consent: 'mine', notice: '48', cancel: 'never' };
+export const sentenceChoices = {
   time: [['instant', 'book an open time straight away'], ['avail', 'tell me when they’re free']],
   type: [['fixed', 'my set rate of $250 for 2 hours'], ['quote', 'a price I quote for each piece'], ['mix', 'set prices for flash, quotes for custom work']],
   photos: [['req', 'must add reference photos'], ['opt', 'can add reference photos'], ['off', 'skip reference photos']],
@@ -133,7 +134,7 @@ function Choice({ name, label, value, onChange, after = '' }) {
 // Which part of the client's form each setting changes, so that part can flash when it does.
 const previewPart = { time: 'time', type: 'type', photos: 'idea', consent: 'consent', dep: 'pay', notice: 'pay', cancel: 'pay' };
 
-function ClientPreview({ setup, flash }) {
+export function ClientPreview({ setup, flash }) {
   const instant = setup.time === 'instant';
   const lit = part => (flash && previewPart[flash.key] === part ? String(flash.n) : undefined);
   const pay = setup.dep === '0' ? (instant ? 'Book' : 'Send request') : instant ? `Pay $${setup.dep} and book` : `Send request · $${setup.dep} deposit when you pick a time`;
@@ -167,7 +168,7 @@ const sessionTypes = [
 function Clock() {
   return <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.4"/><path d="M8 4.8V8l2.2 1.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>;
 }
-function SessionTypeScreens() {
+export function SessionTypeScreens() {
   return <div className={styles.sessionScreens} aria-hidden="true">
     <div className={styles.sessionScreen}>
       <div className={styles.sessionTop}><span>‹</span><b>Session Type</b><i/></div>
@@ -179,9 +180,10 @@ function SessionTypeScreens() {
         <div className={styles.sessionMain}>
           <b>{type.name}</b><span className={styles.sessionLen}><Clock/>{type.length}</span>
           {type.detail && <span className={styles.sessionDetail}>{type.detail}</span>}
+          {type.quoted && <span className={styles.quotedBelow}>Quoted on request</span>}
           {type.work && <div className={styles.sessionWork}><small>Example work</small><div>{type.work.map(piece => <img key={piece.title} src={piece.src} alt="" width="120" height="120" loading="lazy" data-on={piece === work.peony}/>)}</div></div>}
         </div>
-        <div className={styles.sessionPrice}>{type.quoted ? <small>Quoted on request</small> : <><b>{type.price}</b>{type.priceNote && <small>{type.priceNote}</small>}</>}</div>
+        <div className={styles.sessionPrice}>{type.quoted ? <small className={styles.quotedSide}>Quoted on request</small> : <><b>{type.price}</b>{type.priceNote && <small>{type.priceNote}</small>}</>}</div>
       </div>)}
     </div>
     <div className={styles.pieceSheet}>
@@ -190,6 +192,150 @@ function SessionTypeScreens() {
       <div className={styles.pieceButtons}><span>I want this one</span></div>
     </div>
   </div>;
+}
+
+
+// One line icon per setting, drawn on a 24 grid with a 1.7 stroke so they read as one set.
+const settingIconPaths = {
+  bolt: 'M13 3 5 13.5h6L10 21l8-10.5h-6L13 3Z',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 7.5V12l3 2',
+  calendarOff: 'M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4M10 13.5l4 4M14 13.5l-4 4',
+  hourglass: 'M7 3.5h10M7 20.5h10M8 3.5c0 4.5 8 5 8 8.5s-8 4-8 8.5M16 3.5c0 4.5-8 5-8 8.5s8 4 8 8.5',
+  list: 'M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01',
+  tag: 'M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.7 6.7a1.4 1.4 0 0 1-2 0L3.5 12.2ZM8 8h.01',
+  coins: 'M9 10.5c3.3 0 6-1.1 6-2.5S12.3 5.5 9 5.5 3 6.6 3 8s2.7 2.5 6 2.5ZM3 8v4c0 1.4 2.7 2.5 6 2.5M3 12v4c0 1.4 2.7 2.5 6 2.5M15 13.5c3.3 0 6-1.1 6-2.5M9 16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-5c0-1.4-2.7-2.5-6-2.5',
+  image: 'M4 4.5h16v15H4zM4 16l4.5-4.5 4 4L15 13l5 5M15.5 9h.01',
+  sparkle: 'M12 3.5 13.8 10l6.7 2-6.7 2L12 20.5 10.2 14l-6.7-2 6.7-2L12 3.5Z',
+  checklist: 'M10.5 6.5H20M10.5 12H20M10.5 17.5H20M4 6.5l1.5 1.5L8 5.5M4 12l1.5 1.5L8 11M4 17.5l1.5 1.5L8 16.5',
+  studio: 'M3.5 20.5h17M5 20.5V9.5l7-5 7 5v11M9.5 20.5v-6h5v6',
+  wallet: 'M4 7.5v11a1.5 1.5 0 0 0 1.5 1.5h14v-12h-14A1.5 1.5 0 0 1 4 6.5 1.5 1.5 0 0 1 5.5 5H17M16 14h.01',
+  card: 'M3 6h18v12.5H3zM3 10h18M6.5 15h3',
+  percent: 'M18.5 5.5l-13 13M7.5 9.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM16.5 18.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
+  refund: 'M4 9h11a5 5 0 0 1 0 10H8M4 9l4-4M4 9l4 4',
+  move: 'M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4M9 15h6M13 13l2 2-2 2',
+  sign: 'M14.5 4.5l5 5L9 20H4v-5L14.5 4.5ZM12 7l5 5',
+  sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 4.5v5M9 14.5v5',
+  eye: 'M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12ZM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
+};
+export function SettingIcon({ name }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={settingIconPaths[name]}/></svg>;
+}
+
+// Every booking setting an artist has in the app (Profile → Booking settings, Hours & Rates, Booking form,
+// Deposits), in the app's own words. "inQuiz" marks the ones the questionnaire above already lets you try.
+export const allSettings = [
+  { group: 'How clients pick a time', items: [
+    ['Book instantly or weekly availability', 'Clients take an open time and pay the deposit, or tell you when they’re free and you send times.', true, 'bolt'],
+    ['Working hours', 'Your hours for each day of the week, and which studio you’re at.', false, 'clock'],
+    ['Time off and one-off hours', 'Block a date, or set different hours for holidays, conventions and guest days.', false, 'calendarOff'],
+    ['Buffer before and after', 'Setup and clean-up time kept free around every session.', false, 'hourglass'],
+  ] },
+  { group: 'What clients book and the price', items: [
+    ['Appointment types', 'Name each one, set its length and say what’s included.', false, 'list'],
+    ['A set price, or quote each client', 'Give a type a price, or leave it empty to quote every piece.', true, 'tag'],
+    ['Your rates', 'Hourly, half day and full day.', false, 'coins'],
+    ['Example work for each type', 'Link your tattoos to a type, and clients see them when they choose it.', false, 'image'],
+    ['Bookable flash', 'One-off or repeatable, with a size, a price and an end date if it’s limited.', false, 'sparkle'],
+  ] },
+  { group: 'Your booking form', items: [
+    ['Each question: required, optional or off', 'Design description, placement, size, colour, reference photos (up to 5), additional notes, skin tone, allergies, home address and weekly availability.', true, 'checklist'],
+    ['A form for each studio', 'Keep your default form, or make one just for one studio.', false, 'studio'],
+  ] },
+  { group: 'Deposits and payment', items: [
+    ['Require a deposit', 'On or off, and the amount. Clients pay before the booking is confirmed.', true, 'wallet'],
+    ['How clients pay', 'Card, Apple Pay and Google Pay, paid out to your Stripe account.', false, 'card'],
+    ['Who pays the Vanta booking fee', 'Added on top of the deposit for the client, or taken out of the deposit by you.', false, 'percent'],
+  ] },
+  { group: 'Cancellations and reschedules', items: [
+    ['Deposit refund', 'Never, or back if they cancel at least 24 hours, 48 hours, 72 hours or 7 days before.', true, 'refund'],
+    ['Reschedule notice', 'How far ahead a client can move a booking themselves, or never.', true, 'move'],
+  ] },
+  { group: 'Consent', items: [
+    ['Your consent form', 'Your own questions and agreements, with or without a signature.', true, 'sign'],
+    ['A consent form for each studio', 'Use your default form, or make one just for one studio.', false, 'studio'],
+  ] },
+];
+export const settingCount = allSettings.reduce((total, group) => total + group.items.length, 0);
+
+// The full list opens in a native modal dialog: Esc and the close button shut it, and focus returns to
+// the button that opened it. On a phone it rises as a sheet.
+export function AllSettings({ variant = 'bar' }) {
+  const dialog = useRef(null);
+  const open = () => dialog.current?.showModal();
+  const close = () => dialog.current?.close();
+  return <>
+    {variant === 'row'
+      ? <button type="button" className={styles.moreRow} onClick={open} aria-haspopup="dialog"><span className={styles.settingIcon}><SettingIcon name="sliders"/></span><span><b>See every setting</b><small>{settingCount} in all, set per studio</small></span><i aria-hidden="true">›</i></button>
+      : <div className={styles.moreSettings}>
+        <p><b>That’s just the start.</b> {settingCount} settings in all, set per studio.</p>
+        <button type="button" className={styles.moreButton} onClick={open} aria-haspopup="dialog"><SettingIcon name="sliders"/>See every setting<span aria-hidden="true">{settingCount}</span></button>
+      </div>}
+    <dialog ref={dialog} className={styles.settingsDialog} aria-labelledby="all-settings-heading" onClick={event => { if (event.target === dialog.current) close(); }}>
+      <div className={styles.dialogBody}>
+        <header className={styles.dialogHead}>
+          <div><p className={styles.kicker}>Booking settings in Vanta Artist</p><h3 id="all-settings-heading">Every setting</h3></div>
+          <button type="button" className={styles.dialogClose} onClick={close} aria-label="Close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg></button>
+        </header>
+        <p className={styles.dialogLead}>Set once, then change any of it whenever you like. Studios on Vanta Studio can set some of these for bookings at their studio.</p>
+        <div className={styles.settingGroups}>
+          {allSettings.map(group => <div key={group.group} className={styles.settingGroup}>
+            <h4>{group.group}</h4>
+            <ul>{group.items.map(([title, detail, inQuiz, icon]) => <li key={title}><span className={styles.settingIcon} data-try={inQuiz || undefined}><SettingIcon name={icon}/></span><b>{title}{inQuiz && <span className={styles.tryTag}>Try it above</span>}</b><span>{detail}</span></li>)}</ul>
+          </div>)}
+        </div>
+      </div>
+    </dialog>
+  </>;
+}
+
+// Marks the parts of the page you can play with: a violet pill with a softly pulsing dot.
+export function TryBadge({ children = 'Try it' }) {
+  return <span className={styles.tryBadge}><i aria-hidden="true"/>{children}</span>;
+}
+export function LiveLabel({ children }) {
+  return <p className={styles.liveLabel}><span><i aria-hidden="true"/>Live preview</span>{children}</p>;
+}
+
+// Until both questions are answered the page ends here: the sections after this one and the footer are hidden
+// (main carries data-quiz-locked from the first render, so nothing flashes), and they open for good on the first
+// result. While locked, the quiz card is lit when it reaches the middle of the screen (data-spotlight), and
+// trying to scroll past the end gives it a small bump and shakes the lock (data-nudge).
+export function useQuizGate(done) {
+  const section = useRef(null);
+  useEffect(() => {
+    const el = section.current, main = el?.closest('main');
+    if (!el || !main) return;
+    if (done) { main.removeAttribute('data-quiz-locked'); el.removeAttribute('data-spotlight'); return; }
+    if (!main.hasAttribute('data-quiz-locked')) return;
+    const card = el.querySelector('[data-quiz-card]');
+    const io = card && new IntersectionObserver(([entry]) => el.toggleAttribute('data-spotlight', entry.isIntersecting), { rootMargin: '-38% 0px -38% 0px' });
+    if (card) io.observe(card);
+    const scroller = () => (main.scrollHeight > main.clientHeight + 1 ? main : document.scrollingElement);
+    const atEnd = () => { const s = scroller(); return s.scrollTop + s.clientHeight >= s.scrollHeight - 4; };
+    let last = 0, timer;
+    const nudge = () => {
+      const now = Date.now();
+      if (now - last < 900 || !atEnd()) return;
+      last = now;
+      el.removeAttribute('data-nudge'); void el.offsetWidth; el.setAttribute('data-nudge', '');
+      clearTimeout(timer); timer = setTimeout(() => el.removeAttribute('data-nudge'), 1400);
+    };
+    const onWheel = e => { if (e.deltaY > 4) nudge(); };
+    const onKey = e => { if (['ArrowDown', 'PageDown', 'End', ' '].includes(e.key) && !e.target.closest?.('input, textarea, select, button, [contenteditable]')) nudge(); };
+    let startY = null;
+    const onStart = e => { startY = e.touches[0].clientY; };
+    const onMove = e => { if (startY != null && startY - e.touches[0].clientY > 24) { startY = null; nudge(); } };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: true });
+    return () => {
+      io?.disconnect(); clearTimeout(timer);
+      window.removeEventListener('wheel', onWheel); window.removeEventListener('keydown', onKey);
+      window.removeEventListener('touchstart', onStart); window.removeEventListener('touchmove', onMove);
+    };
+  }, [done]);
+  return section;
 }
 
 function YourRules() {
@@ -202,6 +348,8 @@ function YourRules() {
   const question = questions[step];
   // While answering, the preview already follows the answers given so far.
   const shown = done ? setup : { ...typicalSetup, ...answers };
+  // The preview stays hidden until both questions are answered (or skipped), then rises in as the result.
+  const started = done;
   useEffect(() => { if (heading.current && (done || step > 0)) heading.current.focus({ preventScroll: true }); }, [done, step]);
   const lightUp = key => setFlash(current => ({ key, n: (current?.n || 0) + 1 }));
   function finish(final) { setSetup({ ...typicalSetup, ...final }); setDone(true); }
@@ -212,23 +360,25 @@ function YourRules() {
   }
   function change(key, value) { setSetup({ ...setup, [key]: value }); lightUp(key); }
   function restart() { setAnswers({}); setStep(0); setDone(false); setFlash(null); }
-  return <section id="your-rules" className={styles.rules} aria-labelledby="rules-heading" data-reveal>
+  const gate = useQuizGate(done);
+  return <section ref={gate} id="your-rules" className={styles.rules} aria-labelledby="rules-heading" data-reveal>
     <div className={styles.inner}>
       <header className={styles.formHead}>
         <div><p className={styles.kicker}>Your bookings</p><h2 id="rules-heading">Your rules. <em>Your way.</em></h2></div>
-        <p>Vanta doesn’t make you work one way. Answer two questions and see what your clients would get.</p>
+        <p>Answer two questions to see your booking page.</p>
       </header>
       <div className={styles.flow}>
-        <div className={styles.flowMain}>
+        <div className={styles.flowMain} data-quiz-card="">
           {!done ? <div className={styles.quiz}>
-            <p className={styles.stepCount}>{step + 1} / {questions.length}</p>
+            <div className={styles.quizTop}><TryBadge/><span>Question {step + 1} of {questions.length}</span></div>
+            <div className={styles.progress} aria-hidden="true"><i style={{ width: `${((step + 1) / questions.length) * 100}%` }}/></div>
             <h3 key={`q-${step}`} ref={heading} tabIndex={-1} className={styles.question}>{question.title}</h3>
-            <p className={styles.questionHelp}>{question.help}</p>
             <div key={`a-${step}`} className={styles.answers} role="group" aria-label={question.title}>
               {question.options.map(([value, title, detail]) => <button key={value} type="button" aria-pressed={answers[question.key] === value} onClick={() => answer(value)}><b>{title}</b>{detail && <span>{detail}</span>}<i aria-hidden="true">→</i></button>)}
             </div>
-            <div className={styles.quizLinks}>{step > 0 && <button type="button" onClick={() => setStep(step - 1)}>← Back</button>}<button type="button" onClick={() => finish(answers)}>Skip to the result →</button><span className={styles.privacyNote}>Nothing you pick is saved or sent.</span></div>
+            <div className={styles.quizLinks}>{step > 0 && <button type="button" onClick={() => setStep(step - 1)}>← Back</button>}<span className={styles.privacyNote}>Nothing is saved.</span></div>
           </div> : <div className={styles.result}>
+            <div className={styles.quizTop}><TryBadge/><span>Tap a violet phrase to change it</span></div>
             <h3 ref={heading} tabIndex={-1} className={styles.sentence}>
               Clients <Choice name="time" label="How clients pick a time" value={setup.time} onChange={change} after=","/>{' '}
               at <Choice name="type" label="Pricing" value={setup.type} onChange={change} after="."/>{' '}
@@ -238,13 +388,22 @@ function YourRules() {
               and can cancel or move it up to <Choice name="notice" label="Cancel and reschedule notice" value={setup.notice} onChange={change}/>{' '}
               before, but <Choice name="cancel" label="Deposit refund" value={setup.cancel} onChange={change} after="."/>
             </h3>
-            <div className={styles.quizLinks}><button type="button" onClick={restart}>← Start again</button><span className={styles.privacyNote}>Tap a violet phrase to change it. Prices are examples.</span></div>
+            <div className={styles.quizLinks}><button type="button" onClick={restart}>← Start again</button><span className={styles.privacyNote}>Nothing is saved.</span></div>
           </div>}
         </div>
         <div className={styles.flowPreview}>
-          <ClientPreview setup={shown} flash={flash}/>
+          {started ? <div className={styles.previewIn}>
+            <LiveLabel>Updates as you change it</LiveLabel>
+            <ClientPreview setup={shown} flash={flash}/>
+          </div> : <div className={styles.previewWaiting}>
+            <span className={styles.waitingPhone} aria-hidden="true"><i/><i/><i/><i/></span>
+            <p><b>Your booking page appears here</b>Answer both questions to see it.</p>
+          </div>}
         </div>
       </div>
+      {/* The full list is part of the result: it only appears once both questions are answered. */}
+      {done && <div className={styles.previewIn}><AllSettings/></div>}
+      <p className={styles.gateNote}><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7.5" rx="2"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>Answer both questions to see the rest of the page.</p>
     </div>
   </section>;
 }
@@ -252,7 +411,7 @@ function YourRules() {
 /* ---------- The page ---------- */
 
 // The booking form: every question can be required, optional or off, as in the app (Booking settings → Booking form).
-const formQuestions = [
+export const formQuestions = [
   { key: 'design', group: 'tattoo', title: 'Design description', mode: 'required', sample: 'Peony with a few leaves, fine line' },
   { key: 'placement', group: 'tattoo', title: 'Placement', mode: 'required', sample: 'Inner forearm' },
   { key: 'photos', group: 'tattoo', title: 'Reference photos', mode: 'required' },
@@ -263,8 +422,8 @@ const formQuestions = [
   { key: 'allergies', group: 'client', title: 'Allergies', mode: 'off', sample: 'None' },
   { key: 'address', group: 'client', title: 'Home address', mode: 'off', sample: '12 Smith St, Fitzroy 3065' },
 ];
-const formGroups = [['tattoo', 'Their tattoo'], ['client', 'About them']];
-const modes = [['required', 'Required'], ['optional', 'Optional'], ['off', 'Off']];
+export const formGroups = [['tattoo', 'Their tattoo'], ['client', 'About them']];
+export const modes = [['required', 'Required'], ['optional', 'Optional'], ['off', 'Off']];
 
 function BookingFormBuilder({ header, note }) {
   const [chosen, setChosen] = useState(() => Object.fromEntries(formQuestions.map(question => [question.key, question.mode])));
@@ -308,18 +467,40 @@ function BookingFormBuilder({ header, note }) {
 
 // Vanta Pro, shown from the client's side: the day before the appointment their phone has the
 // artist's reminder text and emails, all from the artist. Each perk lights up its notifications.
-const proPerks = [
+export const proPerks = [
   { key: 'remind', title: 'Reminders that go out for you', text: 'Emails 7 days and 24 hours before, and a text the day before for clients who agree to SMS. Clients with the Vanta app get a notification instead.' },
   { key: 'inbox', title: 'Emails from your own inbox', text: 'Confirmations and reminders come from your Gmail or Outlook, so clients reply straight to you.' },
   { key: 'link', title: 'Your own booking address', text: 'A short link that’s yours, for your bio and your cards.' },
 ];
 // Worded as Vanta sends them: texts come from Vanta's number with the artist's name first;
 // reminder emails come from the artist's own mailbox.
-const lockNotifications = [
+export const lockNotifications = [
   { app: 'Messages', icon: 'sms', when: 'now', from: 'Vanta', text: <>{artist.name}: Appointment reminder for Tue 17 Oct, 2:00pm AEDT. Details or stop SMS: <u>link</u></>, perks: ['remind'] },
   { app: 'Gmail', icon: 'mail', when: '2:00 pm', from: `${artist.name} <mia.tattoo@gmail.com>`, text: `Appointment reminder from ${artist.name} · Hi Sam, your appointment with ${artist.name} is on Tuesday 17 October at 2:00 pm.`, perks: ['remind', 'inbox'] },
   { app: 'Gmail', icon: 'mail', when: 'Tue 10 Oct', from: `${artist.name} <mia.tattoo@gmail.com>`, text: `Appointment reminder from ${artist.name} · Hi Sam, your appointment with ${artist.name} is on Tuesday 17 October.`, perks: ['remind', 'inbox'] },
 ];
+
+// The client's lock screen the day before the appointment, with the artist's reminders on it.
+export function LockPhone({ focus }) {
+  return <figure className={styles.lockPhone} data-focus={focus || undefined} aria-label="A client’s lock screen the day before their appointment, with reminders from their artist">
+    <div className={styles.lockScreen}>
+      <img className={styles.lockWallpaper} src={work.peony.src} alt="" width={work.peony.width} height={work.peony.height} loading="lazy"/>
+      <div className={styles.lockInner}>
+        <div className={styles.lockStatus} aria-hidden="true"><span>2:00</span><i/><span>5G</span></div>
+        <p className={styles.lockDate}>Monday 16 October</p>
+        <p className={styles.lockTime} aria-hidden="true">2:00</p>
+        <div className={styles.lockStack}>
+          {lockNotifications.map((note, index) => <div key={index} className={styles.notification} data-on={focus ? note.perks.includes(focus) : undefined}>
+            <span className={styles.noteIcon} data-icon={note.icon} aria-hidden="true">{note.icon === 'mail' ? 'M' : ''}</span>
+            <span className={styles.noteTop}>{note.app}<span>{note.when}</span></span>
+            <span className={styles.noteFrom}>{note.from}</span>
+            <span className={styles.noteText}>{note.text}</span>
+          </div>)}
+        </div>
+      </div>
+    </div>
+  </figure>;
+}
 
 function VantaPro() {
   const [focus, setFocus] = useState(null);
@@ -339,24 +520,7 @@ function VantaPro() {
           <div className={styles.proPrice}><b>A$9.99</b><span>a month · cancel anytime</span></div>
         </div>
         <div className={styles.lockStage}>
-        <figure className={styles.lockPhone} data-focus={focus || undefined} aria-label="A client’s lock screen the day before their appointment, with reminders from their artist">
-          <div className={styles.lockScreen}>
-            <img className={styles.lockWallpaper} src={work.peony.src} alt="" width={work.peony.width} height={work.peony.height} loading="lazy"/>
-            <div className={styles.lockInner}>
-              <div className={styles.lockStatus} aria-hidden="true"><span>2:00</span><i/><span>5G</span></div>
-              <p className={styles.lockDate}>Monday 16 October</p>
-              <p className={styles.lockTime} aria-hidden="true">2:00</p>
-              <div className={styles.lockStack}>
-                {lockNotifications.map((note, index) => <div key={index} className={styles.notification} data-on={focus ? note.perks.includes(focus) : undefined}>
-                  <span className={styles.noteIcon} data-icon={note.icon} aria-hidden="true">{note.icon === 'mail' ? 'M' : ''}</span>
-                  <span className={styles.noteTop}>{note.app}<span>{note.when}</span></span>
-                  <span className={styles.noteFrom}>{note.from}</span>
-                  <span className={styles.noteText}>{note.text}</span>
-                </div>)}
-              </div>
-            </div>
-          </div>
-        </figure>
+        <LockPhone focus={focus}/>
           <p className={styles.bioLink} data-on={focus === 'link' ? 'true' : undefined}><span>Link in bio</span><b>mia.vanta.tattoo</b></p>
         </div>
       </div>
@@ -381,7 +545,7 @@ export default function ArtistsPage() {
     root.querySelectorAll('[data-reveal]').forEach(element => observer.observe(element));
     return () => observer.disconnect();
   }, []);
-  return <main ref={page} className={`gallery ${styles.page}`} aria-label="Vanta for artists">
+  return <main ref={page} className={`gallery ${styles.page} ${styles.desktopPage}`} aria-label="Vanta for artists" data-quiz-locked="">
     <header className={styles.navigation}>
       <a href="/" aria-label="Vanta home" className={styles.wordmark}>vanta</a>
       <nav aria-label="Vanta products"><a href="/">For clients</a><a href="/studio">For studios</a><a href={isAndroid ? androidBeta : appStore} className={styles.navCta} {...(isAndroid ? {} : { target: '_blank', rel: 'noopener noreferrer' })}>Get the app</a></nav>
@@ -418,16 +582,16 @@ export default function ArtistsPage() {
     </section>
 
     <section id="your-day" className={styles.day} aria-labelledby="day-heading" data-reveal>
-      <div className={`${styles.inner} ${styles.dayGrid}`}>
-        <div className={styles.dayCopy}>
-          <p className={styles.kicker}>For you</p>
-          <h2 id="day-heading">Every request arrives with <em>everything you need.</em></h2>
+      <div className={styles.inner}>
+        <header className={styles.formHead}>
+          <div><p className={styles.kicker}>For you</p><h2 id="day-heading">Every request arrives with <em>everything you need.</em></h2></div>
           <p>The idea, the photos, the deposit and the signed consent, before the client walks in. Vanta sends the reminders, and your day is laid out when you open the app.</p>
-          <DaySheet rows={fullDay}/>
-        </div>
-        <div className={styles.phones}>
-          <figure><img src="/home/artist-bookings.webp" alt="Vanta bookings calendar for October with the day’s three confirmed clients" width="600" height="1304" loading="lazy"/><figcaption className={styles.placard}><strong>Bookings</strong><span>Inside the Vanta app</span></figcaption></figure>
-          <figure><img src="/home/booking-details.webp" alt="Vanta booking details with the quote, duration, deposit, booking fee, the proposed time and the client’s design and placement" width="600" height="1305" loading="lazy"/><figcaption className={styles.placard}><strong>Booking details</strong><span>Inside the Vanta app</span></figcaption></figure>
+        </header>
+        <div className={styles.dayScreens}>
+          {appScreens.map(({ key, title, note, Screen }, index) => <figure key={key}>
+            <Screen/>
+            <figcaption className={styles.placard}><strong>{index + 1} · {title}</strong><span>{note}</span></figcaption>
+          </figure>)}
         </div>
       </div>
     </section>

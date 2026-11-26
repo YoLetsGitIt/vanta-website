@@ -10,12 +10,19 @@
   z-index: 2147483647;
   touch-action: none;
   overscroll-behavior: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+
+.typewriter-overlay[data-tone='light'] { background: #f3f3f1; }
 
 .typewriter-container {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Optical centre: a touch above the middle, clear of a phone's bottom browser bar. */
+  transform: translateY(-4vh);
+  padding: 0 24px;
 }
 
 .typewriter-text {
@@ -27,7 +34,23 @@
   line-height: 1;
   -webkit-user-select: none;
   user-select: none;
+  display: inline-grid;
+  white-space: nowrap;
 }
+
+/* The sizer and the typed word share one grid cell: the sizer holds the width, the word types from its left edge. */
+.typewriter-text::before, .typewriter-typed { grid-area: 1 / 1; }
+.typewriter-text::before { content: attr(data-sizer); visibility: hidden; }
+.typewriter-hash { color: #8f7bff; }
+
+.typewriter-overlay[data-tone='light'] .typewriter-text {
+  font-family: var(--font-gallery), var(--font-heading), 'Inter Tight', -apple-system, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: #111214;
+}
+.typewriter-overlay[data-tone='light'] .typewriter-hash { color: #5a3fd6; }
+.typewriter-overlay[data-tone='light'] .typewriter-cursor { color: #5a3fd6; }
 
 .typewriter-cursor {
   display: inline-block;

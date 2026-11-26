@@ -96,7 +96,7 @@
 /* Your rules: the questions (then the sentence) beside the client's form, which follows every answer */
 .rules { padding: var(--section) var(--gutter); background: var(--g-wall-2); scroll-margin-top: 0; }
 .flow { margin-top: clamp(36px, 4vw, 56px); display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr); gap: clamp(20px, 2.4vw, 32px); align-items: stretch; }
-.flowMain { background: var(--g-wall); border-radius: 24px; padding: clamp(24px, 3.4vw, 52px); display: grid; align-content: center; }
+.flowMain { background: var(--g-wall); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--g-stencil) 40%, transparent); border-radius: 24px; padding: clamp(24px, 3.4vw, 52px); display: grid; align-content: center; }
 .flowPreview { display: grid; gap: 12px; align-content: start; position: sticky; top: 24px; }
 .quiz, .result { display: grid; gap: 0; }
 .quizTop { display: flex; justify-content: space-between; align-items: center; gap: 8px 16px; flex-wrap: wrap; font: 400 12.5px/1.4 var(--g-mono); color: var(--g-placard); }
@@ -125,6 +125,56 @@
 .choiceBox select option { color: var(--g-ink); font-size: 16px; }
 .choiceBox svg { position: absolute; right: 9px; top: 50%; width: 12px; height: 12px; margin-top: -6px; color: var(--g-stencil); pointer-events: none; }
 .measure { position: absolute; left: 0; top: 0; visibility: hidden; white-space: pre; pointer-events: none; }
+/* Below the questions: a line and a button that opens every setting in a dialog */
+.moreSettings { margin-top: clamp(16px, 2vw, 24px); display: flex; align-items: center; justify-content: space-between; gap: 16px 32px; flex-wrap: wrap; padding: 18px 18px 18px clamp(20px, 2.4vw, 32px); border-radius: 20px; background: var(--g-wall); }
+.moreSettings p { font-size: 16px; line-height: 1.5; color: var(--g-ink-2); max-width: 60ch; }
+.moreSettings p b { color: var(--g-ink); font-weight: 600; }
+.moreButton { display: inline-flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 10px 0 18px !important; border-radius: 999px !important; background: var(--g-ink) !important; color: var(--g-on-ink, #fff) !important; font-size: 15px !important; font-weight: 600 !important; letter-spacing: -0.01em; touch-action: manipulation; user-select: none; -webkit-user-select: none; transition: transform .12s ease-out, background-color .2s; }
+.moreButton > svg { width: 18px; height: 18px; flex: none; margin-right: -4px; }
+.moreButton span { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 999px; background: var(--g-stencil); color: #fff; font: 500 13px/1 var(--g-mono); }
+.moreButton:active { transform: scale(.97); }
+.settingsDialog { width: min(920px, calc(100vw - 2 * var(--gutter))); max-height: min(86vh, 900px); max-height: min(86dvh, 900px); margin: auto; padding: 0; border: 0; border-radius: 24px; background: var(--g-wall); color: var(--g-ink); box-shadow: 0 40px 80px -30px rgba(17,18,20,.45); overscroll-behavior: contain; }
+.settingsDialog::backdrop { background: rgba(17,18,20,.5); }
+.settingsDialog[open] { animation: dialogIn .26s cubic-bezier(.2,.7,.3,1); }
+.settingsDialog[open]::backdrop { animation: backdropIn .26s ease-out; }
+@keyframes dialogIn { from { opacity: 0; transform: translateY(16px) scale(.985); } }
+@keyframes backdropIn { from { opacity: 0; } }
+:global(html):has(.settingsDialog[open]) { overflow: hidden; }
+.settingsDialog { --pad: clamp(24px, 3.4vw, 44px); overflow-y: auto; }
+.dialogBody { padding: 0 var(--pad) var(--pad); }
+.dialogHead { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin: 0 calc(-1 * var(--pad)); padding: var(--pad) var(--pad) 14px; background: var(--g-wall); }
+.dialogHead > div { display: grid; gap: 10px; }
+.dialogHead h3 { font-size: clamp(30px, 3.2vw, 44px); line-height: 1; letter-spacing: -0.045em; font-weight: 700; }
+.dialogClose { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px !important; background: var(--g-wall-2) !important; color: var(--g-ink) !important; touch-action: manipulation; }
+.dialogClose svg { width: 16px; height: 16px; }
+.dialogLead { font-size: 16px; line-height: 1.5; color: var(--g-ink-2); max-width: 60ch; margin-top: 6px !important; }
+.settingGroups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 28px; align-items: start; }
+.settingGroup { background: var(--card, #fff); border-radius: 16px; padding: 20px 22px 8px; }
+.settingGroup h4 { font: 400 12.5px/1.4 var(--g-mono); color: var(--g-placard); margin-bottom: 6px !important; }
+.settingGroup ul { list-style: none; padding: 0; margin: 0; }
+.settingGroup li { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 14px; row-gap: 4px; padding: 13px 0; border-top: 1px solid #ececea; }
+.settingGroup li > b, .settingGroup li > span:last-child { grid-column: 2; }
+.settingIcon { grid-row: span 2; align-self: start; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #f1f1ee; color: var(--g-ink); }
+.settingIcon svg { width: 19px; height: 19px; }
+.settingIcon[data-try] { background: #ece8ff; color: var(--g-stencil); }
+.settingGroup li:first-child { border-top: 0; }
+.settingGroup li b { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.settingGroup li > span:last-child { font-size: 14.5px; line-height: 1.45; color: var(--g-ink-2); }
+.tryTag { flex: none; font: 500 11.5px/1 var(--g-mono); color: var(--g-stencil); background: #ece8ff; border-radius: 999px; padding: 5px 8px; }
+@media (hover: hover) and (pointer: fine) {
+  .moreButton:hover { background: #2a2b2f !important; }
+  .dialogClose:hover { background: #e6e6e2 !important; }
+}
+@media (prefers-reduced-motion: reduce) { .settingsDialog[open], .settingsDialog[open]::backdrop { animation: none; } }
+@media (max-width: 720px) {
+  .moreSettings { padding: 20px; }
+  .moreButton { width: 100%; justify-content: space-between; }
+  .settingGroups { grid-template-columns: minmax(0, 1fr); }
+  .settingsDialog { width: 100%; max-width: 100%; max-height: 92vh; max-height: 92dvh; margin: auto 0 0; border-radius: 24px 24px 0 0; }
+  .settingsDialog[open] { animation-name: sheetIn; }
+  @keyframes sheetIn { from { transform: translateY(40px); opacity: 0; } }
+  .dialogBody { padding-bottom: calc(var(--pad) + env(safe-area-inset-bottom, 0px)); }
+}
 .sentenceNote { font: 400 12.5px/1.5 var(--g-mono); color: var(--g-placard); max-width: 52ch; margin-top: 18px !important; }
 @media (hover: hover) and (pointer: fine) {
   .choiceBox select:hover { background: #ddd5ff; }
@@ -182,7 +232,7 @@
 .builderMain { grid-area: main; display: grid; gap: 14px; align-content: start; }
 .formHead { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px 48px; flex-wrap: wrap; }
 .formHead > div { display: grid; gap: 16px; }
-.formHead > p { font-size: clamp(17px, 1.3vw, 20px); line-height: 1.5; color: var(--g-ink-2); max-width: 34ch; }
+.formHead > p { font-size: clamp(17px, 1.3vw, 20px); line-height: 1.5; color: var(--g-ink-2); max-width: 34ch; text-wrap: pretty; }
 .builderBoard { background: var(--card); border-radius: 20px; padding: 8px clamp(18px, 2vw, 28px) 10px; box-shadow: 0 0 0 1px var(--line); display: grid; }
 .builderGroup { display: grid; padding-top: 18px; }
 .groupLabel { font: 400 12px/1.4 var(--g-mono); color: var(--g-placard); padding-bottom: 4px; }
@@ -194,7 +244,7 @@
 .segment button { font: 500 12.5px/1 var(--g-text) !important; padding: 0 14px !important; min-height: 32px !important; border-radius: 8px !important; color: var(--g-placard); transition: background-color .18s, color .18s, box-shadow .18s; }
 .segment button[aria-checked=true] { background: #fff !important; color: var(--g-ink); box-shadow: 0 1px 2px rgba(17,18,20,.12), 0 0 0 1px rgba(17,18,20,.06) !important; }
 .builderRow[data-mode=required] .segment button[aria-checked=true] { color: var(--g-stencil); }
-.builderNote { font: 400 12.5px/1.5 var(--g-mono); color: var(--g-placard); padding-inline: 4px; }
+.builderNote { font: 400 12.5px/1.5 var(--g-mono); color: var(--g-placard); }
 /* The client's form sits on its own tinted stage, the same height as the board */
 .builderPreview { grid-area: preview; background: var(--g-wall-2); border-radius: 20px; padding: clamp(20px, 2.6vw, 40px); display: grid; align-content: start; justify-items: center; gap: 16px; }
 .builderPreview .clientPreview { width: 100%; max-width: 400px; gap: 14px; padding: 22px; position: sticky; top: 24px; }
@@ -291,7 +341,11 @@
 .pieceButtons { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 0 12px 12px; }
 .pieceButtons span { text-align: center; font-size: 11.5px; font-weight: 600; padding: 9px 4px; border-radius: 99px; background: #f1f1ee; box-shadow: inset 0 0 0 1px #e3e3df; white-space: nowrap; }
 .pieceButtons span { background: var(--g-ink); color: var(--g-on-ink); box-shadow: none; }
-@media (max-width: 760px) { .sessionScreen { width: 92%; } .pieceSheet { width: 40%; right: -4%; top: 52%; } }
+.quotedBelow { display: none; color: var(--g-placard); }
+/* The flash label sits over the feed phone rather than behind it */
+.feedWall figure:has(.tag) { position: relative; z-index: 3; }
+/* On a phone the opened piece covers the right of the cards, so the quoted note moves under the name */
+@media (max-width: 760px) { .sessionScreen { width: 92%; } .pieceSheet { width: 40%; right: -4%; top: 56%; } .quotedSide { display: none; } .quotedBelow { display: block; } }
 
 /* Vanta Pro: the client's lock screen beside the perks, then Free and Pro side by side */
 .pro { padding: var(--section) var(--gutter); border-top: 1px solid var(--line); }
@@ -353,7 +407,7 @@
 .plans li { font: 400 12.5px/1 var(--g-mono); padding: 8px 11px; border-radius: 999px; background: var(--g-wall-2); }
 .plans > div + div li { background: rgba(255,255,255,.1); }
 .plans li[data-pro=true] { background: var(--g-stencil) !important; color: #fff; }
-.proNote { font: 400 12.5px/1.5 var(--g-mono); color: var(--g-placard); margin-top: 14px !important; padding-inline: 4px; }
+.proNote { font: 400 12.5px/1.5 var(--g-mono); color: var(--g-placard); margin-top: 14px !important; }
 @media (hover: hover) and (pointer: fine) { .perkList button[aria-pressed=false]:hover { background: rgba(255,255,255,.6) !important; } }
 @media (max-width: 1100px) { .proGrid { grid-template-columns: 1fr; } .proCopy { padding: 0; } .lockPhone { width: min(100%, 320px); } }
 @media (max-width: 760px) {
@@ -491,4 +545,87 @@
 @media (max-width: 360px) {
   .segment button { padding: 0 7px !important; font-size: 11px !important; }
   .builderRow > span:first-child { font-size: 13px; }
+}
+
+/* Small phones: each status goes under the client's name, so names stay on one line */
+@media (max-width: 400px) {
+  .sheetRow, .compactSheet .sheetRow { grid-template-columns: 4em minmax(0, 1fr); row-gap: 2px; column-gap: 12px; }
+  .sheetRow > span:last-child { grid-column: 2; font-size: 12px; }
+  .sheetRow b { white-space: nowrap; }
+}
+
+/* Phones get their own page (MobileArtists.js); this one is for wider screens */
+@media (max-width: 720px) { .desktopPage { display: none !important; } }
+/* "See every setting" as the last row of the phone page's settings list */
+.moreRow { width: 100%; display: grid; grid-template-columns: 36px minmax(0, 1fr) 14px; column-gap: 14px; align-items: center; gap: 10px; min-height: 60px !important; padding: 8px 16px 8px 0 !important; text-align: left; }
+.moreRow > span:not([class]) { display: grid; gap: 2px; }
+.moreRow .settingIcon { grid-row: auto; align-self: center; background: #ece8ff; color: var(--g-stencil); }
+.moreRow b { font-size: 16px; font-weight: 600; color: var(--g-stencil); }
+.moreRow small { font-size: 13px; color: var(--g-ink-2); }
+.moreRow i { font-style: normal; font-size: 20px; color: #c3c3c0; }
+
+/* "Try it" pill and the live preview label: say plainly that this part is for playing with */
+.tryBadge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px 6px 9px; border-radius: 999px; background: var(--g-stencil); color: #fff; font: 600 12.5px/1 var(--font-sans, inherit); letter-spacing: 0; white-space: nowrap; }
+.tryBadge i, .liveLabel i { position: relative; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.tryBadge i::after, .liveLabel i::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: tryPulse 1.8s ease-out infinite; }
+@keyframes tryPulse { from { transform: scale(1); opacity: .7; } to { transform: scale(2.8); opacity: 0; } }
+.liveLabel { display: flex; justify-content: space-between; align-items: center; gap: 10px; font: 400 12.5px/1.4 var(--g-mono); color: var(--g-placard); }
+.liveLabel span { display: inline-flex; align-items: center; gap: 8px; color: var(--g-stencil); font-weight: 600; }
+.quizTop { justify-content: flex-start !important; gap: 8px 12px !important; }
+.result .quizTop { margin-bottom: 18px; }
+/* Answers read as choices: an empty ring that fills on press, and the arrow in violet */
+.answers button { padding-left: 52px !important; }
+.answers button::before { content: ''; position: absolute; left: 20px; top: 50%; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #c9c9c4; transition: box-shadow .15s; }
+.answers button[aria-pressed=true]::before, .answers button:active::before { box-shadow: inset 0 0 0 5px var(--g-stencil); }
+.answers button i { color: var(--g-stencil) !important; }
+@media (hover: hover) and (pointer: fine) {
+  .answers button:hover::before { box-shadow: inset 0 0 0 1.5px var(--g-stencil); }
+}
+@media (max-width: 720px) { .answers button { padding-left: 46px !important; } .answers button::before { left: 16px; } }
+@media (prefers-reduced-motion: reduce) { .tryBadge i::after, .liveLabel i::after { animation: none; } }
+
+/* Before the first answer the preview column waits; on the first answer the booking page rises in */
+.previewIn { display: grid; gap: 12px; animation: previewIn .45s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes previewIn { from { opacity: 0; transform: translateY(16px) scale(.98); } }
+.previewWaiting { display: grid; justify-items: center; align-content: center; gap: 18px; min-height: 420px; padding: 28px; border-radius: 24px; box-shadow: inset 0 0 0 1.5px #d6d6d1; text-align: center; }
+.previewWaiting p { display: grid; gap: 6px; font-size: 14.5px; line-height: 1.45; color: var(--g-ink-2); max-width: 30ch; text-wrap: balance; }
+.previewWaiting b { font-size: 16px; font-weight: 600; color: var(--g-ink); letter-spacing: -0.015em; }
+.waitingPhone { display: grid; gap: 7px; width: 120px; padding: 12px; border-radius: 16px; background: var(--card, #fff); box-shadow: 0 0 0 1px #e6e6e2; }
+.waitingPhone i { height: 10px; border-radius: 4px; background: #ececea; }
+.waitingPhone i:first-child { width: 60%; }
+.waitingPhone i:last-child { height: 18px; background: #dcdcd8; border-radius: 9px; }
+@media (max-width: 1080px) { .previewWaiting { min-height: 0; } }
+@media (prefers-reduced-motion: reduce) { .previewIn { animation: none; } }
+.liveLabel span { white-space: nowrap; }
+
+/* Every request: three app screens in a row, Home, Bookings and a booking's details, stepped like a gallery hang */
+.dayScreens { margin-top: clamp(40px, 5vw, 72px); display: grid; grid-template-columns: repeat(3, minmax(0, 290px)); justify-content: center; gap: clamp(20px, 6vw, 112px); align-items: start; }
+.dayScreens figure { display: grid; gap: 16px; }
+.dayScreens figure:nth-child(2) { margin-top: clamp(28px, 4vw, 64px); }
+.dayScreens figure:nth-child(3) { margin-top: clamp(56px, 8vw, 128px); }
+
+/* The questionnaire gate: while main has data-quiz-locked, the page ends at Your rules. Everything after it,
+   footer included, is hidden, and the section fills the screen so the last scroll position frames the quiz.
+   The card lights up when it reaches the middle (data-spotlight); scrolling on at the end bumps it and shakes
+   the lock in the note under it (data-nudge). */
+.page[data-quiz-locked] :global(#your-rules ~ section), .page[data-quiz-locked] :global(#m-rules ~ section), .page[data-quiz-locked] footer { display: none !important; }
+.page[data-quiz-locked] :global(#your-rules) { min-height: 100svh; display: grid; align-content: center; }
+.page [data-quiz-card] { transition: box-shadow .5s cubic-bezier(.2,.8,.25,1); }
+.page[data-quiz-locked] [data-spotlight] [data-quiz-card] { box-shadow: 0 0 0 2px var(--g-stencil), 0 30px 70px -30px color-mix(in srgb, var(--g-stencil) 60%, transparent) !important; }
+.page[data-quiz-locked] [data-nudge] [data-quiz-card] { animation: quizNudge .62s cubic-bezier(.3,.7,.4,1); }
+.gateNote { display: none; }
+.page[data-quiz-locked] .gateNote { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 28px !important; font: 400 13px/1.4 var(--g-mono); color: var(--g-placard); text-align: center; transition: color .3s; }
+.page[data-quiz-locked] [data-nudge] .gateNote { color: var(--g-stencil); }
+.page[data-quiz-locked] [data-nudge] .gateNote svg { animation: lockShake .5s ease-out .05s; }
+.gateNote svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; transform-origin: 50% 30%; }
+@keyframes quizNudge { 0% { transform: none; } 30% { transform: translateY(-10px); } 58% { transform: translateY(2px); } 78% { transform: translateY(-3px); } 100% { transform: none; } }
+@keyframes lockShake { 0%, 100% { transform: none; } 20% { transform: rotate(-14deg); } 40% { transform: rotate(11deg); } 60% { transform: rotate(-7deg); } 80% { transform: rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .page[data-quiz-locked] [data-nudge] [data-quiz-card], .page[data-quiz-locked] [data-nudge] .gateNote svg { animation: none; }
+}
+
+/* The booking-page mock on phones: the photo captions use the text face so "Skull and rose" does not break
+   onto three lines. */
+@media (max-width: 720px) {
+  .pick small { font: 500 11.5px/1.25 var(--g-text); letter-spacing: -0.01em; }
 }
