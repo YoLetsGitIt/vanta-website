@@ -21,6 +21,12 @@ function formatTime(iso) {
   });
 }
 
+function sessionLength(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (!h) return `${m} min`;
+  return `${h} hr${h === 1 ? '' : 's'}${m ? ` ${m} min` : ''}`;
+}
+
 export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const searchParams = useSearchParams();
   const { id: pathId } = use(params);
@@ -34,6 +40,8 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
   const [chosen, setChosen] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [timeNotice, setTimeNotice] = useState('');
+  // Shown when Confirm is pressed before a time is picked (the button never just sits disabled).
+  const [pickFirst, setPickFirst] = useState(false);
   // Studio offers with a deposit: picking a time saves nothing; the client pays on the
   // next screen and only then is the time booked.
   const [payment, setPayment] = useState(null); // { deposit_amount, deposit_options }
@@ -88,6 +96,9 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
         );
         return;
       }
+      // One time offered: it's already chosen, so the client can confirm straight away.
+      const open = proposalTimes(data);
+      setChosen(current => (current && open.includes(current) ? current : open.length === 1 ? open[0] : null));
       if (linkToken && data.deposit_required) {
         const p = await fetch(`${BACKEND_URL}/bookings/${id}/proposal/payment?t=${encodeURIComponent(linkToken)}`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).catch(() => null);
         if (p?.deposit_amount) setPayment(p);
@@ -218,19 +229,48 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
               {times.map((t) => (
                 <button
                   key={t}
-                  onClick={() => setChosen(t)}
+                  className="proposal-time"
+                  onClick={() => { setChosen(t); setPickFirst(false); }}
                   aria-pressed={chosen === t}
                   style={{
-                    padding: '18px 20px', borderRadius: 14, textAlign: 'left',
+                    display: 'flex', alignItems: 'center', gap: 14, width: '100%',
+                    padding: '18px 20px', borderRadius: 14, textAlign: 'left', font: 'inherit',
                     background: chosen === t ? 'rgba(var(--ink-rgb), 0.12)' : 'rgba(var(--ink-rgb), 0.05)',
-                    border: chosen === t ? '1px solid rgba(var(--ink-rgb), 0.4)' : '1px solid rgba(var(--ink-rgb), 0.1)',
-                    color: 'var(--ink)', cursor: 'pointer', transition: 'all 0.15s',
+                    border: chosen === t ? '1.5px solid var(--ink)' : pickFirst ? '1px solid rgba(224,168,79,0.7)' : '1px solid rgba(var(--ink-rgb), 0.18)',
+                    color: 'var(--ink)', cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                    transition: 'background-color 150ms ease, border-color 150ms ease',
                   }}
                 >
+                  {/* A choice, not a label: the circle fills when this is the time. */}
+                  <span aria-hidden="true" style={{
+                    flexShrink: 0, width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                    border: chosen === t ? '0' : '1.5px solid rgba(var(--ink-rgb), 0.35)',
+                    background: chosen === t ? 'var(--ink)' : 'transparent', color: 'var(--on-ink)',
+                  }}>
+                    {chosen === t && <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 6.3 5 8.7 9.5 3.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                  </span>
                   <span style={{ fontSize: 15, fontWeight: chosen === t ? 600 : 400 }}>{formatTime(t)}</span>
                 </button>
               ))}
             </div>
+
+            {(Number(booking.estimated_quote) > 0 || Number(booking.proposed_duration_minutes) > 0) && (
+              <div style={{ display: 'grid', gap: 10, marginBottom: 24 }}>
+                {Number(booking.estimated_quote) > 0 && (
+                  <div>
+                    <p style={{ margin: '0 0 4px', color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 13 }}>Estimated quote</p>
+                    <p style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{money(Number(booking.estimated_quote))} <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--warning, #b7791f)' }}>estimate only</span></p>
+                    <p style={{ margin: '4px 0 0', color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 12, lineHeight: 1.5 }}>This is an estimate, not a final price. The final price may change depending on the size, detail and time your tattoo takes.</p>
+                  </div>
+                )}
+                {Number(booking.proposed_duration_minutes) > 0 && (
+                  <div>
+                    <p style={{ margin: '0 0 4px', color: 'rgba(var(--ink-rgb), 0.5)', fontSize: 13 }}>Session length</p>
+                    <p style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{sessionLength(Number(booking.proposed_duration_minutes))}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {depositRequired && depositAmount && (
               <div style={{ marginBottom: 32 }}>
@@ -242,13 +282,23 @@ export default function ConfirmBookingPage({ params, receiptOnly = false }) {
               </div>
             )}
 
+            {pickFirst && !chosen && (
+              <p role="alert" style={{ margin: '0 0 12px', color: 'var(--ink)', fontSize: 14, fontWeight: 600 }}>Choose one of the times above first.</p>
+            )}
             <button
-              onClick={() => (needsDeposit ? setView('paying') : confirmBooking())}
-              disabled={!chosen}
+              onClick={() => {
+                if (!chosen) {
+                  // Say what's missing instead of a button that does nothing.
+                  setPickFirst(true);
+                  document.querySelector('.proposal-time')?.focus();
+                  return;
+                }
+                if (needsDeposit) setView('paying'); else confirmBooking();
+              }}
               style={{
-                width: '100%', padding: '16px', background: 'var(--ink)', color: 'var(--on-ink)',
-                border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 15,
-                cursor: chosen ? 'pointer' : 'not-allowed', opacity: chosen ? 1 : 0.4,
+                width: '100%', minHeight: 52, padding: '16px', background: 'var(--ink)', color: 'var(--on-ink)',
+                border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 15, cursor: 'pointer',
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               {needsDeposit ? 'Continue to pay deposit' : depositRequired && depositAmount ? `Confirm & pay ${money(depositCharge(depositAmount, payment?.deposit_options).total)}` : 'Confirm booking'}
