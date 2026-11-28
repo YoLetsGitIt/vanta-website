@@ -29,7 +29,8 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
       await page.goto(`${base}/consent?token=${token}`, { waitUntil: 'networkidle' });
       await page.getByText('Take or choose a photo of your ID').waitFor();
       if (token.startsWith('bc_')) {
-        await page.getByLabel('Full name', { exact: true }).fill('Consent Client');
+        await page.getByLabel('First name', { exact: true }).fill('Consent');
+        await page.getByLabel('Last name', { exact: true }).fill('Client');
         await fillDob(page, '1990-01-01');
       }
       await page.getByLabel('Photo ID').setInputFiles({ name: 'id.png', mimeType: 'image/png', buffer: png });

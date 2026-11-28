@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import PhotoIdField from '../../components/PhotoIdField';
 import { uploadPhotoIdAnswers } from '../../lib/photoId';
 import { joinName, splitName } from '../../lib/booking-contact.mjs';
+import AddressFields, { EMPTY_ADDRESS, addressProblem } from '@/components/AddressFields';
+import { addressAnswers, addressFieldOf, withAddressField } from '@/lib/consent-address';
 
 const BACKEND = 'https://inkspire-backend-xa2a.onrender.com';
 
@@ -65,6 +67,8 @@ function ConsentForm() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [loadErr, setLoadErr]     = useState('');
   const [templateState, setTemplateState] = useState({});
+  // A studio consent form can ask for the address: asked at the first form's address field, given to every form that asks.
+  const [address, setAddress] = useState(EMPTY_ADDRESS);
   const [guardianName, setGuardianName]           = useState('');
   const [guardianRelationship, setGuardianRelationship] = useState('Parent');
   const [guardianEmail, setGuardianEmail]         = useState('');
@@ -77,7 +81,7 @@ function ConsentForm() {
   useEffect(() => {
     if (!token) { setLoadErr('No consent token provided.'); return; }
     getPublicConsentInfo(token)
-      .then(data => { setInfo(data); { const n = splitName(data.signer_name); setFirstName(n.first); setLastName(n.last); } setDateOfBirth(data.dob || ''); })
+      .then(data => { setInfo({ ...data, templates: (data.templates ?? []).map(withAddressField) }); { const n = splitName(data.signer_name); setFirstName(n.first); setLastName(n.last); } setDateOfBirth(data.dob || ''); })
       .catch(e => setLoadErr(e.message));
   }, [token]);
 
@@ -117,6 +121,11 @@ function ConsentForm() {
     for (const t of templates) {
       const ts = templateState[t.id] ?? {};
       for (const field of (t.fields ?? [])) {
+        if (field.type === 'address') {
+          const problem = addressProblem(address, field.required);
+          if (problem) { setSubmitErr(`${field.label || 'Address'}: ${problem.charAt(0).toLowerCase()}${problem.slice(1)}`); return; }
+          continue;
+        }
         if (field.required && !ts.answers?.[field.id]) {
           setSubmitErr(`Please fill in: ${field.label}`);
           return;
@@ -152,7 +161,7 @@ function ConsentForm() {
         if (needsGuardian && guardianSigBlobs[t.id]) guardianSigPath = await uploadSig(guardianSigBlobs[t.id]);
         submissions.push({
           template_id:            t.id,
-          answers:                await uploadPhotoIdAnswers(ts.answers ?? {}, file => photoIdUploadSign(info.studio_id, file, token)),
+          answers:                { ...await uploadPhotoIdAnswers(ts.answers ?? {}, file => photoIdUploadSign(info.studio_id, file, token)), ...addressAnswers(addressFieldOf(t), address) },
           is_minor:               isMinor,
           client_signature_path:  clientSigPath,
           guardian_name:          needsGuardian ? guardianName : '',
@@ -241,7 +250,16 @@ function ConsentForm() {
               </div>
 
               <div style={s.fieldStack}>
-                {(t.fields ?? []).map(field => (
+                {(t.fields ?? []).map(field => field.type === 'address' ? (
+                  // Asked once, in the first form that asks; later forms are given it.
+                  templates.find(x => addressFieldOf(x)) === t && field === addressFieldOf(t) ? (() => {
+                    const required = templates.some(x => addressFieldOf(x)?.required);
+                    return (
+                      <AddressFields key={field.id} value={address} onChange={setAddress} required={required} inputStyle={s.input} legend={field.label || 'Address'}
+                        labelStyle={{ ...s.label, marginBottom: 0 }} legendExtra={required ? null : <span style={{ fontWeight: 400, opacity: 0.7 }}> (optional)</span>} />
+                    );
+                  })() : null
+                ) : (
                   <ConsentFormField
                     key={field.id}
                     field={field}
