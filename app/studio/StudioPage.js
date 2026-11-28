@@ -2,20 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 import styles from './studio.module.css';
+import bento from './bento.module.css';
+import { bentoTiles } from './StudioBento';
+import StudioHero from './StudioHero';
 
 const studioApp = (process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.vanta.tattoo').replace(/\/$/, '');
 const links = { signup: `${studioApp}/signup/`, signin: `${studioApp}/signin/`, pricing: '/pricing' };
-
-// A screen from Vanta Studio, shown in a browser window with a placard under it.
-function Screen({ src, width, height, alt, title, note = 'Inside Vanta Studio', narrow = false }) {
-  return <figure className={styles.screen} data-narrow={narrow}>
-    <div className={styles.window}>
-      <span className={styles.windowBar} aria-hidden="true"><i/><i/><i/></span>
-      <img src={src} alt={alt} width={width} height={height} loading="lazy"/>
-    </div>
-    <figcaption className={styles.placard}><strong>{title}</strong><span>{note}</span></figcaption>
-  </figure>;
-}
 
 const roles = [
   { who: 'For the owner', title: 'See the whole week', text: 'Sales, deposits and payouts, every artist at once.' },
@@ -23,32 +15,12 @@ const roles = [
   { who: 'For your artists', title: 'Their own app', text: 'Each artist runs their bookings in Vanta Artist.' },
 ];
 
+// Each feature is a bento of four working tiles (StudioBento.js); the big tile alternates sides on desktop.
 const features = [
-  {
-    id: 'bookings', kicker: 'Bookings', title: <>Every booking, <em>one inbox.</em></>,
-    text: 'Share one studio link, or put the booking form on your own website. Clients pick an artist and a time, send their idea and pay the deposit. Anything that needs a reply lands in one list.',
-    points: ['Your studio link: vanta.tattoo/b/yourstudio', 'Booking form for your website', 'Instant booking into open times', 'Needs action: one list for the desk'],
-    screen: { src: '/studio-page/booking-form.webp', width: 700, height: 1035, alt: 'The studio booking form where a client adds their details and tattoo idea', title: 'Your booking form', note: 'What clients see', narrow: true },
-  },
-  {
-    id: 'clients', kicker: 'Clients and consent', title: <>One record <em>per client.</em></>,
-    text: 'Every client has one record across all your artists: their sessions, contact details and signed consent forms. Consent is signed before the day, with photo ID and guardian consent for under 18s.',
-    points: ['One client, every artist', 'Consent signed before the day', 'Photo ID and under 18s', 'Import your existing clients'],
-    screen: { src: '/studio-page/client-consent.webp', width: 700, height: 1035, alt: 'A client record in Vanta Studio with sessions, contact details and a signed consent form', title: 'Client record', narrow: true },
-  },
-  {
-    id: 'money', kicker: 'The money', title: <>Deposits in. <em>Artists paid.</em></>,
-    text: 'Deposits are paid by card when clients book. At the end of the day you can see sales, deposits and what’s still owed, and pay each artist their share.',
-    points: ['Card deposits when they book', 'Sales and remaining balances', 'Artist payouts', 'Analytics by artist and type'],
-    screen: { src: '/studio-page/finances.webp', width: 1400, height: 1136, alt: 'The Vanta Studio financial page with gross sales, deposits, remaining balances and a weekly sales chart', title: 'Financial' },
-  },
-  {
-    id: 'team', kicker: 'Your team', title: <>Bring your artists <em>in a minute.</em></>,
-    text: 'Artists join with your studio code in the Vanta Artist app. Set their rates, schedules and stations, and add guest artists when they visit.',
-    points: ['Join with a studio code', 'Rates and appointment types', 'Stations and schedules', 'Guest artists'],
-    code: 'K7P-M3Q',
-    screen: { src: '/studio-page/artists.webp', width: 1400, height: 1136, alt: 'The list of artists at a studio in Vanta Studio', title: 'My artists' },
-  },
+  { id: 'bookings', kicker: 'Bookings', title: <>Every booking, <em>one inbox.</em></>, text: 'Clients book from your link or the form on your own website. Requests, times to confirm and unpaid deposits wait in Needs action.' },
+  { id: 'clients', kicker: 'Clients and consent', title: <>One record <em>per client.</em></>, text: 'Every client has one record across all your artists: their bookings, contact details, signed consent forms and notes.' },
+  { id: 'money', kicker: 'The money', title: <>Deposits in. <em>Artists paid.</em></>, text: 'Deposits are paid by card when clients book. See sales and the money that came in, and pay each artist what they’re owed.' },
+  { id: 'team', kicker: 'Your team', title: <>Bring your artists <em>in a minute.</em></>, text: 'Artists join with your studio code. Set appointment types, each artist’s hours and your stations once.' },
 ];
 
 export default function StudioPage() {
@@ -69,38 +41,22 @@ export default function StudioPage() {
       <nav aria-label="Vanta products"><a href="/">For clients</a><a href="/artists">For artists</a><a href={links.signin} className={styles.navSignin}>Sign in</a><a href={links.signup} className={styles.navCta}>Start free trial</a></nav>
     </header>
 
-    <section className={styles.hero} aria-labelledby="studio-heading">
-      <img className={styles.room} src="/studio-page/room.webp" alt="" width="1536" height="1024"/>
-      <div className={styles.heroInner}>
-        <div className={styles.heroCopy}>
-          <p className={styles.kicker}>Vanta Studio · on the web</p>
-          <h1 id="studio-heading"><span>Run the whole studio</span> <em>from one desk.</em></h1>
-          <p className={styles.lead}>Every artist’s schedule, every booking, every client and every payout, in one place built for tattoo studios.</p>
-          <div className={styles.actions}><a href={links.signup} className={styles.primary}>Start your 14-day trial</a><a href={links.pricing} className={styles.secondary}>See pricing</a></div>
-        </div>
-        <figure className={styles.print}>
-          <img src="/studio-page/schedule.webp" alt="The Vanta Studio schedule for one day, split by station, with each client’s booking and artist" width="1600" height="1298"/>
-          <figcaption className={styles.placard}><strong>Schedule by station</strong><span>Inside Vanta Studio</span></figcaption>
-        </figure>
-      </div>
-    </section>
+    <StudioHero links={links}/>
 
     <ul className={styles.roles} aria-label="Who Vanta Studio is for">
       {roles.map(role => <li key={role.who}><p className={styles.kicker}>{role.who}</p><b>{role.title}</b><span>{role.text}</span></li>)}
     </ul>
 
     <div id="features">
-    {features.map((feature, index) => <section key={feature.id} id={feature.id} className={styles.feature} data-flip={index % 2 === 1} aria-labelledby={`${feature.id}-heading`} data-reveal>
-      <div className={styles.featureInner}>
+    {features.map((feature, index) => <section key={feature.id} id={feature.id} className={bento.section} data-flip={index % 2 === 1 || undefined} aria-labelledby={`${feature.id}-heading`}>
+      <div className={bento.head}>
         <div className={styles.featureCopy}>
           <p className={styles.kicker}>{feature.kicker}</p>
           <h2 id={`${feature.id}-heading`}>{feature.title}</h2>
-          <p className={styles.featureText}>{feature.text}</p>
-          <ul className={styles.points}>{feature.points.map(point => <li key={point}>{point}</li>)}</ul>
-          {feature.code && <p className={styles.code}><span>Your studio code</span><b>{feature.code}</b></p>}
         </div>
-        <Screen {...feature.screen}/>
+        <p className={bento.lead}>{feature.text}</p>
       </div>
+      <div className={bento.bento}>{bentoTiles[feature.id]}</div>
     </section>)}
     </div>
 

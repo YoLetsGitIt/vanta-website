@@ -37,41 +37,15 @@
 .secondaryDark { background: rgba(255,255,255,.12); color: var(--g-on-ink) !important; }
 .primary:active, .secondary:active, .primaryLight:active, .secondaryDark:active { transform: scale(.97); }
 
-/* Hero: the studio room in daylight, fading into the wall where the words sit; the schedule hangs on its wall */
-.hero { position: relative; overflow: hidden; min-height: clamp(560px, 56vw, 820px); display: grid; }
-.room { position: absolute; inset: 0; width: 100%; height: 100% !important; object-fit: cover; object-position: center 40%; max-width: none !important; }
-.hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--g-wall) 0%, color-mix(in srgb, var(--g-wall) 92%, transparent) 34%, color-mix(in srgb, var(--g-wall) 15%, transparent) 64%, transparent 100%), linear-gradient(0deg, var(--g-wall) 0%, transparent 24%), linear-gradient(180deg, var(--g-wall) 0%, transparent 12%); }
-.heroInner { position: relative; z-index: 1; width: 100%; max-width: calc(1600px + 2 * var(--gutter)); margin: 0 auto; padding: clamp(24px, 4vw, 64px) var(--gutter) clamp(72px, 7vw, 120px); display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(32px, 4vw, 72px); align-items: center; }
-.heroCopy { display: grid; gap: clamp(18px, 2vw, 26px); justify-items: start; }
-.hero h1 { font-size: clamp(44px, 5.6vw, 96px); line-height: .93; font-weight: 700; letter-spacing: -0.055em; margin-left: -0.04em; }
-.hero h1 span, .hero h1 em { display: block; }
-.lead { font-size: clamp(17px, 1.35vw, 21px); line-height: 1.5; max-width: 34ch; }
-.print { background: #fff; padding: clamp(8px, .8vw, 12px) clamp(8px, .8vw, 12px) clamp(12px, 1.2vw, 16px); box-shadow: 0 40px 70px -34px rgba(0,0,0,.6); display: grid; gap: 12px; transform: rotate(-1deg); }
-.print img { width: 100%; background: #0b0b0c; }
 
-/* Who it's for: three cards that overlap the bottom of the room */
+/* Who it's for: three cards that overlap the bottom of the stage */
 .roles { position: relative; z-index: 2; max-width: calc(1600px + 2 * var(--gutter)); margin: calc(-1 * clamp(40px, 4vw, 64px)) auto 0 !important; padding: 0 var(--gutter) !important; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(12px, 1.4vw, 20px); }
 .roles li { background: var(--card); border-radius: 18px; padding: clamp(18px, 2vw, 28px); display: grid; gap: 6px; box-shadow: 0 0 0 1px var(--line), 0 20px 40px -30px rgba(17,18,20,.4); }
 .roles b { font: 700 clamp(19px, 1.6vw, 24px)/1.15 var(--g-display); letter-spacing: -0.03em; }
 .roles span { font-size: 15px; line-height: 1.5; color: var(--g-ink-2); }
 
-/* Features: words on one side, a real screen on the other, alternating */
-.feature { padding: var(--section) var(--gutter) 0; }
-.featureInner { max-width: 1600px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(32px, 5vw, 96px); align-items: center; }
-.feature[data-flip=true] .featureCopy { order: 2; }
 .featureCopy { display: grid; gap: 18px; justify-items: start; }
 .featureText { font-size: clamp(17px, 1.3vw, 20px); line-height: 1.55; color: var(--g-ink-2); max-width: 40ch; }
-.points { display: grid; gap: 10px; margin-top: 6px !important; }
-.points li { display: flex; align-items: center; gap: 12px; font-size: 15.5px; }
-.points li::before { content: ''; width: 7px; height: 7px; background: var(--g-stencil); flex: none; }
-.code { display: inline-flex; align-items: center; gap: 12px; margin-top: 8px !important; padding: 8px 8px 8px 14px; border-radius: 999px; background: var(--card); box-shadow: 0 0 0 1px var(--line); font: 400 12px/1 var(--g-mono); color: var(--g-placard); }
-.code b { font: 500 16px/1 var(--g-mono); letter-spacing: .08em; color: var(--g-stencil); padding: 9px 13px; border-radius: 999px; background: #ece8ff; }
-.screen { display: grid; gap: 12px; }
-.screen[data-narrow=true] { justify-self: center; width: min(100%, 420px); }
-.window { border-radius: 14px; overflow: hidden; background: #0b0b0c; box-shadow: 0 40px 70px -40px rgba(17,18,20,.6), 0 0 0 1px var(--line); }
-.windowBar { display: flex; gap: 6px; align-items: center; height: 28px; padding: 0 14px; background: #2a2b2e; }
-.windowBar i { width: 9px; height: 9px; border-radius: 50%; background: #55575c; }
-.window img { width: 100%; }
 
 /* Price */
 .price { padding: var(--section) var(--gutter); }
@@ -106,7 +80,7 @@
 /* Motion */
 @media (prefers-reduced-motion: no-preference) {
   .page [data-reveal][data-visible=true] h2 { animation: rise .7s cubic-bezier(.2,.7,.3,1) both; }
-  .page [data-reveal][data-visible=true] .screen, .page [data-reveal][data-visible=true] .priceCard { animation: rise .8s .12s cubic-bezier(.2,.7,.3,1) both; }
+  .page [data-reveal][data-visible=true] .priceCard { animation: rise .8s .12s cubic-bezier(.2,.7,.3,1) both; }
   @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 }
 @media (hover: hover) and (pointer: fine) {
@@ -116,10 +90,7 @@
 
 /* Tablet */
 @media (max-width: 1100px) {
-  .heroInner, .featureInner, .priceInner { grid-template-columns: 1fr; }
-  .feature[data-flip=true] .featureCopy { order: 0; }
-  .print { max-width: 720px; }
-  .hero::after { background: linear-gradient(180deg, var(--g-wall) 0%, color-mix(in srgb, var(--g-wall) 88%, transparent) 46%, color-mix(in srgb, var(--g-wall) 30%, transparent) 75%, var(--g-wall) 100%); }
+  .priceInner { grid-template-columns: 1fr; }
   .roles { grid-template-columns: 1fr 1fr 1fr; }
   .ctaInner { grid-template-columns: 1fr; }
   .ctaRoom { position: absolute; inset: 0; opacity: .3; -webkit-mask-image: none; mask-image: none; }
@@ -133,13 +104,31 @@
   .navigation nav { gap: 16px; }
   .navigation nav a { font-size: 14px; }
   .navigation nav .navCta, .navigation nav .navSignin { display: none; }
-  .hero h1 { font-size: clamp(40px, 12vw, 60px); margin-left: 0; }
   .actions { width: 100%; }
   .actions a { flex: 1 1 auto; white-space: nowrap; padding: 0 20px; font-size: 15px; }
-  .print { transform: none; }
   .roles { grid-template-columns: 1fr; margin-top: -24px !important; }
-  .points li { font-size: 15px; }
   .ctaInner { border-radius: 20px; }
   .ctaCopy { padding: 28px 20px 32px; }
   .footerBottom nav { gap: 0 18px; }
+}
+
+/* ---------- Polish, Nov 27 ---------- */
+
+@media (max-width: 760px) {
+  /* Who it is for: one card with three rows, instead of three stacked cards. */
+  .roles { gap: 0; margin-top: -24px !important; }
+  .roles li { border-radius: 0; box-shadow: none; padding: 16px 18px; border-top: 1px solid var(--line); }
+  .roles li:first-child { border-top: 0; border-radius: 18px 18px 0 0; }
+  .roles li:last-child { border-radius: 0 0 18px 18px; }
+  .roles { filter: drop-shadow(0 18px 24px rgba(17,18,20,.1)); }
+  .roles li:first-child { box-shadow: 0 0 0 1px var(--line); }
+  .roles li + li { box-shadow: -1px 0 0 0 var(--line), 1px 0 0 0 var(--line); }
+  .roles li:last-child { box-shadow: -1px 0 0 0 var(--line), 1px 0 0 0 var(--line), 0 1px 0 0 var(--line); }
+  .roles b { font-size: 18px; }
+  .roles span { font-size: 14.5px; }
+}
+
+/* Below desktop the first screen ends in its own button, so "Who it's for" starts under it, not over it. */
+@media (max-width: 999px) {
+  .roles { margin-top: 20px !important; }
 }
